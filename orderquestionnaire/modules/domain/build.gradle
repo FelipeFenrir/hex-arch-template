@@ -1,0 +1,79 @@
+plugins {
+    id 'info.solidsoft.pitest'
+}
+
+group = 'com.acme.orderquestionnaire'
+
+dependencies {
+    implementation project(':shared')
+
+    // Apenas regras de negócio puras, sem dependências de frameworks
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"
+    testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
+    testImplementation "io.cucumber:cucumber-java:${cucumberVersion}"
+    testImplementation "io.cucumber:cucumber-junit-platform-engine:${cucumberVersion}"
+    testImplementation 'org.junit.platform:junit-platform-suite'
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 1.0
+            }
+
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 1.0
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
+pitest {
+    pitestVersion = '1.20.3'
+    junit5PluginVersion = '1.2.1'
+
+    targetClasses = [
+            'com.acme.orderquestionnaire.domain.question.*',
+            'com.acme.orderquestionnaire.domain.question.answer.*',
+            'com.acme.orderquestionnaire.domain.question.answer.strategy.*',
+            'com.acme.orderquestionnaire.domain.questionnaire.*',
+            'com.acme.orderquestionnaire.domain.questionnaire.conditioners.*'
+    ]
+
+    targetTests = [
+            'com.acme.orderquestionnaire.domain.question.*',
+            'com.acme.orderquestionnaire.domain.questionnaire.*',
+            'com.acme.orderquestionnaire.domain.FunctionalTest*'
+    ]
+
+    excludedClasses = [
+            'com.acme.orderquestionnaire.domain.questionnaire.tree.*',
+            'com.acme.orderquestionnaire.domain.questionnaire.QuestionValidationFailure'
+    ]
+
+    excludedTestClasses = [
+            'com.acme.orderquestionnaire.domain.FunctionalTest'
+    ]
+
+    threads = 4
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    failWhenNoMutations = true
+
+    // Fase inicial com gate moderado para facilitar rollout para outros módulos.
+    mutationThreshold = 60
+    coverageThreshold = 65
+}
+

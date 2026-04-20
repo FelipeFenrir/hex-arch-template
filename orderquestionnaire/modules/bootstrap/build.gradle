@@ -1,0 +1,60 @@
+plugins {
+    id 'info.solidsoft.pitest'
+    id 'org.springframework.boot' version "${springBootVersion}"
+}
+
+group = 'com.acme.orderquestionnaire'
+
+dependencies {
+    implementation project(':modules:domain')
+    implementation project(':modules:application')
+//    implementation project(':modules:adapters:in:api-rest')
+//    implementation project(':modules:adapters:in:api-grpc')
+//    implementation project(':modules:adapters:in:queue-sqs')
+    implementation project(':modules:adapters:out:mongo')
+//    implementation project(':modules:adapters:out:cloud-aws')
+//    implementation project(':modules:observability')
+    implementation project(':shared')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    implementation "io.micrometer:micrometer-tracing-bridge-otel:${micrometerTracing}"
+    implementation "io.micrometer:micrometer-registry-prometheus"
+    implementation "ch.qos.logback:logback-classic:${logBackVersion}"
+    implementation "net.logstash.logback:logstash-logback-encoder:${logstashEncoderVersion}"
+
+//    implementation "io.grpc:grpc-stub:${grpcVersion}"
+//    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+//    implementation "net.devh:grpc-server-spring-boot-starter:${grpcSpringStarter}"
+
+    implementation "software.amazon.awssdk:sqs:${awsSdkV2Version}"
+    implementation "software.amazon.awssdk:sns:${awsSdkV2Version}"
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+
+//    implementation "org.togglz:togglz-spring-boot-starter:${togglzVersion}"
+
+    implementation "com.networknt:json-schema-validator:${jsonSchemaValidator}"
+
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:mongodb'
+    testImplementation 'org.testcontainers:localstack'
+}
+
+tasks.withType(Test).configureEach {
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}

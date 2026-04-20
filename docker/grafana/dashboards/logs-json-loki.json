@@ -1,0 +1,35 @@
+{
+  "id": null,
+  "uid": "logs-json-loki",
+  "title": "Logs JSON Loki",
+  "tags": ["local", "logs"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+	"from": "now-1h",
+	"to": "now"
+  },
+  "panels": [
+	{
+	  "id": 1,
+	  "type": "logs",
+	  "title": "Container Logs",
+	  "gridPos": { "h": 20, "w": 24, "x": 0, "y": 0 },
+	  "datasource": { "type": "loki", "uid": "loki" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "{container=~\".+\"}"
+		}
+	  ],
+	  "options": {
+		"showLabels": true,
+		"showTime": true,
+		"sortOrder": "Descending"
+	  }
+	}
+  ]
+}
+

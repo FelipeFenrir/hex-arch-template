@@ -1,0 +1,12 @@
+plugins {
+    id 'java-library'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
+    implementation "com.github.f4b6a3:uuid-creator:${uuidCreatorVersion}"
+}

@@ -1,0 +1,17 @@
+rootProject.name = 'hex-arch-template'
+
+include(
+        ':modules:domain:participantcatalog',
+        ':modules:domain:personmdm',
+        ':modules:domain:productcatalog',
+        ':modules:application:personmdm',
+        ':modules:observability',
+        ':shared'
+)
+
+includeBuild(
+        'security-server'
+)
+includeBuild(
+        'orderquestionnaire'
+)

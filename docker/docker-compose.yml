@@ -1,0 +1,210 @@
+# docker/docker-compose.yml
+
+services:
+
+  # ---------------------------------------------------------
+  # MongoDB
+  # ---------------------------------------------------------
+  mongo:
+    image: mongo:7.0
+    container_name: db_mongo
+    ports: [ "27017:27017" ]
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
+
+  # ---------------------------------------------------------
+  # Mongo Express (UI para visualizar dados)
+  # ---------------------------------------------------------
+  mongo-express:
+    image: mongo-express:1.0
+    container_name: hex_mongo_express
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: secret
+    ports: [ "8081:8081" ]
+    depends_on: [ mongo ]
+
+  # ---------------------------------------------------------
+  # MiniStack (AWS)
+  # ---------------------------------------------------------
+#  ministack:
+#    image: nahuelnucera/ministack
+#    container_name: ministack
+#    environment:
+#      #SERVICES: sqs,sns, s3, dynamodb, lambda, cloudwatch, ecs, ec2, iam
+#      AWS_DEFAULT_REGION: us-east-1
+#      LS_LOG: info
+#    ports: [ "4566:4566" ]
+#    volumes:
+#      # Mount a local shell script to be executed once the container starts
+#      - ./ministack/init-resources.sh:/etc/ministack/init/ready.d/init-resources.sh
+
+  ministack:
+    image: ministackorg/ministack:latest
+    container_name: ministack
+    environment:
+      AWS_DEFAULT_REGION: us-east-1
+      LS_LOG: info
+    ports:
+      - "4566:4566"
+    volumes:
+      # Mount a local shell script to be executed once the container starts
+      - ./ministack/init-resources.sh:/etc/ministack/init/ready.d/init-resources.sh
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4566/_ministack/health')" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------------------------------------
+  # OpenTelemetry Collector
+  # ---------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.102.0
+    container_name: otel_collector
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./otel-collector/config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+
+  # ---------------------------------------------------------
+  # Prometheus
+  # ---------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports: [ "9090:9090" ]
+
+  # ---------------------------------------------------------
+  # Tempo (traces)
+  # ---------------------------------------------------------
+  tempo:
+    image: grafana/tempo:2.6.0
+    container_name: tempo
+    command: ["-config.file=/etc/tempo/config.yml"]
+    volumes:
+      - ./tempo/config.yml:/etc/tempo/config.yml
+    ports: [ "3200:3200" ]
+
+  # ---------------------------------------------------------
+  # Loki (logs)
+  # ---------------------------------------------------------
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml
+    ports: [ "3100:3100" ]
+
+  # ---------------------------------------------------------
+  # Promtail (coleta logs do app)
+  # ---------------------------------------------------------
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./promtail/config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - loki
+
+  # ---------------------------------------------------------
+  # Grafana
+  # ---------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: grafana
+    ports: [ "3000:3000" ]
+    volumes:
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on: [ loki, tempo, prometheus ]
+
+  # ---------------------------------------------------------
+  # StackPort (simula AWS)
+  # ---------------------------------------------------------
+  stackport:
+    build:
+      context: stackport
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - AWS_ENDPOINT_URL=http://ministack:4566
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      ministack:
+        condition: service_healthy
+
+  # ---------------------------------------------------------
+  # AWS Manager (simula AWS)
+  # ---------------------------------------------------------
+#  aws-manager:
+#    build:
+#      context: aws-manager
+#      dockerfile: Dockerfile
+#    depends_on:
+#      - ministack
+#    environment:
+#      - AWS_ACCESS_KEY_ID=test
+#      - AWS_SECRET_ACCESS_KEY=test
+#      - AWS_DEFAULT_REGION=us-east-1
+#      - AWS_ENDPOINT_URL=http://ministack:4566
+#      - FLASK_DEBUG=1
+#    ports:
+#      - "5000:5000"
+#    volumes:
+#      - ./aws-manager/app.py:/app/app.py
+#      - ./aws-manager/aws_manager:/app/aws_manager
+#      - ./aws-manager/templates:/app/templates
+#      - ./aws-manager/static:/app/static
+#      - ./aws-manager/data:/app/data
+
+  # ---------------------------------------------------------
+  # Aplicação (bootstrap)
+  # ---------------------------------------------------------
+#  app:
+#    image: acme/hex-arch-template:latest
+#    container_name: app
+#    environment:
+##      - SPRING_PROFILES_ACTIVE:docker
+#      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+#      - AWS_ENDPOINT=http://localstack:4566
+#      - AWS_REGION=us-east-1
+#      - AWS_ACCESS_KEY_ID=test
+#      - AWS_SECRET_ACCESS_KEY=test
+#      - MONGO_URI:mongodb://mongo:27017
+##      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/admin
+#    depends_on: [ localstack, mongo, otel-collector, promtail ]
+#    ports:
+#      - "8080:8080"
+#    logging: # opcional; logs vão para stdout
+#      driver: "json-file"
+#      options:
+#        max-size: "10m"
+#        max-file: "5"
+#        mode: non-blocking
+
+volumes:
+  mongo_data:

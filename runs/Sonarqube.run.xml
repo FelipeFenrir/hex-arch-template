@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="SonarQube" type="GradleRunConfiguration" factoryName="Gradle">
+        <ExternalSystemSettings>
+            <option name="externalProjectPath" value="$PROJECT_DIR$" />
+            <option name="taskNames">
+                <list>
+                    <option value="sonarqube" />
+                </list>
+            </option>
+            <option name="externalSystemIdString" value="GRADLE" />
+        </ExternalSystemSettings>
+        <method v="2" />
+    </configuration>
+</component>

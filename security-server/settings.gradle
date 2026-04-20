@@ -1,0 +1,19 @@
+rootProject.name = 'security-server'
+
+include ':modules:domain'
+include ':modules:application'
+include ':modules:adapters'
+include ':modules:bootstrap'
+
+// Define caminhos físicos (opcional, mas recomendado)
+project(':modules:domain').projectDir = file('modules/domain')
+project(':modules:application').projectDir = file('modules/application')
+project(':modules:adapters').projectDir = file('modules/adapters')
+project(':modules:bootstrap').projectDir = file('modules/bootstrap')
+
+// Inclui 'shared' como subprojeto, apontando para o diretório correto.
+// Isso evita a necessidade de publicar shared no Maven Local.
+
+include ':shared'
+project(':shared').projectDir = file('../shared')
+

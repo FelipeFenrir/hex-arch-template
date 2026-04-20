@@ -1,0 +1,11 @@
+dependencies {
+    implementation project(':shared')
+
+    implementation "io.micrometer:micrometer-registry-prometheus"
+    implementation "io.opentelemetry:opentelemetry-exporter-otlp"
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation "org.springframework.boot:spring-boot-starter-aop"
+
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+}

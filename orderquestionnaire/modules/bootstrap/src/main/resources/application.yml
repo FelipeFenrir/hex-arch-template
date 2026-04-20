@@ -1,0 +1,26 @@
+# modules/bootstrap/src/main/resources/application.yml
+server:
+  port: 8080
+
+management:
+  endpoints.web.exposure.include: health,info,prometheus
+  tracing.sampling.probability: 1.0
+
+logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+
+#
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
+  resource:
+    attributes: service.name=orderquestionnaire,service.namespace=acme
+
+spring:
+  application.name: orderquestionnaire
+#  data:
+#    mongodb:
+#      uri: mongodb://mongo:27017/admin

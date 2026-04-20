@@ -1,0 +1,7 @@
+version: '3'
+tasks:
+  build: { cmds: [ "./gradlew clean build -x test" ] }
+  test: { cmds: [ "./gradlew test" ] }
+  docker:build: { cmds: [ "cd modules/bootstrap", "./gradlew bootJar", "docker build -t acme/hex-arch-template:latest ." ] }
+  up: { cmds: [ "docker compose -f docker/docker-compose.yml up -d" ] }
+  down: { cmds: [ "docker compose -f docker/docker-compose.yml down -v" ] }

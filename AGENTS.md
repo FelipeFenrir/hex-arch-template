@@ -1,0 +1,57 @@
+# AGENTS.md
+
+## Purpose
+- This repo is a **hexagonal architecture playground/template**: prioritize clean boundaries over feature completeness.
+- Active implementation focus is strongest in `orderquestionnaire/modules/domain` and `orderquestionnaire/modules/application`.
+
+## Architecture Map (What talks to what)
+- Boot app for OrderQuestionnaire lives in `orderquestionnaire/modules/bootstrap` (`BootstrapApplication`) and scans `com.acme.orderquestionnaire`.
+- Domain layer: root `modules/domain/*` plus `orderquestionnaire/modules/domain` hold business rules and factories (no Spring dependency expected).
+- Application layer: root `modules/application/*` plus `orderquestionnaire/modules/application` orchestrate use cases and ports.
+- Inbound adapters (OrderQuestionnaire source tree): `orderquestionnaire/modules/adapters/in/api-rest`, `orderquestionnaire/modules/adapters/in/api-grpc`, `orderquestionnaire/modules/adapters/in/queue-sqs`.
+- Outbound adapters (OrderQuestionnaire source tree): `orderquestionnaire/modules/adapters/out/mongo`, `orderquestionnaire/modules/adapters/out/cloud-aws`.
+- Cross-cutting: `shared` (Result/Guard/stereotypes/tenant/header constants), `modules/observability`; security is wired via composite build `security-server`.
+- Root `settings.gradle` currently includes OrderQuestionnaire as composite build `orderquestionnaire` (instead of enabling `:modules:*:orderquestionnaire` projects directly), so root task paths for that context are prefixed with `:orderquestionnaire:`.
+- Inside `orderquestionnaire/settings.gradle`, only `:modules:domain`, `:modules:application`, `:modules:adapters:out:mongo`, and `:shared` are currently included; bootstrap and other adapters exist in source tree but are not active Gradle projects there.
+
+## Project Conventions (specific to this repo)
+- Use functional flow with `Result<V,E>` + `Guard` instead of throwing for business validation (`shared/.../result`).
+- Use architectural annotations from shared stereotypes (`@UseCase`, `@OutputPort`, etc.) to mark intent.
+- Domain factories return builders wrapped in `Result` and accumulate errors (see `QuestionFactory`, `QuestionnaireFactory`).
+- Header names are standardized in `shared/src/main/java/com/acme/shared/constants/HeaderConstants.java`.
+- Tenant context is thread-local via `TenantContextHolder`; callers must set and clear it at request boundaries.
+- For detailed shared conventions, use `shared/README.md` and `shared/docs/*.md` (`ResultPattern.md`, `RuleEngine.md`, `Stereotypes.md`, `TenantHeaders.md`).
+- Agent guidance files currently discovered by convention glob are root `AGENTS.md` and `README.md`, `shared/README.md`, `security-server/**/README.md`, `docker/aws-manager/README.md`, `docker/stackport/CLAUDE.md`, and `orderquestionnaire/modules/**/README.md`; no `.github/copilot-instructions.md` / `.cursor` / `.windsurf` / `.clinerules` instruction sets are present.
+
+## Developer Workflow
+- Unit tests: `./gradlew clean test` (Windows: `.\gradlew.bat clean test`).
+- Aggregate coverage for Sonar: `./gradlew clean aggregateCoverageReport sonarqube`.
+- Domain mutation tests (orderquestionnaire composite build): `./gradlew :orderquestionnaire:modules:domain:pitest`.
+- Windows equivalents for common advanced tasks: `.\gradlew.bat clean aggregateCoverageReport sonarqube` and `.\gradlew.bat :orderquestionnaire:modules:domain:pitest`.
+- Build uses Java toolchain `25` (`build.gradle`); align IDE/Gradle JVM before running tasks.
+- Local infra stack: `docker compose -f docker/docker-compose.yml up -d` (down with `down -v`).
+- Predefined IDE runs live in `runs/*.run.xml` (unit, integration, coverage, Sonar, message-manager).
+
+## Integration/Runtime Notes
+- Observability stack in compose: OTEL Collector, Prometheus, Tempo, Loki, Promtail, Grafana.
+- Compose also starts `mongo-express` (port `8081`) and `stackport` UI/API (host port `5000`) for local queue/topic inspection against MiniStack.
+- Boot config exposes actuator `health,info,prometheus` and OTLP endpoint via `OTEL_EXPORTER_OTLP_ENDPOINT` (`application.yml`).
+- Logs are JSON via `orderquestionnaire/modules/bootstrap/src/main/resources/logback-spring.xml` + `modules/observability/LoggingAspect.java` (`@Loggable`).
+- Local AWS emulation uses MiniStack (`sqs,sns` via port `4566`); `localstack` appears only in commented `app` references in compose, and `docker/aws-manager` is present but commented out there.
+
+## Known Repository State (important before changing code)
+- Several adapters/features are scaffolded or commented out (examples: `PersonController`, `RestHeadersFilter`, gRPC interceptor, mongo config).
+- `orderquestionnaire/modules/adapters/in/api-grpc`, `orderquestionnaire/modules/adapters/in/queue-sqs`, and `orderquestionnaire/modules/adapters/out/cloud-aws` are scaffold-oriented directories (`README.md`/`docs`/`src`) and currently do not have their own `build.gradle`.
+- Some docs/configs still reference legacy paths (`modules/adapters/in/*`, `modules/shared`, `modules/security`) while active Gradle modules use `orderquestionnaire/modules/adapters/*`, root `shared`, and composite build `security-server`.
+- `scripts/*.sh` and `scripts/*.bat` exist but are empty; prefer `Taskfile.yml`, `makefile`, or direct Gradle/Docker commands.
+- `runs/IntegrationTest.run.xml` and `makefile` target `it` call `integrationTest`, and `runs/CoverageIntegration.run.xml` calls `jacocoIntegrationTestReport`; these tasks are not explicitly declared in current Gradle scripts.
+- `runs/Run Message Manager.run.xml` points to `docker/message-manager`; current compose/runtime assets are `docker/stackport` (active) and `docker/aws-manager` (present but commented in compose).
+- Root `clean test` currently fails with a circular task dependency at `:modules:application:personmdm`; for orderquestionnaire changes, use focused composite tasks (for example `:orderquestionnaire:modules:domain:test`).
+- `docker/docker-compose.yml` keeps the `app` service commented out; run `orderquestionnaire/modules/bootstrap` from IDE/Gradle when testing the application.
+- If adding production behavior, verify whether module is active or intentionally stubbed before wiring dependencies.
+
+## Safe Change Strategy for Agents
+- Keep new business rules in domain factories/entities; keep orchestration in application services.
+- Introduce ports in application first, then implement adapters; avoid leaking framework classes into domain.
+- Reuse `Result`, `DomainError`, and shared constants to match existing patterns.
+- When touching observability or headers, mirror behavior across REST/gRPC adapters where code is active.

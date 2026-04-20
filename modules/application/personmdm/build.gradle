@@ -1,0 +1,11 @@
+dependencies {
+    implementation project(':shared')
+    implementation project(':modules:domain:personmdm')
+
+    testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"
+    testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
+}
+
+test {
+    useJUnitPlatform()
+}

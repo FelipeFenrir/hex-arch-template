@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>SQS Workspace</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/static/tailwind.css" rel="stylesheet">
+
+    <script src="/static/monitor.js"></script>
+    <script src="/static/theme.js"></script>
+    <script src="/static/layout.js"></script>
+</head>
+
+<body id="pageBody" data-active-tab="{{ active_tab|default('monitor') }}" class="bg-gray-100 text-gray-900 transition-colors duration-500">
+
+<div id="mainCard" class="max-w-6xl mx-auto mt-10 bg-white shadow-lg rounded-lg p-8 transition-colors duration-500">
+
+    <div class="flex flex-col gap-3 mb-8">
+        <div class="flex justify-between items-start gap-4">
+            <div>
+                <h1 class="text-3xl font-bold">SQS</h1>
+                <p class="text-sm text-gray-600 theme-muted mt-2">
+                    Monitore filas do emulator, crie novas filas e envie mensagens a partir de um unico painel.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap gap-3 mb-8 border-b pb-4">
+        <button type="button" data-tab-button="monitor" class="px-4 py-2 rounded font-semibold border transition-colors duration-300 theme-tab">
+            Monitoramento
+        </button>
+        <button type="button" data-tab-button="create" class="px-4 py-2 rounded font-semibold border transition-colors duration-300 theme-tab">
+            Criar fila
+        </button>
+        <button type="button" data-tab-button="send" class="px-4 py-2 rounded font-semibold border transition-colors duration-300 theme-tab">
+            Enviar mensagem
+        </button>
+    </div>
+
+    <section data-tab-panel="monitor" class="space-y-8">
+        <p class="text-sm text-gray-600 theme-muted">
+            Todas as filas existentes no emulator aparecem automaticamente abaixo, sem a necessidade de adiciona-las manualmente ao monitor.
+        </p>
+
+        <div class="border rounded p-4 bg-gray-50 theme-surface">
+            <h2 class="text-lg font-semibold mb-3">Atualizacao automatica</h2>
+            <div class="flex flex-wrap items-center gap-3">
+                <label for="autoRefreshInterval" class="text-sm font-medium">Intervalo:</label>
+                <select id="autoRefreshInterval" class="border rounded p-2 bg-white theme-field">
+                    <option value="0">Desativado</option>
+                    <option value="5000">5 segundos</option>
+                    <option value="10000">10 segundos</option>
+                    <option value="30000">30 segundos</option>
+                </select>
+                <span id="autoRefreshStatus" class="text-sm text-gray-600 theme-muted">Auto-refresh desativado</span>
+            </div>
+        </div>
+
+        <div>
+            <div class="flex items-center gap-4 mb-3">
+                <h2 class="text-xl font-semibold">Filas encontradas no emulator</h2>
+                <button id="refreshQueuesBtn" class="bg-gray-700 text-white px-3 py-2 rounded">Atualizar lista</button>
+            </div>
+            <div id="queueLoadError" class="text-red-600 text-sm mb-2 hidden"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 border rounded p-4 bg-gray-50 theme-surface">
+                <h2 class="text-lg font-semibold mb-3">Filas</h2>
+                <div id="monitoredQueueList" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
+            </div>
+
+            <div id="selectedQueuePanel" class="lg:col-span-2 border rounded p-4 bg-gray-50 theme-surface">
+                <div class="flex items-center justify-between mb-2 gap-2">
+                    <h2 id="selectedQueueTitle" class="text-2xl font-bold">Selecione uma fila</h2>
+                    <div class="flex gap-2">
+                        <button id="selectedRefreshBtn" class="bg-gray-700 text-white px-2 py-1 rounded" disabled>Atualizar</button>
+                        <button id="selectedDeleteBtn" class="bg-red-700 text-white px-2 py-1 rounded" disabled>Deletar fila SQS</button>
+                    </div>
+                </div>
+
+                <p id="selectedQueueUrl" class="text-xs text-gray-600 theme-muted mb-2">-</p>
+                <p id="selectedQueueStats" class="text-xs text-gray-600 theme-muted mb-2">Visiveis: - | Em processamento: - | Delayed: -</p>
+
+                <label for="selectedSearch" class="sr-only">Buscar mensagens</label>
+                <input id="selectedSearch" class="border p-2 rounded w-full theme-field" placeholder="Buscar mensagens nesta fila..." disabled>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                    <div>
+                        <label for="selectedHeaderKey" class="sr-only">Filtro por header chave</label>
+                        <input id="selectedHeaderKey" class="border p-2 rounded w-full theme-field" placeholder="Filtro por header (chave)" disabled>
+                    </div>
+                    <div>
+                        <label for="selectedHeaderValue" class="sr-only">Filtro por header valor</label>
+                        <input id="selectedHeaderValue" class="border p-2 rounded w-full theme-field" placeholder="Filtro por header (valor)" disabled>
+                    </div>
+                </div>
+
+                <div id="selectedTimeline" class="mt-4 max-h-[40vh] overflow-y-auto border p-4 rounded space-y-4 theme-surface"></div>
+
+                <div id="selectedLoading" class="text-center py-4 hidden">
+                    <span class="text-gray-500 theme-muted">Carregando...</span>
+                </div>
+
+                <div id="messageDetailsPanel" class="mt-6 border rounded p-4 bg-gray-50 theme-surface hidden">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-xl font-semibold">Detalhes da mensagem</h2>
+                        <button id="closeDetails" class="bg-gray-600 text-white px-3 py-1 rounded">Fechar</button>
+                    </div>
+                    <p id="detailsQueue" class="text-sm text-gray-600 theme-muted mb-2"></p>
+                    <h3 class="font-semibold">Body</h3>
+                    <pre id="detailsBody" class="text-xs mt-1 mb-4 p-3 border rounded bg-gray-900 text-gray-100 theme-code overflow-x-auto"></pre>
+                    <h3 class="font-semibold">Headers (MessageAttributes)</h3>
+                    <pre id="detailsHeaders" class="text-xs mt-1 mb-4 p-3 border rounded bg-gray-900 text-gray-100 theme-code overflow-x-auto"></pre>
+                    <h3 class="font-semibold">Atributos do SQS</h3>
+                    <pre id="detailsAttributes" class="text-xs mt-1 p-3 border rounded bg-gray-900 text-gray-100 theme-code overflow-x-auto"></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section data-tab-panel="create" class="hidden">
+        <div class="max-w-3xl border rounded p-6 bg-gray-50 theme-surface">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold">Criar fila SQS</h2>
+                <p class="text-sm text-gray-600 theme-muted mt-2">Crie filas padrao ou FIFO sem sair do workspace de monitoramento.</p>
+            </div>
+
+            <form method="POST" action="/sqs/queues/create" class="space-y-6">
+                <div>
+                    <label for="createQueueName" class="block font-semibold mb-1">Nome da fila</label>
+                    <input id="createQueueName" type="text" name="queue_name" class="w-full border rounded p-2 theme-field" placeholder="ex: pedidos-processamento ou pedidos.fifo" value="{{ create_form.get('queue_name', '') }}" required>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="inline-flex items-center gap-2">
+                        {% if create_form.get('is_fifo') %}
+                        <input type="checkbox" name="is_fifo" checked>
+                        {% else %}
+                        <input type="checkbox" name="is_fifo">
+                        {% endif %}
+                        <span>Fila FIFO</span>
+                    </label>
+                    <label class="inline-flex items-center gap-2">
+                        {% if create_form.get('content_based_dedup') %}
+                        <input type="checkbox" name="content_based_dedup" checked>
+                        {% else %}
+                        <input type="checkbox" name="content_based_dedup">
+                        {% endif %}
+                        <span>Content based deduplication (somente FIFO)</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+                    Criar fila
+                </button>
+            </form>
+
+            {% if create_result %}
+            <div class="mt-6 p-4 rounded border theme-surface">
+                {{ create_result }}
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section data-tab-panel="send" class="hidden">
+        <div class="max-w-3xl border rounded p-6 bg-gray-50 theme-surface">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold">Enviar mensagem para fila SQS</h2>
+                <p class="text-sm text-gray-600 theme-muted mt-2">Envie mensagens JSON com headers para qualquer fila ja existente no emulator.</p>
+            </div>
+
+            <form method="POST" action="/sqs/messages/send" class="space-y-6">
+                <div>
+                    <label for="sendQueueName" class="block font-semibold mb-1">Nome da fila</label>
+                    <input id="sendQueueName" type="text" name="queue_name" class="w-full border rounded p-2 theme-field" placeholder="ex: pedidos-processamento" value="{{ send_form.get('queue_name', '') }}" required>
+                </div>
+
+                <div>
+                    <label for="sendHeaders" class="block font-semibold mb-1">Headers (JSON)</label>
+                    <textarea id="sendHeaders" name="headers" class="w-full border rounded p-2 h-24 theme-field" placeholder='{"x-origem": "dev"}'>{{ send_form.get('headers', '{}') }}</textarea>
+                </div>
+
+                <div>
+                    <label for="sendBody" class="block font-semibold mb-1">Body da mensagem (JSON)</label>
+                    <textarea id="sendBody" name="body" class="w-full border rounded p-2 h-32 theme-field" placeholder='{"id": 1, "status": "novo"}' required>{{ send_form.get('body', '') }}</textarea>
+                </div>
+
+                <div>
+                    <label for="sendBatch" class="block font-semibold mb-1">Quantidade de mensagens (batch)</label>
+                    <input id="sendBatch" type="number" name="batch" min="1" max="10" value="{{ send_form.get('batch', 1) }}" class="w-32 border rounded p-2 theme-field">
+                </div>
+
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
+                    Enviar mensagem
+                </button>
+            </form>
+
+            {% if send_result %}
+            <div class="mt-6 p-4 rounded border theme-surface">
+                {{ send_result }}
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+</div>
+
+<script>
+    initLayout()
+    initTheme()
+</script>
+
+</body>
+</html>

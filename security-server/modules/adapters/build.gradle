@@ -1,0 +1,51 @@
+plugins {
+    id 'info.solidsoft.pitest'
+}
+
+group = 'com.acme.security'
+
+dependencies {
+    implementation project(':shared')
+    implementation project(':modules:domain')
+    implementation project(':modules:application')
+
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-thymeleaf"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    //implementation "org.springframework.boot:spring-boot-starter-oauth2-resource-server"
+    implementation "org.springframework.boot:spring-boot-starter-oauth2-authorization-server"
+    implementation "org.bouncycastle:bcprov-jdk18on:${bcprovJdk18onVersion}"
+    implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
+
+    // Apenas regras de negócio puras, sem dependências de frameworks
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"
+    testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
+    testImplementation "io.cucumber:cucumber-java:${cucumberVersion}"
+    testImplementation "io.cucumber:cucumber-junit-platform-engine:${cucumberVersion}"
+    testImplementation 'org.junit.platform:junit-platform-suite'
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 1.0
+            }
+
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 1.0
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification

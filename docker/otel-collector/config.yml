@@ -1,0 +1,29 @@
+# docker/otel-collector/config.yml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  otlphttp/tempo:
+    endpoint: http://tempo:4318
+    tls: { insecure: true }
+  prometheus:
+    endpoint: "0.0.0.0:9464"
+  logging:
+    loglevel: info
+
+processors:
+  batch: {}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/tempo]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]

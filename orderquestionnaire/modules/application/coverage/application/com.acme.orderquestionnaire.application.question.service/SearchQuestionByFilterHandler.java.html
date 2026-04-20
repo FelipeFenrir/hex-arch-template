@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchQuestionByFilterHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">application</a> &gt; <a href="index.source.html" class="el_package">com.acme.orderquestionnaire.application.question.service</a> &gt; <span class="el_source">SearchQuestionByFilterHandler.java</span></div><h1>SearchQuestionByFilterHandler.java</h1><pre class="source lang-java linenums">package com.acme.orderquestionnaire.application.question.service;
+
+import com.acme.orderquestionnaire.application.common.QueryHandler;
+import com.acme.orderquestionnaire.application.question.dto.queries.SearchQuestionByFilter;
+import com.acme.orderquestionnaire.application.question.port.out.repository.QuestionQueryOutPort;
+import com.acme.orderquestionnaire.application.question.dto.view.QuestionView;
+import com.acme.shared.engine.pagination.PageResult;
+
+import java.util.Objects;
+
+public class SearchQuestionByFilterHandler implements QueryHandler&lt;SearchQuestionByFilter, PageResult&lt;QuestionView&gt;&gt; {
+
+    private final QuestionQueryOutPort questionRepository;
+
+<span class="nc" id="L15">    public SearchQuestionByFilterHandler(QuestionQueryOutPort questionRepository) {</span>
+<span class="nc" id="L16">        this.questionRepository = Objects.requireNonNull(questionRepository,</span>
+                &quot;questionRepository must not be null&quot;);
+<span class="nc" id="L18">    }</span>
+
+    @Override
+    public PageResult&lt;QuestionView&gt; execute(SearchQuestionByFilter query) {
+<span class="nc" id="L22">        return questionRepository.findAll(query);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

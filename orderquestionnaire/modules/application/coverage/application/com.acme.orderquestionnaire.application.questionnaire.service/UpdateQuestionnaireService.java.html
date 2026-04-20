@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UpdateQuestionnaireService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">application</a> &gt; <a href="index.source.html" class="el_package">com.acme.orderquestionnaire.application.questionnaire.service</a> &gt; <span class="el_source">UpdateQuestionnaireService.java</span></div><h1>UpdateQuestionnaireService.java</h1><pre class="source lang-java linenums">package com.acme.orderquestionnaire.application.questionnaire.service;
+
+import com.acme.orderquestionnaire.application.question.error.QuestionErrors;
+import com.acme.orderquestionnaire.application.question.port.out.repository.QuestionCommandOutPort;
+import com.acme.orderquestionnaire.application.questionnaire.dto.command.UpdateConfiguredQuestionParam;
+import com.acme.orderquestionnaire.application.questionnaire.dto.command.UpdateQuestionnaireCommand;
+import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionnaireUpdatedView;
+import com.acme.orderquestionnaire.application.questionnaire.error.QuestionnaireErrors;
+import com.acme.orderquestionnaire.application.audit.dto.command.AuditUserParam;
+import com.acme.orderquestionnaire.application.questionnaire.port.in.usecase.UpdateQuestionnaireUseCase;
+import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
+import com.acme.orderquestionnaire.application.questionnaire.service.support.ConditionQuestionIdExtractor;
+import com.acme.orderquestionnaire.application.questionnaire.service.support.ConfiguredQuestionAssembler;
+import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
+import com.acme.orderquestionnaire.domain.question.Question;
+import com.acme.orderquestionnaire.domain.question.QuestionFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
+import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
+import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireStatusMachine;
+import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireStatusTransitionContext;
+import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
+import com.acme.shared.engine.state.TransitionResult;
+import com.acme.shared.enumerator.ParameterizationStatus;
+import com.acme.shared.pattern.result.DomainError;
+import com.acme.shared.pattern.result.Guard;
+import com.acme.shared.pattern.result.Result;
+import com.acme.shared.vo.AuditInfo;
+import com.acme.shared.vo.AuditUser;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public class UpdateQuestionnaireService implements UpdateQuestionnaireUseCase {
+
+    private final QuestionnaireCommandOutPort questionnaireRepository;
+    private final QuestionCommandOutPort questionRepository;
+
+    public UpdateQuestionnaireService(QuestionnaireCommandOutPort questionnaireRepository,
+<span class="nc" id="L45">                                      QuestionCommandOutPort questionRepository) {</span>
+<span class="nc" id="L46">        this.questionnaireRepository = Objects.requireNonNull(questionnaireRepository,</span>
+                &quot;questionnaireRepository must not be null&quot;);
+<span class="nc" id="L48">        this.questionRepository = Objects.requireNonNull(questionRepository,</span>
+                &quot;questionRepository must not be null&quot;);
+<span class="nc" id="L50">    }</span>
+
+    @Override
+    public Result&lt;QuestionnaireUpdatedView, List&lt;DomainError&gt;&gt; execute(UpdateQuestionnaireCommand command) {
+<span class="nc" id="L54">        Result&lt;Void, List&lt;DomainError&gt;&gt; validations = validateCommand(command);</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (validations.isFailure()) {</span>
+<span class="nc" id="L56">            return Result.failure(validations.errorOrElseThrow(() -&gt;</span>
+<span class="nc" id="L57">                    new IllegalStateException(&quot;Expected failure validations result&quot;)));</span>
+        }
+
+<span class="nc" id="L60">        return validations</span>
+<span class="nc" id="L61">                .flatMap(__ -&gt; resolveUpdatedActor(command)</span>
+<span class="nc" id="L62">                        .flatMap(actor -&gt; fetchExisting(command)</span>
+<span class="nc" id="L63">                                .flatMap(existing -&gt; validateActiveUpdateRestrictions(existing, command)</span>
+<span class="nc" id="L64">                                        .flatMap(ignored -&gt; resolveConfiguredQuestions(existing, command)</span>
+<span class="nc" id="L65">                                                .flatMap(finalQuestions -&gt; applyUpdate(existing, command, finalQuestions, actor))))))</span>
+<span class="nc" id="L66">                .flatMap(questionnaireRepository::update)</span>
+<span class="nc" id="L67">                .map(QuestionnaireUpdatedView::from);</span>
+    }
+
+    private Result&lt;Void, List&lt;DomainError&gt;&gt; validateCommand(UpdateQuestionnaireCommand command) {
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (command == null) {</span>
+<span class="nc" id="L72">            return QuestionnaireErrors.INVALID_COMMAND.asFailure();</span>
+        }
+
+<span class="nc" id="L75">        List&lt;Result&lt;Void, List&lt;DomainError&gt;&gt;&gt; validations = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L76">        validations.add(Guard.requireNonBlank(command.id(), QuestionnaireErrors.INVALID_ID));</span>
+<span class="nc" id="L77">        validations.add(Guard.requireNonBlank(</span>
+<span class="nc" id="L78">                command.channelDistributionId(),</span>
+                QuestionnaireErrors.INVALID_CHANNEL_DISTRIBUTION_ID
+        ));
+<span class="nc" id="L81">        validations.add(Guard.requireNonBlank(</span>
+<span class="nc" id="L82">                command.journeyDistributionId(),</span>
+                QuestionnaireErrors.INVALID_JOURNEY_DISTRIBUTION_ID
+        ));
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (command.description() != null) {</span>
+<span class="nc" id="L86">            validations.add(Guard.requireNonBlank(command.description(), QuestionnaireErrors.INVALID_DESCRIPTION));</span>
+        }
+
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        for (UpdateConfiguredQuestionParam upsert : safeList(command.questionsToUpsert())) {</span>
+<span class="nc" id="L90">            validations.add(Guard.requireNonNull(upsert, QuestionnaireErrors.INVALID_COMMAND));</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">            if (upsert != null) {</span>
+<span class="nc" id="L92">                validations.add(QuestionFactory.validateQuestionId(upsert.questionId()));</span>
+<span class="nc" id="L93">                validations.add(Guard.requireNonNull(upsert.param(), QuestionnaireErrors.INVALID_COMMAND));</span>
+            }
+<span class="nc" id="L95">        }</span>
+
+<span class="nc" id="L97">        return Guard.collect(validations);</span>
+    }
+
+    private Result&lt;AuditUser, List&lt;DomainError&gt;&gt; resolveUpdatedActor(UpdateQuestionnaireCommand command) {
+<span class="nc" id="L101">        AuditUserParam updatedBy = command.updatedBy();</span>
+<span class="nc" id="L102">        return OrderQuestionnaireAuditFactory.updateUserForQuestionnaire(</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">                updatedBy == null ? null : updatedBy.id(),</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">                updatedBy == null ? null : updatedBy.referenceCode(),</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                updatedBy == null ? null : updatedBy.name(),</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">                updatedBy == null ? null : updatedBy.email(),</span>
+<span class="nc" id="L107">                command.updatedAt());</span>
+    }
+
+    private Result&lt;Questionnaire, List&lt;DomainError&gt;&gt; fetchExisting(UpdateQuestionnaireCommand command) {
+<span class="nc" id="L111">        QuestionnaireId questionnaireId = QuestionnaireId.of(</span>
+<span class="nc" id="L112">                command.id(),</span>
+<span class="nc" id="L113">                command.channelDistributionId(),</span>
+<span class="nc" id="L114">                command.journeyDistributionId());</span>
+
+<span class="nc" id="L116">        Optional&lt;Questionnaire&gt; existing = questionnaireRepository.findQuestionnaireById(questionnaireId);</span>
+<span class="nc" id="L117">        return existing</span>
+<span class="nc" id="L118">                .&lt;Result&lt;Questionnaire, List&lt;DomainError&gt;&gt;&gt;map(Result::success)</span>
+<span class="nc" id="L119">                .orElseGet(() -&gt; QuestionnaireErrors.QUESTIONNAIRE_NOT_FOUND.asFailure(command.id()));</span>
+    }
+
+    private Result&lt;Void, List&lt;DomainError&gt;&gt; validateActiveUpdateRestrictions(Questionnaire existing,
+                                                                              UpdateQuestionnaireCommand command) {
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        if (existing.status() != ParameterizationStatus.ACTIVE) {</span>
+<span class="nc" id="L125">            return Result.success(null);</span>
+        }
+
+<span class="nc" id="L128">        boolean hasStructuralChanges = hasStructuralChanges(command);</span>
+<span class="nc bnc" id="L129" title="All 4 branches missed.">        boolean hasDescriptionChange = command.description() != null &amp;&amp; !command.description().equals(existing.description());</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        boolean wantsDeactivate = command.status() == ParameterizationStatus.INACTIVE;</span>
+
+<span class="nc bnc" id="L132" title="All 6 branches missed.">        if (wantsDeactivate &amp;&amp; !hasStructuralChanges &amp;&amp; !hasDescriptionChange) {</span>
+<span class="nc" id="L133">            return Result.success(null);</span>
+        }
+
+<span class="nc" id="L136">        return QuestionnaireErrors.QUESTIONNAIRE_UPDATE_NOT_ALLOWED.asFailure();</span>
+    }
+
+    private boolean hasStructuralChanges(UpdateQuestionnaireCommand command) {
+<span class="nc bnc" id="L140" title="All 4 branches missed.">        return (command.questionsToUpsert() != null &amp;&amp; !command.questionsToUpsert().isEmpty())</span>
+<span class="nc bnc" id="L141" title="All 4 branches missed.">                || (command.questionIdsToRemove() != null &amp;&amp; !command.questionIdsToRemove().isEmpty());</span>
+    }
+
+    private Result&lt;List&lt;ConfiguredQuestion&gt;, List&lt;DomainError&gt;&gt; resolveConfiguredQuestions(Questionnaire existing,
+                                                                                            UpdateQuestionnaireCommand command) {
+<span class="nc" id="L146">        Map&lt;String, ConfiguredQuestion&gt; byQuestionId = existing.configuredQuestions().stream()</span>
+<span class="nc" id="L147">                .collect(Collectors.toMap(</span>
+<span class="nc" id="L148">                        configuredQuestion -&gt; configuredQuestion.question().id(),</span>
+<span class="nc" id="L149">                        configuredQuestion -&gt; configuredQuestion,</span>
+<span class="nc" id="L150">                        (left, right) -&gt; right,</span>
+                        LinkedHashMap::new));
+
+<span class="nc bnc" id="L153" title="All 2 branches missed.">        for (String questionIdToRemove : safeList(command.questionIdsToRemove())) {</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">            if (questionIdToRemove != null) {</span>
+<span class="nc" id="L155">                byQuestionId.remove(questionIdToRemove);</span>
+            }
+<span class="nc" id="L157">        }</span>
+
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        for (UpdateConfiguredQuestionParam upsert : safeList(command.questionsToUpsert())) {</span>
+<span class="nc" id="L160">            Result&lt;ConfiguredQuestion, List&lt;DomainError&gt;&gt; assembled = assembleConfiguredQuestion(upsert);</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">            if (assembled.isFailure()) {</span>
+<span class="nc" id="L162">                return Result.failure(assembled.errorOrElseThrow(() -&gt;</span>
+<span class="nc" id="L163">                        new IllegalStateException(&quot;Expected failure result&quot;)));</span>
+            }
+<span class="nc" id="L165">            ConfiguredQuestion configuredQuestion = assembled.getOrElseThrow(error -&gt;</span>
+<span class="nc" id="L166">                    new IllegalStateException(&quot;Expected success result&quot;));</span>
+<span class="nc" id="L167">            byQuestionId.put(configuredQuestion.question().id(), configuredQuestion);</span>
+<span class="nc" id="L168">        }</span>
+
+<span class="nc" id="L170">        List&lt;ConfiguredQuestion&gt; finalQuestions = new ArrayList&lt;&gt;(byQuestionId.values());</span>
+<span class="nc" id="L171">        return validateConditionRefs(finalQuestions).map(__ -&gt; finalQuestions);</span>
+    }
+
+    private Result&lt;ConfiguredQuestion, List&lt;DomainError&gt;&gt; assembleConfiguredQuestion(UpdateConfiguredQuestionParam upsert) {
+<span class="nc" id="L175">        return Guard.requireNonNull(upsert, QuestionnaireErrors.INVALID_COMMAND)</span>
+<span class="nc" id="L176">                .flatMap(__ -&gt; Guard.requireNonBlank(upsert.questionId(), QuestionnaireErrors.INVALID_ID))</span>
+<span class="nc" id="L177">                .flatMap(__ -&gt; Guard.requireNonNull(upsert.param(), QuestionnaireErrors.INVALID_COMMAND))</span>
+<span class="nc" id="L178">                .flatMap(__ -&gt; fetchQuestion(upsert.questionId()))</span>
+<span class="nc" id="L179">                .flatMap(question -&gt; ConfiguredQuestionAssembler.build(question, upsert.param()));</span>
+    }
+
+    private Result&lt;Question, List&lt;DomainError&gt;&gt; fetchQuestion(String questionId) {
+<span class="nc" id="L183">        return questionRepository.findQuestionById(questionId)</span>
+<span class="nc" id="L184">                .&lt;Result&lt;Question, List&lt;DomainError&gt;&gt;&gt;map(Result::success)</span>
+<span class="nc" id="L185">                .orElseGet(QuestionErrors.QUESTION_NOT_FOUND::asFailure);</span>
+    }
+
+    private Result&lt;Void, List&lt;DomainError&gt;&gt; validateConditionRefs(List&lt;ConfiguredQuestion&gt; configuredQuestions) {
+<span class="nc" id="L189">        Set&lt;String&gt; existingIds = configuredQuestions.stream()</span>
+<span class="nc" id="L190">                .map(configuredQuestion -&gt; configuredQuestion.question().id())</span>
+<span class="nc" id="L191">                .collect(Collectors.toSet());</span>
+
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        for (ConfiguredQuestion configuredQuestion : configuredQuestions) {</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">            if (configuredQuestion.rootCondition() == null) {</span>
+<span class="nc" id="L195">                continue;</span>
+            }
+
+<span class="nc bnc" id="L198" title="All 2 branches missed.">            for (String refId : ConditionQuestionIdExtractor.extract(configuredQuestion.rootCondition())) {</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">                if (!existingIds.contains(refId)) {</span>
+<span class="nc" id="L200">                    return QuestionnaireErrors.CONDITION_QUESTION_NOT_FOUND.asFailure(refId);</span>
+                }
+<span class="nc" id="L202">            }</span>
+<span class="nc" id="L203">        }</span>
+
+<span class="nc" id="L205">        return Result.success(null);</span>
+    }
+
+    private Result&lt;Questionnaire, List&lt;DomainError&gt;&gt; applyUpdate(Questionnaire existing,
+                                                                  UpdateQuestionnaireCommand command,
+                                                                  List&lt;ConfiguredQuestion&gt; finalQuestions,
+                                                                  AuditUser actor) {
+<span class="nc" id="L212">        String updatedDescription = resolveDescription(existing, command);</span>
+<span class="nc bnc" id="L213" title="All 4 branches missed.">        if (updatedDescription == null || updatedDescription.isBlank()) {</span>
+<span class="nc" id="L214">            return QuestionnaireErrors.INVALID_DESCRIPTION.asFailure();</span>
+        }
+
+<span class="nc bnc" id="L217" title="All 2 branches missed.">        ParameterizationStatus desiredStatus = command.status() == null ? existing.status() : command.status();</span>
+
+<span class="nc" id="L219">        Questionnaire candidate = Questionnaire.rehydrate(</span>
+<span class="nc" id="L220">                existing.questionnaireId(),</span>
+                updatedDescription,
+<span class="nc" id="L222">                existing.status(),</span>
+                finalQuestions,
+<span class="nc" id="L224">                existing.auditInfo());</span>
+
+<span class="nc" id="L226">        AuditInfo updatedAudit = existing.auditInfo().withUpdate(actor, command.updatedAt());</span>
+<span class="nc" id="L227">        QuestionnaireStatusTransitionContext context = new QuestionnaireStatusTransitionContext(</span>
+                candidate,
+                actor,
+<span class="nc" id="L230">                command.updatedAt(),</span>
+                updatedAudit,
+                false
+        );
+
+<span class="nc" id="L235">        Result&lt;TransitionResult&lt;ParameterizationStatus, QuestionnaireStatusTransitionContext&gt;, List&lt;DomainError&gt;&gt; transition =</span>
+<span class="nc" id="L236">                QuestionnaireStatusMachine.transition(existing.status(), desiredStatus, context);</span>
+
+<span class="nc bnc" id="L238" title="All 2 branches missed.">        if (transition.isFailure()) {</span>
+<span class="nc" id="L239">            return Result.failure(transition.errorOrElseThrow(() -&gt;</span>
+<span class="nc" id="L240">                    new IllegalStateException(&quot;Expected failure transition result&quot;)));</span>
+        }
+
+<span class="nc" id="L243">        TransitionResult&lt;ParameterizationStatus, QuestionnaireStatusTransitionContext&gt; result =</span>
+<span class="nc" id="L244">                transition.getOrElseThrow(error -&gt;</span>
+<span class="nc" id="L245">                        new IllegalStateException(&quot;Expected success transition result&quot;));</span>
+
+<span class="nc" id="L247">        return Result.success(Questionnaire.rehydrate(</span>
+<span class="nc" id="L248">                existing.questionnaireId(),</span>
+                updatedDescription,
+<span class="nc" id="L250">                result.targetState(),</span>
+                finalQuestions,
+<span class="nc" id="L252">                result.context().auditInfo()));</span>
+    }
+
+    private String resolveDescription(Questionnaire existing, UpdateQuestionnaireCommand command) {
+<span class="nc bnc" id="L256" title="All 2 branches missed.">        return command.description() == null ? existing.description() : command.description();</span>
+    }
+
+    private &lt;T&gt; List&lt;T&gt; safeList(List&lt;T&gt; value) {
+<span class="nc bnc" id="L260" title="All 2 branches missed.">        return value == null ? List.of() : value;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

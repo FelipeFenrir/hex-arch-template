@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ValidateQuestionnaireAnswersService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">application</a> &gt; <a href="index.source.html" class="el_package">com.acme.orderquestionnaire.application.questionnaire.service</a> &gt; <span class="el_source">ValidateQuestionnaireAnswersService.java</span></div><h1>ValidateQuestionnaireAnswersService.java</h1><pre class="source lang-java linenums">package com.acme.orderquestionnaire.application.questionnaire.service;
+
+import com.acme.orderquestionnaire.application.questionnaire.dto.command.ValidateQuestionnaireAnswersCommand;
+import com.acme.orderquestionnaire.application.questionnaire.dto.view.AnswerConfigurationView;
+import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionAnswerValidationView;
+import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionAnswerViolationView;
+import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionConditionView;
+import com.acme.orderquestionnaire.application.questionnaire.dto.view.ValidateQuestionnaireAnswersView;
+import com.acme.orderquestionnaire.application.questionnaire.error.QuestionnaireErrors;
+import com.acme.orderquestionnaire.application.questionnaire.port.in.usecase.ValidateQuestionnaireAnswersUseCase;
+import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
+import com.acme.orderquestionnaire.application.questionnaire.service.support.ConditionQuestionIdExtractor;
+import com.acme.orderquestionnaire.application.questionnaire.service.support.ViolationViewExtractor;
+import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
+import com.acme.orderquestionnaire.domain.questionnaire.QuestionValidationFailure;
+import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
+import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
+import com.acme.shared.pattern.result.DomainError;
+import com.acme.shared.pattern.result.Guard;
+import com.acme.shared.pattern.result.Result;
+
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public class ValidateQuestionnaireAnswersService implements ValidateQuestionnaireAnswersUseCase {
+
+    private final QuestionnaireCommandOutPort questionnaireRepository;
+
+<span class="fc" id="L35">    public ValidateQuestionnaireAnswersService(QuestionnaireCommandOutPort questionnaireRepository) {</span>
+<span class="fc" id="L36">        this.questionnaireRepository = Objects.requireNonNull(questionnaireRepository,</span>
+                &quot;questionnaireRepository must not be null&quot;);
+<span class="fc" id="L38">    }</span>
+
+    @Override
+    public Result&lt;ValidateQuestionnaireAnswersView, List&lt;DomainError&gt;&gt; execute(ValidateQuestionnaireAnswersCommand command) {
+<span class="fc" id="L42">        Result&lt;Void, List&lt;DomainError&gt;&gt; validations = validateCommand(command);</span>
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">        if (validations.isFailure()) {</span>
+<span class="nc" id="L44">            return Result.failure(validations.errorOrElseThrow(() -&gt;</span>
+<span class="nc" id="L45">                    new IllegalStateException(&quot;Expected failure validations result&quot;)));</span>
+        }
+
+<span class="fc" id="L48">        return validations</span>
+<span class="fc" id="L49">                .flatMap(__ -&gt; fetchQuestionnaire(command))</span>
+<span class="fc" id="L50">                .flatMap(questionnaire -&gt; validateAnswers(questionnaire, command));</span>
+    }
+
+    private Result&lt;Void, List&lt;DomainError&gt;&gt; validateCommand(ValidateQuestionnaireAnswersCommand command) {
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">        if (command == null) {</span>
+<span class="nc" id="L55">            return QuestionnaireErrors.INVALID_COMMAND.asFailure();</span>
+        }
+
+<span class="fc" id="L58">        return Guard.collect(List.of(</span>
+<span class="fc" id="L59">                Guard.requireNonBlank(command.questionnaireId(), QuestionnaireErrors.INVALID_ID),</span>
+<span class="fc" id="L60">                Guard.requireNonBlank(</span>
+<span class="fc" id="L61">                        command.channelDistributionId(),</span>
+                        QuestionnaireErrors.INVALID_CHANNEL_DISTRIBUTION_ID
+                ),
+<span class="fc" id="L64">                Guard.requireNonBlank(</span>
+<span class="fc" id="L65">                        command.journeyDistributionId(),</span>
+                        QuestionnaireErrors.INVALID_JOURNEY_DISTRIBUTION_ID
+                ),
+<span class="fc" id="L68">                Guard.requireNonNull(command.answers(), QuestionnaireErrors.INVALID_ANSWERS)</span>
+        ));
+    }
+
+    private Result&lt;Questionnaire, List&lt;DomainError&gt;&gt; fetchQuestionnaire(ValidateQuestionnaireAnswersCommand command) {
+<span class="fc" id="L73">        QuestionnaireId id = QuestionnaireId.of(</span>
+<span class="fc" id="L74">                command.questionnaireId(),</span>
+<span class="fc" id="L75">                command.channelDistributionId(),</span>
+<span class="fc" id="L76">                command.journeyDistributionId());</span>
+
+<span class="fc" id="L78">        Optional&lt;Questionnaire&gt; questionnaire = questionnaireRepository.findQuestionnaireById(id);</span>
+<span class="fc" id="L79">        return questionnaire</span>
+<span class="fc" id="L80">                .&lt;Result&lt;Questionnaire, List&lt;DomainError&gt;&gt;&gt;map(Result::success)</span>
+<span class="pc" id="L81">                .orElseGet(() -&gt; QuestionnaireErrors.QUESTIONNAIRE_NOT_FOUND.asFailure(command.questionnaireId()));</span>
+    }
+
+    private Result&lt;ValidateQuestionnaireAnswersView, List&lt;DomainError&gt;&gt; validateAnswers(Questionnaire questionnaire,
+                                                                                         ValidateQuestionnaireAnswersCommand command) {
+<span class="fc" id="L86">        Map&lt;String, Object&gt; answers = command.answers();</span>
+<span class="fc" id="L87">        Result&lt;Void, List&lt;QuestionValidationFailure&gt;&gt; result = questionnaire.answerValidation(answers);</span>
+
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        if (result.isSuccess()) {</span>
+<span class="nc" id="L90">            return Result.success(new ValidateQuestionnaireAnswersView(</span>
+<span class="nc" id="L91">                    questionnaire.id(),</span>
+<span class="nc" id="L92">                    questionnaire.channelDistributionId(),</span>
+<span class="nc" id="L93">                    questionnaire.journeyDistributionId(),</span>
+                    true,
+<span class="nc" id="L95">                    Map.of()));</span>
+        }
+
+<span class="fc" id="L98">        List&lt;QuestionValidationFailure&gt; failures = result.errorOrElseThrow(() -&gt;</span>
+<span class="nc" id="L99">                new IllegalStateException(&quot;Expected failure answer validation result&quot;));</span>
+
+<span class="fc" id="L101">        Map&lt;String, ConfiguredQuestion&gt; configuredByQuestionId = questionnaire.configuredQuestions().stream()</span>
+<span class="fc" id="L102">                .collect(Collectors.toMap(</span>
+<span class="fc" id="L103">                        configured -&gt; configured.question().id(),</span>
+<span class="fc" id="L104">                        configured -&gt; configured,</span>
+<span class="nc" id="L105">                        (left, right) -&gt; right,</span>
+                        LinkedHashMap::new));
+
+<span class="fc" id="L108">        LinkedHashMap&lt;String, QuestionAnswerValidationView&gt; mappedViolations = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L109">        failures.stream()</span>
+<span class="fc" id="L110">                .sorted(Comparator.comparingInt(QuestionValidationFailure::order))</span>
+<span class="fc" id="L111">                .forEach(failure -&gt; {</span>
+<span class="fc" id="L112">                    ConfiguredQuestion configuredQuestion = configuredByQuestionId.get(failure.questionId());</span>
+<span class="fc" id="L113">                    mappedViolations.put(failure.questionId(),</span>
+<span class="fc" id="L114">                            mapQuestionViolation(failure, configuredQuestion, answers, configuredByQuestionId));</span>
+<span class="fc" id="L115">                });</span>
+
+<span class="fc" id="L117">        return Result.success(new ValidateQuestionnaireAnswersView(</span>
+<span class="fc" id="L118">                questionnaire.id(),</span>
+<span class="fc" id="L119">                questionnaire.channelDistributionId(),</span>
+<span class="fc" id="L120">                questionnaire.journeyDistributionId(),</span>
+                false,
+                mappedViolations));
+    }
+
+    private QuestionAnswerValidationView mapQuestionViolation(QuestionValidationFailure failure,
+                                                               ConfiguredQuestion configuredQuestion,
+                                                               Map&lt;String, Object&gt; answers,
+                                                               Map&lt;String, ConfiguredQuestion&gt; configuredByQuestionId) {
+<span class="fc" id="L129">        Object providedAnswer = answers.get(failure.questionId());</span>
+
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">        AnswerConfigurationView answerRule = configuredQuestion == null</span>
+<span class="nc" id="L132">                ? null</span>
+<span class="fc" id="L133">                : AnswerConfigurationView.from(configuredQuestion.answerConfiguration());</span>
+
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        QuestionConditionView conditionRule = configuredQuestion == null</span>
+<span class="nc" id="L136">                ? null</span>
+<span class="fc" id="L137">                : QuestionConditionView.from(configuredQuestion.rootCondition());</span>
+
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">        Set&lt;String&gt; dependsOnQuestionIds = configuredQuestion == null</span>
+<span class="nc" id="L140">                ? Set.of()</span>
+<span class="fc" id="L141">                : ConditionQuestionIdExtractor.extract(configuredQuestion.rootCondition());</span>
+
+<span class="pc bpc" id="L143" title="2 of 4 branches missed.">        boolean visibleByCondition = configuredQuestion == null || configuredQuestion.isVisible(answers);</span>
+
+<span class="fc" id="L145">        List&lt;QuestionAnswerViolationView&gt; violations = failure.errors().stream()</span>
+<span class="fc" id="L146">                .map(error -&gt; ViolationViewExtractor.build(error, configuredQuestion, configuredByQuestionId))</span>
+<span class="fc" id="L147">                .toList();</span>
+
+<span class="fc" id="L149">        return new QuestionAnswerValidationView(</span>
+<span class="fc" id="L150">                failure.questionId(),</span>
+<span class="fc" id="L151">                failure.questionLabel(),</span>
+<span class="fc" id="L152">                failure.order(),</span>
+                providedAnswer,
+                visibleByCondition,
+                answerRule,
+                conditionRule,
+                dependsOnQuestionIds,
+                violations
+        );
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"> <!-- 1. Ajuste no namespace -->
+<head>
+    <title>Consentimento de Acesso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+<div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+    <h2 class="text-xl font-bold mb-4" th:text="'O app ' + ${clientId} + ' solicita acesso:'"></h2>
+
+    <form method="post" th:action="@{/oauth2/authorize}" class="space-y-4">
+        <input type="hidden" name="client_id" th:value="${clientId}">
+        <input type="hidden" name="state" th:value="${state}">
+        <input type="hidden" name="redirect_uri" th:value="${redirectUri}"
+               th:if="${redirectUri != null and !#strings.isEmpty(redirectUri)}">
+
+        <div class="bg-gray-50 p-4 rounded-md">
+            <!-- O Spring exige que o nome do campo seja 'scope' (no singular) -->
+            <div th:each="s : ${scopes}" class="flex items-center mb-2">
+                <input type="checkbox" name="scope" th:value="${s}" checked
+                       class="h-4 w-4 text-blue-600 rounded">
+                <label class="ml-2 text-sm text-gray-700" th:text="${s}"></label>
+            </div>
+        </div>
+
+        <div class="flex gap-4">
+            <button type="submit" name="consent" value="approve"
+                    class="flex-1 bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
+                Autorizar
+            </button>
+            <button type="submit" name="consent" value="cancel"
+                    class="flex-1 bg-gray-300 text-gray-700 p-2 rounded hover:bg-gray-400">
+                Negar
+            </button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

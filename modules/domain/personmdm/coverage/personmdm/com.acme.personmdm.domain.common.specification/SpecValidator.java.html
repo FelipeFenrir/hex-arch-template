@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SpecValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">personmdm</a> &gt; <a href="index.source.html" class="el_package">com.acme.personmdm.domain.common.specification</a> &gt; <span class="el_source">SpecValidator.java</span></div><h1>SpecValidator.java</h1><pre class="source lang-java linenums">package com.acme.personmdm.domain.common.specification;
+
+import com.acme.personmdm.domain.common.validation.FailNotification;
+
+import java.util.ArrayList;
+import java.util.List;
+
+<span class="fc" id="L8">public class SpecValidator&lt;T&gt; {</span>
+<span class="fc" id="L9">    List&lt;GenericSpecification&lt;T&gt;&gt; specs = new ArrayList&lt;&gt;();</span>
+
+    public void addSpec(GenericSpecification&lt;T&gt; spec) {
+<span class="fc" id="L12">        specs.add(spec);</span>
+<span class="fc" id="L13">    }</span>
+
+    public SpecValidator&lt;T&gt; addSpecs(List&lt;GenericSpecification&lt;T&gt;&gt; specs) {
+<span class="fc bfc" id="L16" title="All 2 branches covered.">        for (GenericSpecification&lt;T&gt; spec : specs) {</span>
+<span class="fc" id="L17">            addSpec(spec);</span>
+<span class="fc" id="L18">        }</span>
+<span class="fc" id="L19">        return this;</span>
+    }
+
+    public FailNotification validate(T target) {
+<span class="fc" id="L23">        FailNotification notification = new FailNotification();</span>
+
+<span class="fc" id="L25">        specs.stream()</span>
+<span class="fc bfc" id="L26" title="All 2 branches covered.">                .filter(spec -&gt; !spec.isSatisfiedBy(target))</span>
+<span class="fc" id="L27">                .map(GenericSpecification::message)</span>
+<span class="fc" id="L28">                .forEach(notification::addError);</span>
+
+<span class="fc" id="L30">        return notification;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

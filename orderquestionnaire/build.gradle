@@ -1,0 +1,136 @@
+buildscript {
+    ext {
+        javaVersion                 = 25
+        springBootVersion           = '3.5.5'
+        springDependencyVersion     = '1.1.7'
+        gradleSonarVersion          = '4.4.1.3373'
+        awsSdkV2Version             = '2.25.62'
+        grpcSpringStarter           = '2.15.0.RELEASE'
+        grpcVersion                 = '1.65.1'
+        jsonSchemaValidator         = '1.5.8' // networknt
+        logBackVersion              = '1.5.18'
+        logstashEncoderVersion      = '7.4'
+        micrometerTracing           = '1.3.0'
+        opentelemetryBom            = '1.39.0'
+        testcontainersVersion       = '1.20.1'
+        archunitVersion             = '1.4.1'
+        lombokVersion               = '1.18.38'
+        togglzVersion               = '4.4.0'
+        junitVersion                = '5.13.4'
+        mockitoInlineVersion        = '5.2.0'
+        pitestVersion               = '1.19.0-rc.2'
+        cucumberVersion             = '7.18.1'
+        uuidCreatorVersion          = '6.1.1'
+        bcprovJdk18onVersion        = '1.78.1'
+    }
+}
+
+plugins {
+    id 'java'
+    id 'jacoco'
+    id 'jacoco-report-aggregation'
+    id 'org.sonarqube' version "${gradleSonarVersion}"
+    id 'org.springframework.boot' version "${springBootVersion}" apply false
+    id 'io.spring.dependency-management' version "${springDependencyVersion}"
+    id 'info.solidsoft.pitest' version "${pitestVersion}" apply false
+}
+
+allprojects {
+    group = 'com.acme.orderquestionnaire'
+    version = '0.1.0-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+    }
+
+    apply plugin: 'java'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(javaVersion)
+        }
+    }
+}
+
+subprojects {
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'jacoco'
+
+    test {
+        useJUnitPlatform()
+        finalizedBy jacocoTestReport
+    }
+
+    jacoco {
+        toolVersion = "0.8.14"
+    }
+
+    jacocoTestReport {
+        reports {
+            xml.required = true
+            xml.outputLocation = layout.buildDirectory.file("../coverage/${project.name}/jacocoTestReport.xml")
+            html.required = true
+            html.outputLocation = layout.buildDirectory.dir("../coverage/${project.name}").get()
+        }
+    }
+
+    dependencies {
+        testImplementation platform("org.testcontainers:testcontainers-bom:${testcontainersVersion}")
+        testImplementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
+        testImplementation "org.mockito:mockito-inline:${mockitoInlineVersion}"
+        testImplementation 'org.testcontainers:junit-jupiter'
+        testImplementation('org.springframework.boot:spring-boot-starter-test') {
+            exclude group: 'junit', module: 'junit'                             // exclui JUnit 4
+            exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'  // exclui Vintage
+        }
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:${springBootVersion}"
+            mavenBom "io.opentelemetry:opentelemetry-bom:${opentelemetryBom}"
+        }
+    }
+}
+
+sonarqube {
+    //Configuração do Sonnar para pegar o relatório agregado do jacoco
+    properties {
+        property "sonar.projectKey", "hex-arch-template"
+        property "sonar.java.coveragePlugin", "jacoco"
+        property "sonar.coverage.jacoco.xmlReportPaths", layout.buildDirectory.file("reports/jacoco/aggregate/aggregate.xml").get()
+    }
+}
+
+tasks.register('aggregateCoverageReport', JacocoReport) {
+    group = "Verification"
+    description = "Gera relatório de cobertura agregado de todos os módulos"
+
+    dependsOn subprojects.collect { it.tasks.named('test') }
+
+    executionData.setFrom(
+            files(subprojects.collect {
+                it.layout.buildDirectory.file("jacoco/test.exec").get().asFile
+            })
+    )
+
+    sourceDirectories.setFrom(
+            files(subprojects.collect {
+                it.sourceSets.main.allSource.srcDirs
+            })
+    )
+
+    classDirectories.setFrom(
+            files(subprojects.collect {
+                it.sourceSets.main.output
+            })
+    )
+
+    reports {
+        xml.required = true
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir("reports/jacoco/aggregate")
+        xml.outputLocation = layout.buildDirectory.file("reports/jacoco/aggregate/aggregate.xml")
+    }
+}

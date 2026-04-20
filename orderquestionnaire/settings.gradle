@@ -1,0 +1,19 @@
+rootProject.name = 'orderquestionnaire'
+
+include ':modules:domain'
+include ':modules:application'
+include ':modules:adapters:out:mongo'
+//include ':modules:bootstrap'
+
+// Define caminhos físicos (opcional, mas recomendado)
+project(':modules:domain').projectDir = file('modules/domain')
+project(':modules:application').projectDir = file('modules/application')
+project(':modules:adapters:out:mongo').projectDir = file('modules/adapters/out/mongo')
+//project(':modules:bootstrap').projectDir = file('modules/bootstrap')
+
+// Inclui 'shared' como subprojeto, apontando para o diretório correto.
+// Isso evita a necessidade de publicar shared no Maven Local.
+
+include ':shared'
+project(':shared').projectDir = file('../shared')
+

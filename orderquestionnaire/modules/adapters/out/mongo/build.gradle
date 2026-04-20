@@ -1,0 +1,43 @@
+plugins {
+    id 'info.solidsoft.pitest'
+}
+
+group = 'com.acme.orderquestionnaire'
+
+dependencies {
+    implementation project(':shared')
+    implementation project(':modules:domain')
+    implementation project(':modules:application')
+
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
+
+    testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"
+    testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
+    testImplementation "io.cucumber:cucumber-java:${cucumberVersion}"
+    testImplementation "io.cucumber:cucumber-junit-platform-engine:${cucumberVersion}"
+    testImplementation 'org.junit.platform:junit-platform-suite'
+    testImplementation 'org.testcontainers:mongodb'
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 1.0
+            }
+
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 1.0
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org">
+<head>
+    <title>Cadastro - Auth Server</title>
+</head>
+<body>
+<h2>Criar Nova Conta</h2>
+<div th:if="${error}" th:text="${error}" style="color: red;"></div>
+
+<form th:action="@{/register}" method="post">
+    <input type="text" name="username" placeholder="Usuário" required />
+    <input type="password" name="password" placeholder="Senha" required />
+    <input type="email" name="email" placeholder="E-mail" required /> <!-- Campo necessário -->
+    <button type="submit">Finalizar Cadastro</button>
+</form>
+<p>Já tem conta? <a th:href="@{/login}">Voltar ao login</a></p>
+</body>
+</html>

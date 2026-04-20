@@ -1,0 +1,45 @@
+{
+  "id": null,
+  "uid": "app-observability",
+  "title": "App Observability",
+  "tags": ["local", "observability"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+	"from": "now-1h",
+	"to": "now"
+  },
+  "panels": [
+	{
+	  "id": 1,
+	  "type": "timeseries",
+	  "title": "Service Up",
+	  "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "up{job=~\"prometheus|otel-collector|loki|tempo|app\"}",
+		  "legendFormat": "{{job}}"
+		}
+	  ]
+	},
+	{
+	  "id": 2,
+	  "type": "timeseries",
+	  "title": "Scrape Duration (seconds)",
+	  "gridPos": { "h": 10, "w": 12, "x": 12, "y": 0 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "scrape_duration_seconds{job=~\"prometheus|otel-collector|loki|tempo|app\"}",
+		  "legendFormat": "{{job}}"
+		}
+	  ]
+	}
+  ]
+}
+

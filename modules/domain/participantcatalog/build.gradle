@@ -1,0 +1,7 @@
+dependencies {
+    implementation project(':shared')
+
+    // Apenas regras de negócio puras, sem dependências de frameworks
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+}

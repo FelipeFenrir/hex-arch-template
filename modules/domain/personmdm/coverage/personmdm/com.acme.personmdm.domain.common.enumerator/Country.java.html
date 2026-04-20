@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Country.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">personmdm</a> &gt; <a href="index.source.html" class="el_package">com.acme.personmdm.domain.common.enumerator</a> &gt; <span class="el_source">Country.java</span></div><h1>Country.java</h1><pre class="source lang-java linenums">package com.acme.personmdm.domain.common.enumerator;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+import java.util.Arrays;
+import java.util.Optional;
+
+<span class="nc" id="L9">@Getter</span>
+@AllArgsConstructor
+public enum Country {
+    // Código do país (ex: &quot;BR&quot;, &quot;US&quot;) no padrão ISO 3166.
+<span class="nc" id="L13">    AFGHANISTAN(&quot;AF&quot;, &quot;Afghanistan&quot;, &quot;AFG&quot;),</span>
+<span class="nc" id="L14">    ALBANIA(&quot;AL&quot;, &quot;Albania&quot;, &quot;ALB&quot;),</span>
+<span class="nc" id="L15">    ARGENTINA(&quot;AR&quot;, &quot;Argentina&quot;, &quot;ARG&quot;),</span>
+<span class="nc" id="L16">    AUSTRALIA(&quot;AU&quot;, &quot;Australia&quot;, &quot;AUS&quot;),</span>
+<span class="nc" id="L17">    AUSTRIA(&quot;AT&quot;, &quot;Austria&quot;, &quot;AUT&quot;),</span>
+<span class="nc" id="L18">    BELGIUM(&quot;BE&quot;, &quot;Belgium&quot;, &quot;BEL&quot;),</span>
+<span class="nc" id="L19">    BRAZIL(&quot;BR&quot;, &quot;Brasil&quot;, &quot;BRA&quot;),</span>
+<span class="nc" id="L20">    CANADA(&quot;CA&quot;, &quot;Canada&quot;, &quot;CAN&quot;),</span>
+<span class="nc" id="L21">    CHINA(&quot;CN&quot;, &quot;China&quot;, &quot;CHN&quot;),</span>
+<span class="nc" id="L22">    COLOMBIA(&quot;CO&quot;, &quot;Colombia&quot;, &quot;COL&quot;),</span>
+<span class="nc" id="L23">    FRANCE(&quot;FR&quot;, &quot;France&quot;, &quot;FRA&quot;),</span>
+<span class="nc" id="L24">    GERMANY(&quot;DE&quot;, &quot;Germany&quot;, &quot;DEU&quot;),</span>
+<span class="nc" id="L25">    INDIA(&quot;IN&quot;, &quot;India&quot;, &quot;IND&quot;),</span>
+<span class="nc" id="L26">    ITALY(&quot;IT&quot;, &quot;Italy&quot;, &quot;ITA&quot;),</span>
+<span class="nc" id="L27">    JAPAN(&quot;JP&quot;, &quot;Japan&quot;, &quot;JPN&quot;),</span>
+<span class="nc" id="L28">    MEXICO(&quot;MX&quot;, &quot;Mexico&quot;, &quot;MEX&quot;),</span>
+<span class="nc" id="L29">    PORTUGAL(&quot;PT&quot;, &quot;Portugal&quot;, &quot;PRT&quot;),</span>
+<span class="nc" id="L30">    SPAIN(&quot;ES&quot;, &quot;Spain&quot;, &quot;ESP&quot;),</span>
+<span class="nc" id="L31">    UNITED_KINGDOM(&quot;GB&quot;, &quot;United Kingdom&quot;, &quot;GBR&quot;),</span>
+<span class="nc" id="L32">    UNITED_STATES(&quot;US&quot;, &quot;United States&quot;, &quot;USA&quot;);</span>
+
+    private final String alpha2Code;
+    private final String name;
+    private final String alpha3Code;
+
+    private static final String ALPHA2CODE = &quot;alpha2code&quot;;
+    private static final String ALPHA3CODE = &quot;alpha3code&quot;;
+
+    public static Optional&lt;Country&gt; fromAlpha2Code(String alpha2Code) {
+<span class="nc" id="L42">        return fromCode(alpha2Code, ALPHA2CODE);</span>
+    }
+
+    public static Optional&lt;Country&gt; fromAlpha3Code(String alpha3Code) {
+<span class="nc" id="L46">        return fromCode(alpha3Code, ALPHA3CODE);</span>
+    }
+
+    private static Optional&lt;Country&gt; fromCode(String code, String type) {
+<span class="nc" id="L50">        return Optional.ofNullable(code)</span>
+<span class="nc" id="L51">                .map(String::trim)</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">                .filter(s -&gt; !s.isEmpty())</span>
+<span class="nc" id="L53">                .flatMap(s -&gt; Arrays.stream(values())</span>
+<span class="nc" id="L54">                        .filter(country -&gt;</span>
+<span class="nc bnc" id="L55" title="All 4 branches missed.">                                (country.alpha2Code.equalsIgnoreCase(s) &amp;&amp; type.equalsIgnoreCase(ALPHA2CODE)) ||</span>
+<span class="nc bnc" id="L56" title="All 4 branches missed.">                                        (country.alpha3Code.equalsIgnoreCase(s) &amp;&amp; type.equalsIgnoreCase(ALPHA3CODE))</span>
+                        )
+<span class="nc" id="L58">                        .findFirst());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
