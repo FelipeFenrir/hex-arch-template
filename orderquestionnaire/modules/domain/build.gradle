@@ -46,10 +46,10 @@ pitest {
 
     targetClasses = [
             'com.acme.orderquestionnaire.domain.question.*',
-            'com.acme.orderquestionnaire.domain.question.answer.*',
-            'com.acme.orderquestionnaire.domain.question.answer.strategy.*',
+            'com.acme.orderquestionnaire.domain.questionnaire.answer.*',
+            'com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.*',
             'com.acme.orderquestionnaire.domain.questionnaire.*',
-            'com.acme.orderquestionnaire.domain.questionnaire.conditioners.*'
+            'com.acme.orderquestionnaire.domain.questionnaire.conditioner.*'
     ]
 
     targetTests = [

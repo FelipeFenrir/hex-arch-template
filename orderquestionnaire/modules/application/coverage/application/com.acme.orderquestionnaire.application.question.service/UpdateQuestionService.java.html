@@ -27,84 +27,87 @@ public class UpdateQuestionService implements UpdateQuestionUseCase {
 
     private final QuestionCommandOutPort questionRepository;
 
-<span class="nc" id="L30">    public UpdateQuestionService(QuestionCommandOutPort questionRepository) {</span>
-<span class="nc" id="L31">        this.questionRepository = Objects.requireNonNull(questionRepository, &quot;questionRepository must not be null&quot;);</span>
-<span class="nc" id="L32">    }</span>
+<span class="fc" id="L30">    public UpdateQuestionService(QuestionCommandOutPort questionRepository) {</span>
+<span class="fc" id="L31">        this.questionRepository = Objects.requireNonNull(questionRepository, &quot;questionRepository must not be null&quot;);</span>
+<span class="fc" id="L32">    }</span>
 
     @Override
     public Result&lt;QuestionUpdatedView, List&lt;DomainError&gt;&gt; execute(String id, UpdateQuestionCommand command) {
-<span class="nc" id="L36">        Result&lt;Void, List&lt;DomainError&gt;&gt; validations = validateCommand(id, command);</span>
-<span class="nc bnc" id="L37" title="All 2 branches missed.">        if (validations.isFailure()) {</span>
+<span class="fc" id="L36">        Result&lt;Void, List&lt;DomainError&gt;&gt; validations = validateCommand(id, command);</span>
+<span class="pc bpc" id="L37" title="1 of 2 branches missed.">        if (validations.isFailure()) {</span>
 <span class="nc" id="L38">            return Result.failure(validations.errorOrElseThrow(() -&gt;</span>
 <span class="nc" id="L39">                    new IllegalStateException(&quot;Expected failure validations result&quot;)));</span>
         }
 
-<span class="nc" id="L42">        return validations.flatMap(__ -&gt; resolveUpdatedActor(command)</span>
-<span class="nc" id="L43">                    .flatMap(actor -&gt; findExistingQuestion(id)</span>
-<span class="nc" id="L44">                        .flatMap(current -&gt; resolveTransition(current, command, actor)</span>
-<span class="nc" id="L45">                            .flatMap(transition -&gt;</span>
-<span class="nc" id="L46">                                    buildUpdatedQuestion(id, command, transition))</span>
+<span class="fc" id="L42">        return validations.flatMap(__ -&gt; resolveUpdatedActor(command)</span>
+<span class="fc" id="L43">                    .flatMap(actor -&gt; findExistingQuestion(id)</span>
+<span class="fc" id="L44">                        .flatMap(current -&gt; resolveTransition(current, command, actor)</span>
+<span class="fc" id="L45">                            .flatMap(transition -&gt;</span>
+<span class="fc" id="L46">                                    buildUpdatedQuestion(id, command, transition))</span>
                         )
                     )
                 )
-<span class="nc" id="L50">                .flatMap(questionRepository::update)</span>
-<span class="nc" id="L51">                .map(QuestionUpdatedView::from);</span>
+<span class="fc" id="L50">                .flatMap(questionRepository::update)</span>
+<span class="fc" id="L51">                .map(QuestionUpdatedView::from);</span>
     }
 
     private Result&lt;Void, List&lt;DomainError&gt;&gt; validateCommand(String id, UpdateQuestionCommand command) {
-<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (command == null) {</span>
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">        if (command == null) {</span>
 <span class="nc" id="L56">            return QuestionErrors.INVALID_COMMAND.asFailure();</span>
         }
 
-<span class="nc" id="L59">        return Guard.collect(List.of(</span>
-<span class="nc" id="L60">                QuestionFactory.validateUpdatePayload(id, command.label(), command.salesItemReferenceCode())</span>
+<span class="fc" id="L59">        return Guard.collect(List.of(</span>
+<span class="fc" id="L60">                QuestionFactory.validateUpdatePayload(id, command.label(), command.salesItemReferenceCode())</span>
         ));
     }
 
     private Result&lt;AuditUser, List&lt;DomainError&gt;&gt; resolveUpdatedActor(UpdateQuestionCommand command) {
-<span class="nc" id="L65">        AuditUserParam updatedBy = command.updatedBy();</span>
-<span class="nc" id="L66">        return OrderQuestionnaireAuditFactory.updateUserForQuestion(</span>
-<span class="nc bnc" id="L67" title="All 2 branches missed.">                updatedBy == null ? null : updatedBy.id(),</span>
-<span class="nc bnc" id="L68" title="All 2 branches missed.">                updatedBy == null ? null : updatedBy.referenceCode(),</span>
-<span class="nc bnc" id="L69" title="All 2 branches missed.">                updatedBy == null ? null : updatedBy.name(),</span>
-<span class="nc bnc" id="L70" title="All 2 branches missed.">                updatedBy == null ? null : updatedBy.email(),</span>
-<span class="nc" id="L71">                command.updatedAt());</span>
+<span class="fc" id="L65">        AuditUserParam updatedBy = command.updatedBy();</span>
+<span class="fc" id="L66">        return OrderQuestionnaireAuditFactory.updateUserForQuestion(</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">                updatedBy == null ? null : updatedBy.id(),</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">                updatedBy == null ? null : updatedBy.referenceCode(),</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">                updatedBy == null ? null : updatedBy.name(),</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">                updatedBy == null ? null : updatedBy.email(),</span>
+<span class="fc" id="L71">                command.updatedAt());</span>
     }
 
     private Result&lt;Question, List&lt;DomainError&gt;&gt; findExistingQuestion(String id) {
-<span class="nc" id="L75">        Optional&lt;Question&gt; existingQuestion = questionRepository.findQuestionById(id);</span>
-<span class="nc" id="L76">        return existingQuestion</span>
-<span class="nc" id="L77">                .map(Result::&lt;Question, List&lt;DomainError&gt;&gt;success)</span>
-<span class="nc" id="L78">                .orElseGet(QuestionErrors.QUESTION_NOT_FOUND::asFailure);</span>
+<span class="fc" id="L75">        Optional&lt;Question&gt; existingQuestion = questionRepository.findQuestionById(id);</span>
+<span class="fc" id="L76">        return existingQuestion</span>
+<span class="fc" id="L77">                .map(Result::&lt;Question, List&lt;DomainError&gt;&gt;success)</span>
+<span class="fc" id="L78">                .orElseGet(QuestionErrors.QUESTION_NOT_FOUND::asFailure);</span>
     }
 
     private Result&lt;TransitionResult&lt;ParameterizationStatus, QuestionStatusTransitionContext&gt;, List&lt;DomainError&gt;&gt;
     resolveTransition(Question current, UpdateQuestionCommand command, AuditUser actor) {
 
-<span class="nc" id="L84">        QuestionStatusTransitionContext context = new QuestionStatusTransitionContext(</span>
+<span class="fc" id="L84">        QuestionStatusTransitionContext context = new QuestionStatusTransitionContext(</span>
                 current,
                 actor,
-<span class="nc" id="L87">                command.updatedAt(),</span>
-<span class="nc" id="L88">                current.auditInfo().withUpdate(actor, command.updatedAt()),</span>
+<span class="fc" id="L87">                command.updatedAt(),</span>
+<span class="fc" id="L88">                current.auditInfo().withUpdate(actor, command.updatedAt()),</span>
                 false
         );
 
-<span class="nc bnc" id="L92" title="All 2 branches missed.">        final ParameterizationStatus desiredStatus = command.status() == null</span>
-<span class="nc" id="L93">                ? current.status()</span>
-<span class="nc" id="L94">                : command.status();</span>
-<span class="nc" id="L95">        return QuestionStatusMachine.transition(current.status(), desiredStatus, context);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        final ParameterizationStatus desiredStatus = command.status() == null</span>
+<span class="fc" id="L93">                ? current.status()</span>
+<span class="fc" id="L94">                : command.status();</span>
+<span class="fc" id="L95">        return QuestionStatusMachine.transition(current.status(), desiredStatus, context);</span>
     }
 
     private Result&lt;Question, List&lt;DomainError&gt;&gt; buildUpdatedQuestion(String id,
                                                                      UpdateQuestionCommand command,
                                                                      TransitionResult&lt;ParameterizationStatus,
                                                                      QuestionStatusTransitionContext&gt; transition) {
-<span class="nc" id="L102">        AuditInfo updatedAuditInfo = transition.context().auditInfo();</span>
+<span class="fc" id="L102">        AuditInfo updatedAuditInfo = transition.context().auditInfo();</span>
 
-<span class="nc" id="L104">        return QuestionFactory.rehydrate(id, command.label(), transition.targetState(), updatedAuditInfo)</span>
-<span class="nc" id="L105">                .flatMap(builder -&gt; builder</span>
-<span class="nc" id="L106">                        .withSalesItemReferenceCode(command.salesItemReferenceCode())</span>
-<span class="nc" id="L107">                        .build());</span>
+<span class="fc" id="L104">        return QuestionFactory.rehydrate(</span>
+                        id,
+<span class="fc" id="L106">                        command.label(),</span>
+<span class="fc" id="L107">                        transition.targetState(),</span>
+<span class="fc" id="L108">                        command.salesItemReferenceCode(),</span>
+                        updatedAuditInfo)
+<span class="fc" id="L110">                .flatMap(builder -&gt; builder.build());</span>
     }
 }
 

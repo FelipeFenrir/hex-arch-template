@@ -134,6 +134,21 @@ services:
     depends_on: [ loki, tempo, prometheus ]
 
   # ---------------------------------------------------------
+  # Wiremock (simula APIs externas)
+  # ---------------------------------------------------------
+  wiremock:
+    image: wiremock/wiremock:latest
+    container_name: wiremock
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./wiremock:/home/wiremock
+    command:
+      - --global-response-templating
+      - --verbose
+
+
+  # ---------------------------------------------------------
   # StackPort (simula AWS)
   # ---------------------------------------------------------
   stackport:

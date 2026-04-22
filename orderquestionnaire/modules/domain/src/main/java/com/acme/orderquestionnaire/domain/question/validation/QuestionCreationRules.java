@@ -68,14 +68,14 @@ public final class QuestionCreationRules {
     /**
      * Factory: retorna lista de regras para criar Question.
      */
-    public static List<DomainRule<String>> createNewQuestionIdRules(String id) {
+    public static List<DomainRule<String>> createNewQuestionIdRules() {
         return List.of(
                 questionIdNotNull(),
                 questionIdSnakeCaseFormat()
         );
     }
 
-    public static List<DomainRule<String>> createNewQuestionLabelRules(String label) {
+    public static List<DomainRule<String>> createNewQuestionLabelRules() {
         return List.of(
                 questionLabelNotNull()
         );
@@ -101,7 +101,7 @@ public final class QuestionCreationRules {
     /**
      * Factory: retorna lista de regras para validar auditInfo na criação de Question.
      */
-    public static List<DomainRule<AuditInfo>> createNewAuditInfoRules(AuditInfo auditInfo) {
+    public static List<DomainRule<AuditInfo>> createNewAuditInfoRules() {
         return List.of(
                 auditInfoNotNull()
         );

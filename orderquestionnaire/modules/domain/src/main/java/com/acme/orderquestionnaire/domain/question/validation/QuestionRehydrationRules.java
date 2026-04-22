@@ -67,19 +67,19 @@ public final class QuestionRehydrationRules {
     /**
      * Factory: retorna lista de regras para rehidratar Question.
      */
-    public static List<DomainRule<String>> rehydrateQuestionIdRules(String id) {
+    public static List<DomainRule<String>> rehydrateQuestionIdRules() {
         return List.of(
                 questionIdNotNull()
         );
     }
 
-    public static List<DomainRule<String>> rehydrateQuestionLabelRules(String label) {
+    public static List<DomainRule<String>> rehydrateQuestionLabelRules() {
         return List.of(
                 questionLabelNotNull()
         );
     }
 
-    public static List<DomainRule<ParameterizationStatus>> rehydrateQuestionStatusRules(ParameterizationStatus status) {
+    public static List<DomainRule<ParameterizationStatus>> rehydrateQuestionStatusRules() {
         return List.of(
                 questionStatusNotNull()
         );
@@ -105,7 +105,7 @@ public final class QuestionRehydrationRules {
     /**
      * Factory: retorna lista de regras para validar auditInfo na rehidratação de Question.
      */
-    public static List<DomainRule<AuditInfo>> rehydrateAuditInfoRules(AuditInfo auditInfo) {
+    public static List<DomainRule<AuditInfo>> rehydrateAuditInfoRules() {
         return List.of(
                 auditInfoNotNull()
         );

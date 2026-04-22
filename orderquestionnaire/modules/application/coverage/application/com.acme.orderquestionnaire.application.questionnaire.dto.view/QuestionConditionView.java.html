@@ -5,27 +5,27 @@ import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionConditionTr
 
 import java.util.List;
 
-<span class="nc" id="L8">public record QuestionConditionView(</span>
+<span class="fc" id="L8">public record QuestionConditionView(</span>
         String type,
         java.util.Map&lt;String, Object&gt; attributes,
         List&lt;QuestionConditionView&gt; children
 ) {
 
     public static QuestionConditionView from(QuestionCondition questionCondition) {
-<span class="pc bpc" id="L15" title="1 of 2 branches missed.">        return questionCondition == null ? null : from(questionCondition.toTreeNode());</span>
+<span class="fc bfc" id="L15" title="All 2 branches covered.">        return questionCondition == null ? null : from(questionCondition.toTreeNode());</span>
     }
 
     public static QuestionConditionView from(QuestionConditionTreeNode treeNode) {
-<span class="nc bnc" id="L19" title="All 2 branches missed.">        if (treeNode == null) {</span>
-<span class="nc" id="L20">            return null;</span>
+<span class="fc bfc" id="L19" title="All 2 branches covered.">        if (treeNode == null) {</span>
+<span class="fc" id="L20">            return null;</span>
         }
 
-<span class="nc" id="L23">        return new QuestionConditionView(</span>
-<span class="nc" id="L24">                treeNode.type(),</span>
-<span class="nc" id="L25">                treeNode.attributes(),</span>
-<span class="nc" id="L26">                treeNode.children().stream()</span>
-<span class="nc" id="L27">                        .map(QuestionConditionView::from)</span>
-<span class="nc" id="L28">                        .toList()</span>
+<span class="fc" id="L23">        return new QuestionConditionView(</span>
+<span class="fc" id="L24">                treeNode.type(),</span>
+<span class="fc" id="L25">                treeNode.attributes(),</span>
+<span class="fc" id="L26">                treeNode.children().stream()</span>
+<span class="fc" id="L27">                        .map(QuestionConditionView::from)</span>
+<span class="fc" id="L28">                        .toList()</span>
         );
     }
 }

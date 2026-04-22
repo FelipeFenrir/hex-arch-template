@@ -42,12 +42,12 @@ import java.util.Locale;
 
     @Override
     public DomainError toDomainError() {
-<span class="nc" id="L45">        return new DomainError(code, messageTemplate);</span>
+<span class="fc" id="L45">        return new DomainError(code, messageTemplate);</span>
     }
 
     @Override
     public DomainError toDomainError(Object... args) {
-<span class="nc" id="L50">        return new DomainError(code, String.format(Locale.ROOT, messageTemplate, args));</span>
+<span class="fc" id="L50">        return new DomainError(code, String.format(Locale.ROOT, messageTemplate, args));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

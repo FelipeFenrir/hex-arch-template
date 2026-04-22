@@ -49,7 +49,7 @@ public final class QuestionnaireBuilderRules {
     /**
      * Factory: retorna lista de regras para validar order.
      */
-    public static List<DomainRule<Integer>> orderValidationRules(Integer order) {
+    public static List<DomainRule<Integer>> orderValidationRules() {
         return List.of(
                 orderNotNegative()
         );
@@ -58,7 +58,7 @@ public final class QuestionnaireBuilderRules {
     /**
      * Factory: retorna lista de regras para validar auditInfo.
      */
-    public static List<DomainRule<AuditInfo>> auditInfoRules(AuditInfo auditInfo) {
+    public static List<DomainRule<AuditInfo>> auditInfoRules() {
         return List.of(
                 auditInfoNotNull()
         );

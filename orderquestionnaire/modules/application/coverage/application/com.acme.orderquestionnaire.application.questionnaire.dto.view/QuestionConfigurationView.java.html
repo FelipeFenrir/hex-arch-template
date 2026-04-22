@@ -2,21 +2,21 @@
 
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 
-<span class="nc" id="L5">public record QuestionConfigurationView(</span>
+<span class="fc" id="L5">public record QuestionConfigurationView(</span>
         Integer order,
         AnswerConfigurationView answerConfiguration,
         QuestionConditionView rootCondition
 ) {
 
     public static QuestionConfigurationView from(ConfiguredQuestion configuredQuestion) {
-<span class="nc bnc" id="L12" title="All 2 branches missed.">        if (configuredQuestion == null) {</span>
-<span class="nc" id="L13">            return null;</span>
+<span class="fc bfc" id="L12" title="All 2 branches covered.">        if (configuredQuestion == null) {</span>
+<span class="fc" id="L13">            return null;</span>
         }
 
-<span class="nc" id="L16">        return new QuestionConfigurationView(</span>
-<span class="nc" id="L17">                configuredQuestion.order(),</span>
-<span class="nc" id="L18">                AnswerConfigurationView.from(configuredQuestion.answerConfiguration()),</span>
-<span class="nc" id="L19">                QuestionConditionView.from(configuredQuestion.rootCondition())</span>
+<span class="fc" id="L16">        return new QuestionConfigurationView(</span>
+<span class="fc" id="L17">                configuredQuestion.order(),</span>
+<span class="fc" id="L18">                AnswerConfigurationView.from(configuredQuestion.answerConfiguration()),</span>
+<span class="fc" id="L19">                QuestionConditionView.from(configuredQuestion.rootCondition())</span>
         );
     }
 }

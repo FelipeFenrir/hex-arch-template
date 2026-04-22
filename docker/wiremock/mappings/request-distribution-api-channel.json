@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/distribution/channel/mobile_acmeapp"
+  },
+  "response": {
+    "status": 200,
+    "bodyFileName": "response-channel-mobile_acmeapp.json",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

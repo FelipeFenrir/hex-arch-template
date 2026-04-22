@@ -5,44 +5,44 @@ import com.acme.shared.pattern.result.ErrorCatalog;
 
 import java.util.Locale;
 
-<span class="nc" id="L8">public enum QuestionErrors implements ErrorCatalog {</span>
-<span class="nc" id="L9">    INVALID_COMMAND(&quot;INVALID_COMMAND&quot;, &quot;command must not be null&quot;),</span>
-<span class="nc" id="L10">    INVALID_ID(&quot;INVALID_ID&quot;, &quot;id must not be null or blank&quot;),</span>
-<span class="nc" id="L11">    INVALID_STATUS(&quot;INVALID_STATUS&quot;, &quot;status is invalid&quot;),</span>
-<span class="nc" id="L12">    INVALID_IDS(&quot;INVALID_IDS&quot;, &quot;ids must not be null or empty&quot;),</span>
-<span class="nc" id="L13">    INVALID_CREATED_AT(&quot;INVALID_CREATED_AT&quot;, &quot;createdAt must not be null&quot;),</span>
-<span class="nc" id="L14">    INVALID_CREATED_BY(&quot;INVALID_CREATED_BY&quot;, &quot;createdBy must not be null&quot;),</span>
-<span class="nc" id="L15">    INVALID_UPDATED_AT(&quot;INVALID_UPDATED_AT&quot;, &quot;updatedAt must not be null&quot;),</span>
-<span class="nc" id="L16">    INVALID_UPDATED_BY(&quot;INVALID_UPDATED_BY&quot;, &quot;updatedBy must not be null&quot;),</span>
-<span class="nc" id="L17">    INVALID_USER_ID(&quot;INVALID_USER_ID&quot;, &quot;user id must not be null or blank&quot;),</span>
-<span class="nc" id="L18">    INVALID_USER_NAME(&quot;INVALID_USER_NAME&quot;, &quot;user name must not be null or blank&quot;),</span>
-<span class="nc" id="L19">    QUESTION_ALREADY_EXISTS(&quot;QUESTION_ALREADY_EXISTS&quot;, &quot;a question with id '%s' already exists&quot;),</span>
-<span class="nc" id="L20">    INVALID_STATUS_TRANSITION(&quot;INVALID_STATUS_TRANSITION&quot;, &quot;Cannot transition from '%s' to '%s'&quot;),</span>
-<span class="nc" id="L21">    QUESTION_NOT_FOUND(&quot;QUESTION_NOT_FOUND&quot;, &quot;question was not found&quot;),</span>
-<span class="nc" id="L22">    QUESTION_IN_USE(&quot;QUESTION_IN_USE&quot;, &quot;question '%s' is referenced by questionnaires: %s&quot;),</span>
-<span class="nc" id="L23">    QUESTION_DELETE_FAILED(&quot;QUESTION_DELETE_FAILED&quot;, &quot;failed to delete question '%s': %s&quot;),</span>
-<span class="nc" id="L24">    CREATE_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;createQuestion is not implemented yet&quot;),</span>
-<span class="nc" id="L25">    UPDATE_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;updateQuestion is not implemented yet&quot;),</span>
-<span class="nc" id="L26">    INACTIVATE_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;inactivateQuestion is not implemented yet&quot;),</span>
-<span class="nc" id="L27">    INACTIVATE_BULK_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;inactivateQuestions is not implemented yet&quot;),</span>
-<span class="nc" id="L28">    ACTIVATE_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;activateQuestion is not implemented yet&quot;),</span>
-<span class="nc" id="L29">    ACTIVATE_BULK_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;activateQuestions is not implemented yet&quot;),</span>
-<span class="nc" id="L30">    NOT_IMPLEMENTED_TEMPLATE(&quot;NOT_IMPLEMENTED&quot;, &quot;%s is not implemented yet&quot;);</span>
+<span class="fc" id="L8">public enum QuestionErrors implements ErrorCatalog {</span>
+<span class="fc" id="L9">    INVALID_COMMAND(&quot;INVALID_COMMAND&quot;, &quot;command must not be null&quot;),</span>
+<span class="fc" id="L10">    INVALID_ID(&quot;INVALID_ID&quot;, &quot;id must not be null or blank&quot;),</span>
+<span class="fc" id="L11">    INVALID_STATUS(&quot;INVALID_STATUS&quot;, &quot;status is invalid&quot;),</span>
+<span class="fc" id="L12">    INVALID_IDS(&quot;INVALID_IDS&quot;, &quot;ids must not be null or empty&quot;),</span>
+<span class="fc" id="L13">    INVALID_CREATED_AT(&quot;INVALID_CREATED_AT&quot;, &quot;createdAt must not be null&quot;),</span>
+<span class="fc" id="L14">    INVALID_CREATED_BY(&quot;INVALID_CREATED_BY&quot;, &quot;createdBy must not be null&quot;),</span>
+<span class="fc" id="L15">    INVALID_UPDATED_AT(&quot;INVALID_UPDATED_AT&quot;, &quot;updatedAt must not be null&quot;),</span>
+<span class="fc" id="L16">    INVALID_UPDATED_BY(&quot;INVALID_UPDATED_BY&quot;, &quot;updatedBy must not be null&quot;),</span>
+<span class="fc" id="L17">    INVALID_USER_ID(&quot;INVALID_USER_ID&quot;, &quot;user id must not be null or blank&quot;),</span>
+<span class="fc" id="L18">    INVALID_USER_NAME(&quot;INVALID_USER_NAME&quot;, &quot;user name must not be null or blank&quot;),</span>
+<span class="fc" id="L19">    QUESTION_ALREADY_EXISTS(&quot;QUESTION_ALREADY_EXISTS&quot;, &quot;a question with id '%s' already exists&quot;),</span>
+<span class="fc" id="L20">    INVALID_STATUS_TRANSITION(&quot;INVALID_STATUS_TRANSITION&quot;, &quot;Cannot transition from '%s' to '%s'&quot;),</span>
+<span class="fc" id="L21">    QUESTION_NOT_FOUND(&quot;QUESTION_NOT_FOUND&quot;, &quot;question was not found&quot;),</span>
+<span class="fc" id="L22">    QUESTION_IN_USE(&quot;QUESTION_IN_USE&quot;, &quot;question '%s' is referenced by questionnaires: %s&quot;),</span>
+<span class="fc" id="L23">    QUESTION_DELETE_FAILED(&quot;QUESTION_DELETE_FAILED&quot;, &quot;failed to delete question '%s': %s&quot;),</span>
+<span class="fc" id="L24">    CREATE_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;createQuestion is not implemented yet&quot;),</span>
+<span class="fc" id="L25">    UPDATE_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;updateQuestion is not implemented yet&quot;),</span>
+<span class="fc" id="L26">    INACTIVATE_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;inactivateQuestion is not implemented yet&quot;),</span>
+<span class="fc" id="L27">    INACTIVATE_BULK_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;inactivateQuestions is not implemented yet&quot;),</span>
+<span class="fc" id="L28">    ACTIVATE_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;activateQuestion is not implemented yet&quot;),</span>
+<span class="fc" id="L29">    ACTIVATE_BULK_NOT_IMPLEMENTED(&quot;NOT_IMPLEMENTED&quot;, &quot;activateQuestions is not implemented yet&quot;),</span>
+<span class="fc" id="L30">    NOT_IMPLEMENTED_TEMPLATE(&quot;NOT_IMPLEMENTED&quot;, &quot;%s is not implemented yet&quot;);</span>
 
     private final String code;
     private final String messageTemplate;
 
-<span class="nc" id="L35">    QuestionErrors(String code, String messageTemplate) {</span>
-<span class="nc" id="L36">        this.code = code;</span>
-<span class="nc" id="L37">        this.messageTemplate = messageTemplate;</span>
-<span class="nc" id="L38">    }</span>
+<span class="fc" id="L35">    QuestionErrors(String code, String messageTemplate) {</span>
+<span class="fc" id="L36">        this.code = code;</span>
+<span class="fc" id="L37">        this.messageTemplate = messageTemplate;</span>
+<span class="fc" id="L38">    }</span>
 
     public DomainError toDomainError() {
-<span class="nc" id="L41">        return new DomainError(code, messageTemplate);</span>
+<span class="fc" id="L41">        return new DomainError(code, messageTemplate);</span>
     }
 
     public DomainError toDomainError(Object... args) {
-<span class="nc" id="L45">        return new DomainError(code, String.format(Locale.ROOT, messageTemplate, args));</span>
+<span class="fc" id="L45">        return new DomainError(code, String.format(Locale.ROOT, messageTemplate, args));</span>
     }
 }
 

@@ -21,28 +21,28 @@ public final class ConfiguredQuestionAssembler {
     public static Result&lt;ConfiguredQuestion, List&lt;DomainError&gt;&gt; build(
             Question question,
             ConfiguredQuestionParam param) {
-<span class="nc bnc" id="L24" title="All 4 branches missed.">        if (param == null || param.answerConfig() == null) {</span>
-<span class="nc" id="L25">            return QuestionErrors.INVALID_COMMAND.asFailure();</span>
+<span class="pc bpc" id="L24" title="1 of 4 branches missed.">        if (param == null || param.answerConfig() == null) {</span>
+<span class="fc" id="L25">            return QuestionErrors.INVALID_COMMAND.asFailure();</span>
         }
 
-<span class="nc" id="L28">        return ConfiguredQuestionFactory.from(question)</span>
-<span class="nc" id="L29">                .flatMap(builder -&gt; ConditionAssembler.toDomain(param.rootCondition())</span>
-<span class="nc" id="L30">                        .flatMap(rootCondition -&gt; {</span>
-<span class="nc" id="L31">                    ConfiguredQuestionFactory.QuestionBuilder configuredBuilder = builder</span>
-<span class="nc" id="L32">                            .withOrder(param.order())</span>
-<span class="nc" id="L33">                            .withCondition(rootCondition);</span>
-<span class="nc bnc" id="L34" title="All 4 branches missed.">                    return switch (param.answerConfig()) {</span>
-<span class="nc" id="L35">                        case AnswerConfigParam.Text text -&gt; configuredBuilder.asText(</span>
-<span class="nc" id="L36">                                new ConfiguredQuestionFactory.TextConfig(text.regexPattern(), text.customErrorMessage())</span>
+<span class="fc" id="L28">        return ConfiguredQuestionFactory.from(question)</span>
+<span class="fc" id="L29">                .flatMap(builder -&gt; ConditionAssembler.toDomain(param.rootCondition())</span>
+<span class="fc" id="L30">                        .flatMap(rootCondition -&gt; {</span>
+<span class="fc" id="L31">                    ConfiguredQuestionFactory.ConfiguredQuestionBuilder configuredBuilder = builder</span>
+<span class="fc" id="L32">                            .withOrder(param.order())</span>
+<span class="fc" id="L33">                            .withCondition(rootCondition);</span>
+<span class="pc bpc" id="L34" title="2 of 4 branches missed.">                    return switch (param.answerConfig()) {</span>
+<span class="fc" id="L35">                        case AnswerConfigParam.Text text -&gt; configuredBuilder.asText(</span>
+<span class="fc" id="L36">                                new ConfiguredQuestionFactory.TextConfig(text.regexPattern(), text.customErrorMessage())</span>
                         );
-<span class="nc" id="L38">                        case AnswerConfigParam.Number number -&gt; configuredBuilder.asNumber(</span>
+<span class="fc" id="L38">                        case AnswerConfigParam.Number number -&gt; configuredBuilder.asNumber(</span>
                                 new ConfiguredQuestionFactory.NumberConfig(
-<span class="nc" id="L40">                                        number.min(),</span>
-<span class="nc" id="L41">                                        number.max(),</span>
-<span class="nc" id="L42">                                        number.step(),</span>
-<span class="nc" id="L43">                                        number.allowedDecimal(),</span>
-<span class="nc" id="L44">                                        number.allowedNegative(),</span>
-<span class="nc" id="L45">                                        number.customErrorMessage()</span>
+<span class="fc" id="L40">                                        number.min(),</span>
+<span class="fc" id="L41">                                        number.max(),</span>
+<span class="fc" id="L42">                                        number.step(),</span>
+<span class="fc" id="L43">                                        number.allowedDecimal(),</span>
+<span class="fc" id="L44">                                        number.allowedNegative(),</span>
+<span class="fc" id="L45">                                        number.customErrorMessage()</span>
                                 )
                         );
 <span class="nc" id="L48">                        case AnswerConfigParam.Date date -&gt; configuredBuilder.asDate(</span>

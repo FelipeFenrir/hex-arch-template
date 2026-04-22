@@ -2,6 +2,7 @@ package com.acme.orderquestionnaire.domain.questionnaire;
 
 import com.acme.orderquestionnaire.domain.question.QuestionFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition;
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionConditionComposer;
 import com.acme.orderquestionnaire.testutils.mocks.audit.AuditTestData;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
@@ -26,14 +27,14 @@ class QuestionnaireFactoryMutationTest {
     @Test
     @DisplayName("combineConditions returns null for empty conditions")
     void shouldReturnNullForEmptyConditions() {
-        var result = QuestionnaireFactory.combineConditions(true);
+        var result = QuestionConditionComposer.combineConditions(true);
         assertNull(result);
     }
 
     @Test
     @DisplayName("composeWithAnd enforces both conditions")
     void shouldComposeWithAnd() {
-        var condition = QuestionnaireFactory.composeWithAnd(
+        var condition = QuestionConditionComposer.composeWithAnd(
                 new NumericCondition("q_one", 5, ">"),
                 new NumericCondition("q_two", 3, "<=")
         );
@@ -47,7 +48,7 @@ class QuestionnaireFactoryMutationTest {
     @Test
     @DisplayName("composeWithOr satisfies when any condition matches")
     void shouldComposeWithOr() {
-        var condition = QuestionnaireFactory.composeWithOr(
+        var condition = QuestionConditionComposer.composeWithOr(
                 new NumericCondition("q_one", 10, ">"),
                 new NumericCondition("q_two", 2, "==")
         );
@@ -61,9 +62,9 @@ class QuestionnaireFactoryMutationTest {
     @Test
     @DisplayName("builder propagates question result failures")
     void shouldPropagateQuestionResultFailures() {
-        var validQuestion = unwrapQuestion(unwrapQuestionBuilder(QuestionFactory.createNew("q_one", "Question 1", AuditTestData.createdAudit()))
-                .withSalesItemReferenceCode("SALE")
-                .build());
+        var validQuestion = unwrapQuestion(unwrapQuestionBuilder(
+                QuestionFactory.createNew("q_one", "Question 1", "SALE", AuditTestData.createdAudit())
+        ).build());
 
         Result<com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion, List<DomainError>> invalidConfiguredQuestion =
                 Result.failure(List.of(new DomainError("FORCED_FAILURE", "forced")));
@@ -118,10 +119,10 @@ class QuestionnaireFactoryMutationTest {
         throw new AssertionError("Expected success question");
     }
 
-    private static ConfiguredQuestionFactory.QuestionBuilder unwrapConfiguredBuilder(
-            Result<ConfiguredQuestionFactory.QuestionBuilder, List<DomainError>> result
+    private static ConfiguredQuestionFactory.ConfiguredQuestionBuilder unwrapConfiguredBuilder(
+            Result<ConfiguredQuestionFactory.ConfiguredQuestionBuilder, List<DomainError>> result
     ) {
-        if (result instanceof Result.Success<ConfiguredQuestionFactory.QuestionBuilder, List<DomainError>>(ConfiguredQuestionFactory.QuestionBuilder value)) {
+        if (result instanceof Result.Success<ConfiguredQuestionFactory.ConfiguredQuestionBuilder, List<DomainError>>(ConfiguredQuestionFactory.ConfiguredQuestionBuilder value)) {
             return value;
         }
         throw new AssertionError("Expected success configured builder");

@@ -100,7 +100,7 @@ public class UpdateQuestionnaireStepDefs {
         );
         var configuredExistingQuestion = com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion.createNew(
                 existingQuestion,
-                com.acme.orderquestionnaire.domain.question.answer.strategy.AnswerConfigurationFactory.createNumberStrategy(),
+                com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory.createNumberStrategy(),
                 0
         );
         Questionnaire questionnaire = Questionnaire.rehydrate(

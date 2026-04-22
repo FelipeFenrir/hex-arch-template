@@ -48,14 +48,14 @@ public final class MongoTestDataFactory {
     }
 
     public static Question newQuestion(String id) {
-        return QuestionFactory.createNew(id, "Question " + id, createdAuditInfo())
-                .flatMap(builder -> builder.withSalesItemReferenceCode("sales_item_code_1").build())
+        return QuestionFactory.createNew(id, "Question " + id, "sales_item_code_1", createdAuditInfo())
+                .flatMap(builder -> builder.build())
                 .getOrElseThrow(errors -> new IllegalStateException("Invalid fixture question: " + errors));
     }
 
     public static Question rehydratedActiveQuestion(String id) {
-        return QuestionFactory.rehydrate(id, "Question " + id, ParameterizationStatus.ACTIVE, updatedAuditInfo())
-                .flatMap(builder -> builder.withSalesItemReferenceCode("sales_item_code_2").build())
+        return QuestionFactory.rehydrate(id, "Question " + id, ParameterizationStatus.ACTIVE, "sales_item_code_2", updatedAuditInfo())
+                .flatMap(builder -> builder.build())
                 .getOrElseThrow(errors -> new IllegalStateException("Invalid fixture rehydrated question: " + errors));
     }
 

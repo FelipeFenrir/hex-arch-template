@@ -1,5 +1,6 @@
 package com.acme.orderquestionnaire;
 
+import com.acme.shared.stereotypes.adapter.OutputAdapter;
 import com.acme.shared.stereotypes.core.OutputPort;
 import com.acme.shared.stereotypes.core.UseCase;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -28,5 +29,10 @@ public class HexagonalArchitectureModuleTest {
                                     .and(haveSimpleNameNotEndingWith("OutPort"))
                                     .and(notBeAnnotatedWith(OutputPort.class))
                                     .and(haveSimpleNameNotEndingWith("Handler"))
+                                    .and(haveSimpleNameNotEndingWith("Entity"))
+                                    .and(haveSimpleNameNotEndingWith("Adapter"))
+                                    .and(haveSimpleNameNotEndingWith("Repository"))
+                                    .and(notBeAnnotatedWith(OutputAdapter.class))
+                                    .and(haveSimpleNameNotEndingWith("Controller"))
                     );
 }

@@ -1,7 +1,7 @@
 package com.acme.orderquestionnaire.domain.questionnaire;
 
 import com.acme.orderquestionnaire.domain.question.Question;
-import com.acme.orderquestionnaire.domain.question.answer.strategy.AnswerConfigurationFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.CompositeCondition;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.EqualCondition;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition;

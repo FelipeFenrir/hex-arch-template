@@ -3,6 +3,8 @@ package com.acme.orderquestionnaire.domain;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestionFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.QuestionValidationFailure;
 import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionComposer;
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionConditionComposer;
 import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionnaireTree;
 import com.acme.orderquestionnaire.domain.question.QuestionFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition;
@@ -28,26 +30,26 @@ class FunctionalTest {
     @DisplayName("When building complete questionnaire fluently with QuestionnaireFactory")
     void shouldBuildCompleteQuestionnaireWithQuestionnaireFactory() {
         var question1 = QuestionFactory
-                .rehydrate("q_one", "How satisfied are you?", ParameterizationStatus.ACTIVE, AuditTestData.createdAudit())
-                .flatMap(builder -> builder.withSalesItemReferenceCode("SALE").build())
+                .rehydrate("q_one", "How satisfied are you?", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit())
+                .flatMap(builder -> builder.build())
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         var question2 = QuestionFactory
-                .rehydrate("q_two", "Would you recommend us?", ParameterizationStatus.ACTIVE, AuditTestData.createdAudit())
-                .flatMap(builder -> builder.withSalesItemReferenceCode("SALE").build())
+                .rehydrate("q_two", "Would you recommend us?", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit())
+                .flatMap(builder -> builder.build())
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         var configuredQuestion1 = ConfiguredQuestionFactory.from(question1)
-                .flatMap(ConfiguredQuestionFactory.QuestionBuilder::asNumber)
+                .flatMap(ConfiguredQuestionFactory.ConfiguredQuestionBuilder::asNumber)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         var configuredQuestion2 = ConfiguredQuestionFactory.from(question2)
                 .flatMap(builder -> builder
-                        .withCondition(QuestionnaireFactory.condition(new NumericCondition("q_one", 7, ">")).build())
-                        .asOptionList(QuestionnaireFactory.options(
-                                QuestionnaireFactory.option("yes", "Yes"),
-                                QuestionnaireFactory.option("no", "No"),
-                                QuestionnaireFactory.option("maybe", "Maybe")
+                        .withCondition(QuestionConditionComposer.condition(new NumericCondition("q_one", 7, ">")).build())
+                        .asOptionList(AnswerOptionComposer.options(
+                                AnswerOptionComposer.option("yes", "Yes"),
+                                AnswerOptionComposer.option("no", "No"),
+                                AnswerOptionComposer.option("maybe", "Maybe")
                         )))
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 

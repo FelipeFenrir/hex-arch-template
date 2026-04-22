@@ -1,8 +1,8 @@
 package com.acme.orderquestionnaire.application;
 
 import com.acme.orderquestionnaire.application.audit.dto.command.AuditUserParam;
-import com.acme.orderquestionnaire.application.distribution.port.out.ChannelDistributionOutPort;
-import com.acme.orderquestionnaire.application.distribution.port.out.JourneyDistributionOutPort;
+import com.acme.orderquestionnaire.application.channel.port.out.ChannelDistributionOutPort;
+import com.acme.orderquestionnaire.application.journey.port.out.JourneyDistributionOutPort;
 import com.acme.orderquestionnaire.application.question.dto.command.CreateQuestionCommand;
 import com.acme.orderquestionnaire.application.question.dto.command.UpdateQuestionCommand;
 import com.acme.orderquestionnaire.application.question.dto.queries.GetQuestionById;
@@ -31,7 +31,7 @@ import com.acme.orderquestionnaire.application.questionnaire.service.ValidateQue
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.question.QuestionFactory;
-import com.acme.orderquestionnaire.domain.question.answer.strategy.AnswerConfigurationFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestionFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
@@ -97,15 +97,13 @@ public class FunctionalTest {
                         command.id(),
                         command.label(),
                         ParameterizationStatus.DRAFT,
+                        "color_question",
                         audit(
                                 command.createdBy().id(),
                                 command.createdBy().referenceCode(),
                                 command.createdBy().name(),
                                 command.createdBy().email(),
                                 command.createdAt())
-                )
-                .map(builder -> builder
-                        .withSalesItemReferenceCode(command.salesItemReferenceCode())
                 )
                 .getOrElseThrow(error ->
                         new IllegalStateException("Expected success but got failure: " + error)
@@ -291,15 +289,13 @@ public class FunctionalTest {
                         "question_one",
                         command.label(),
                         ParameterizationStatus.DRAFT,
+                        "color_question",
                         audit(
                                 Id.withId("11111111-1111-1111-1111-111111111111"),
                                 "user_one",
                                 "User One",
                                 "userone@email.com",
                                 createDate)
-                )
-                .map(builder -> builder
-                        .withSalesItemReferenceCode("color_question")
                 )
                 .getOrElseThrow(error ->
                         new IllegalStateException("Expected success but got failure: " + error)
@@ -312,15 +308,13 @@ public class FunctionalTest {
                         "question_one",
                         command.label(),
                         ParameterizationStatus.ACTIVE,
+                        "color_question",
                         audit(
                                 command.updatedBy().id(),
                                 command.updatedBy().referenceCode(),
                                 command.updatedBy().name(),
                                 command.updatedBy().email(),
                                 command.updatedAt())
-                )
-                .map(builder -> builder
-                        .withSalesItemReferenceCode(command.salesItemReferenceCode())
                 )
                 .getOrElseThrow(error ->
                         new IllegalStateException("Expected success but got failure: " + error)
@@ -469,15 +463,13 @@ public class FunctionalTest {
                         "question_one",
                         command.label(),
                         ParameterizationStatus.ACTIVE,
+                        "color_question",
                         audit(
                                 Id.withId("11111111-1111-1111-1111-111111111111"),
                                 "user_one",
                                 "User One",
                                 "userone@email.com",
                                 createDate)
-                )
-                .map(builder -> builder
-                        .withSalesItemReferenceCode("color_question")
                 )
                 .getOrElseThrow(error ->
                         new IllegalStateException("Expected success but got failure: " + error)
@@ -526,6 +518,7 @@ public class FunctionalTest {
                         "mocked_question",
                         "Mocked label",
                         ParameterizationStatus.ACTIVE,
+                        "color_question",
                         audit(
                                 Id.withId("11111111-1111-1111-1111-111111111111"),
                                 "user_one",
@@ -614,6 +607,7 @@ public class FunctionalTest {
                         "mocked_question",
                         "Mocked label",
                         ParameterizationStatus.ACTIVE,
+                        "color_question",
                         audit(
                                 Id.withId("11111111-1111-1111-1111-111111111111"),
                                 "user_one",
@@ -971,16 +965,12 @@ public class FunctionalTest {
         List<DomainError> errors = result.errorOrElseThrow(() ->
                 new IllegalStateException("Expected success but got failure"));
 
-        // With phase 4 accumulation: INVALID_ID and INVALID_CHANNEL_DISTRIBUTION_ID and INVALID_JOURNEY_DISTRIBUTION_ID and INVALID_DESCRIPTION error
+        // With domain-owned payload validation: REQUIRED_FIELD errors for id/channel/journey/description
         assertEquals(4, errors.size());
-        assertTrue(errors.stream().anyMatch(e -> e.code().equals("INVALID_ID")));
-        assertTrue(errors.stream().anyMatch(e -> e.message().equals("id must not be null or blank")));
-        assertTrue(errors.stream().anyMatch(e -> e.code().equals("INVALID_CHANNEL_DISTRIBUTION_ID")));
-        assertTrue(errors.stream().anyMatch(e -> e.message().equals("channelDistributionId must not be null or blank")));
-        assertTrue(errors.stream().anyMatch(e -> e.code().equals("INVALID_JOURNEY_DISTRIBUTION_ID")));
-        assertTrue(errors.stream().anyMatch(e -> e.message().equals("journeyDistributionId must not be null or blank")));
-        assertTrue(errors.stream().anyMatch(e -> e.code().equals("INVALID_DESCRIPTION")));
-        assertTrue(errors.stream().anyMatch(e -> e.message().equals("description must not be null or blank")));
+        assertTrue(errors.stream().anyMatch(e -> e.code().equals("REQUIRED_FIELD") && e.message().equals("id must not be blank")));
+        assertTrue(errors.stream().anyMatch(e -> e.code().equals("REQUIRED_FIELD") && e.message().equals("channelDistributionId must not be blank")));
+        assertTrue(errors.stream().anyMatch(e -> e.code().equals("REQUIRED_FIELD") && e.message().equals("journeyDistributionId must not be blank")));
+        assertTrue(errors.stream().anyMatch(e -> e.code().equals("REQUIRED_FIELD") && e.message().equals("description must not be blank")));
     }
 
     @Test
@@ -1375,15 +1365,13 @@ public class FunctionalTest {
                         "question_one",
                         "Question one label",
                         ParameterizationStatus.DRAFT,
+                        "color_question",
                         audit(
                                 Id.withId("11111111-1111-1111-1111-111111111111"),
                                 "user_one",
                                 "User One",
                                 "userone@email.com",
                                 createDate)
-                )
-                .map(builder -> builder
-                        .withSalesItemReferenceCode("color_question")
                 )
                 .getOrElseThrow(error ->
                         new IllegalStateException("Expected success but got failure: " + error)
@@ -1537,15 +1525,13 @@ public class FunctionalTest {
                         "question_one",
                         "Question one label",
                         ParameterizationStatus.DRAFT,
+                        "color_question",
                         audit(
                                 Id.withId("11111111-1111-1111-1111-111111111111"),
                                 "user_one",
                                 "User One",
                                 "userone@email.com",
                                 createDate)
-                )
-                .map(builder -> builder
-                        .withSalesItemReferenceCode("color_question")
                 )
                 .getOrElseThrow(error ->
                         new IllegalStateException("Expected success but got failure: " + error)
@@ -1778,6 +1764,7 @@ public class FunctionalTest {
                         "question_one",
                         "Question one label",
                         ParameterizationStatus.ACTIVE,
+                        "color_question",
                         audit(
                                 Id.withId("11111111-1111-1111-1111-111111111111"),
                                 "user_one",
@@ -1786,7 +1773,6 @@ public class FunctionalTest {
                                 createDate)
                 )
                 .flatMap(builder -> builder
-                        .withSalesItemReferenceCode("color_question")
                         .build()
                 )
                 .getOrElseThrow(error ->
@@ -1798,6 +1784,7 @@ public class FunctionalTest {
                         "question_two",
                         "Question two label",
                         ParameterizationStatus.ACTIVE,
+                        "color_question",
                         audit(
                                 Id.withId("11111111-1111-1111-1111-111111111111"),
                                 "user_one",
@@ -1806,7 +1793,6 @@ public class FunctionalTest {
                                 createDate)
                 )
                 .flatMap(builder -> builder
-                        .withSalesItemReferenceCode("color_question")
                         .build()
                 )
                 .getOrElseThrow(error ->

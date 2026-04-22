@@ -23,8 +23,8 @@ class QuestionFactoryTest {
     @DisplayName("When creating a new question, should keep draft status")
     void shouldCreateNewQuestion() {
         Question question = QuestionFactory
-                .createNew("q_one", "Question 1", AuditTestData.createdAudit())
-                .flatMap(builder -> builder.withSalesItemReferenceCode("SALE").build())
+                .createNew("q_one", "Question 1", "SALE", AuditTestData.createdAudit())
+                .flatMap(QuestionFactory.NewQuestionBuilder::build)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         assertEquals("q_one", question.id());
@@ -37,8 +37,8 @@ class QuestionFactoryTest {
     @DisplayName("When rehydrating a question, should keep provided status")
     void shouldRehydrateQuestion() {
         Question question = QuestionFactory
-                .rehydrate("q2", "Question 2", ParameterizationStatus.ACTIVE, AuditTestData.createdAudit())
-                .flatMap(builder -> builder.withSalesItemReferenceCode("SALE").build())
+                .rehydrate("q2", "Question 2", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit())
+                .flatMap(QuestionFactory.RehydratedQuestionBuilder::build)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         assertEquals("q2", question.id());
@@ -51,7 +51,7 @@ class QuestionFactoryTest {
     @DisplayName("When creating with invalid id and label, should return accumulated errors")
     void shouldAccumulateErrorsForInvalidCreate() {
         Result<QuestionFactory.NewQuestionBuilder, List<DomainError>> result =
-                QuestionFactory.createNew(" ", null, AuditTestData.createdAudit());
+                QuestionFactory.createNew(" ", null, "SALE", AuditTestData.createdAudit());
 
         assertTrue(result.isFailure());
         List<DomainError> error = result.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));
@@ -62,7 +62,7 @@ class QuestionFactoryTest {
     @DisplayName("When creating with camelCase id, should return INVALID_ID_FORMAT error")
     void shouldRejectCamelCaseId() {
         Result<QuestionFactory.NewQuestionBuilder, List<DomainError>> result =
-                QuestionFactory.createNew("myQuestion", "Label", AuditTestData.createdAudit());
+                QuestionFactory.createNew("myQuestion", "Label", "SALE", AuditTestData.createdAudit());
 
         assertTrue(result.isFailure());
         List<DomainError> error = result.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));
@@ -74,7 +74,7 @@ class QuestionFactoryTest {
     @DisplayName("When creating with kebab-case id, should return INVALID_ID_FORMAT error")
     void shouldRejectKebabCaseId() {
         Result<QuestionFactory.NewQuestionBuilder, List<DomainError>> result =
-                QuestionFactory.createNew("my-question", "Label", AuditTestData.createdAudit());
+                QuestionFactory.createNew("my-question", "Label", "SALE", AuditTestData.createdAudit());
 
         assertTrue(result.isFailure());
         List<DomainError> error = result.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));
@@ -85,7 +85,7 @@ class QuestionFactoryTest {
     @DisplayName("When creating with id containing uppercase, should return INVALID_ID_FORMAT error")
     void shouldRejectUpperCaseId() {
         Result<QuestionFactory.NewQuestionBuilder, List<DomainError>> result =
-                QuestionFactory.createNew("My_Question", "Label", AuditTestData.createdAudit());
+                QuestionFactory.createNew("My_Question", "Label", "SALE", AuditTestData.createdAudit());
 
         assertTrue(result.isFailure());
         List<DomainError> error = result.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));
@@ -95,17 +95,17 @@ class QuestionFactoryTest {
     @Test
     @DisplayName("When creating with valid snake_case ids, should succeed")
     void shouldAcceptValidSnakeCaseIds() {
-        assertFalse(QuestionFactory.createNew("my_question", "Label", AuditTestData.createdAudit()).isFailure());
-        assertFalse(QuestionFactory.createNew("question", "Label", AuditTestData.createdAudit()).isFailure());
-        assertFalse(QuestionFactory.createNew("q_one", "Label", AuditTestData.createdAudit()).isFailure());
-        assertFalse(QuestionFactory.createNew("my_question_2", "Label", AuditTestData.createdAudit()).isFailure());
+        assertFalse(QuestionFactory.createNew("my_question", "Label", "SALE", AuditTestData.createdAudit()).isFailure());
+        assertFalse(QuestionFactory.createNew("question", "Label", "SALE", AuditTestData.createdAudit()).isFailure());
+        assertFalse(QuestionFactory.createNew("q_one", "Label", "SALE", AuditTestData.createdAudit()).isFailure());
+        assertFalse(QuestionFactory.createNew("my_question_2", "Label", "SALE", AuditTestData.createdAudit()).isFailure());
     }
 
     @Test
     @DisplayName("When creating with null auditInfo, should return REQUIRED_OBJECT error")
     void shouldRejectNullAuditInfoOnCreateNew() {
         Result<QuestionFactory.NewQuestionBuilder, List<DomainError>> result =
-                QuestionFactory.createNew("q_one", "Label", null);
+                QuestionFactory.createNew("q_one", "Label", "SALE", null);
 
         assertTrue(result.isFailure());
         List<DomainError> error = result.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));
@@ -117,7 +117,7 @@ class QuestionFactoryTest {
     @DisplayName("When rehydrating with null auditInfo, should return REQUIRED_OBJECT error")
     void shouldRejectNullAuditInfoOnRehydrate() {
         Result<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>> result =
-                QuestionFactory.rehydrate("q_one", "Label", ParameterizationStatus.ACTIVE, null);
+                QuestionFactory.rehydrate("q_one", "Label", ParameterizationStatus.ACTIVE, "SALE", null);
 
         assertTrue(result.isFailure());
         List<DomainError> error = result.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));

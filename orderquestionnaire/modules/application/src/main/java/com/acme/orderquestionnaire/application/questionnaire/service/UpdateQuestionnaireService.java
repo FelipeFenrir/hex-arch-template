@@ -16,6 +16,7 @@ import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.question.QuestionFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
+import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireStatusMachine;
 import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireStatusTransitionContext;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
@@ -73,18 +74,12 @@ public class UpdateQuestionnaireService implements UpdateQuestionnaireUseCase {
         }
 
         List<Result<Void, List<DomainError>>> validations = new ArrayList<>();
-        validations.add(Guard.requireNonBlank(command.id(), QuestionnaireErrors.INVALID_ID));
-        validations.add(Guard.requireNonBlank(
+        validations.add(QuestionnaireFactory.validateUpdatePayload(
+                command.id(),
                 command.channelDistributionId(),
-                QuestionnaireErrors.INVALID_CHANNEL_DISTRIBUTION_ID
-        ));
-        validations.add(Guard.requireNonBlank(
                 command.journeyDistributionId(),
-                QuestionnaireErrors.INVALID_JOURNEY_DISTRIBUTION_ID
+                command.description()
         ));
-        if (command.description() != null) {
-            validations.add(Guard.requireNonBlank(command.description(), QuestionnaireErrors.INVALID_DESCRIPTION));
-        }
 
         for (UpdateConfiguredQuestionParam upsert : safeList(command.questionsToUpsert())) {
             validations.add(Guard.requireNonNull(upsert, QuestionnaireErrors.INVALID_COMMAND));
