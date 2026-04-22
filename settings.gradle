@@ -5,10 +5,12 @@ include(
         ':modules:domain:personmdm',
         ':modules:domain:productcatalog',
         ':modules:application:personmdm',
-        ':modules:observability',
-        ':shared'
+        ':observability'
 )
 
+includeBuild(
+        'shared'
+)
 includeBuild(
         'security-server'
 )

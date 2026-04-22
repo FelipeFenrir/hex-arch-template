@@ -1,5 +1,5 @@
 dependencies {
-    implementation project(':shared')
+    implementation 'com.acme:shared'
     implementation project(':modules:domain:personmdm')
 
     testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"

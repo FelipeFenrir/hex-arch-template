@@ -51,3 +51,6 @@ dbSecurity.getCollection("users").updateOne(
     },
     { upsert: true }
 );
+
+// --- CONFIGURAÇÃO PARA O MÓDULO DE DISTRIBUIÇÃO DE QUESTIONARIO ---
+var dbOderQuestionnaire = db.getSiblingDB("oderquestionnaire");

@@ -1,0 +1,5 @@
+rootProject.name = 'observability'
+
+include ':shared'
+project(':shared').projectDir = file('../shared')
+

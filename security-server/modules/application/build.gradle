@@ -5,7 +5,7 @@ plugins {
 group = 'com.acme.security'
 
 dependencies {
-    implementation project(':shared')
+    implementation 'com.acme:shared'
     implementation project(':modules:domain')
 
     // Apenas regras de negócio puras, sem dependências de frameworks

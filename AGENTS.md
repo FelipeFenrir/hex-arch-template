@@ -10,9 +10,9 @@
 - Application layer: root `modules/application/*` plus `orderquestionnaire/modules/application` orchestrate use cases and ports.
 - Inbound adapters (OrderQuestionnaire source tree): `orderquestionnaire/modules/adapters/in/api-rest`, `orderquestionnaire/modules/adapters/in/api-grpc`, `orderquestionnaire/modules/adapters/in/queue-sqs`.
 - Outbound adapters (OrderQuestionnaire source tree): `orderquestionnaire/modules/adapters/out/mongo`, `orderquestionnaire/modules/adapters/out/cloud-aws`.
-- Cross-cutting: `shared` (Result/Guard/stereotypes/tenant/header constants), `modules/observability`; security is wired via composite build `security-server`.
-- Root `settings.gradle` currently includes OrderQuestionnaire as composite build `orderquestionnaire` (instead of enabling `:modules:*:orderquestionnaire` projects directly), so root task paths for that context are prefixed with `:orderquestionnaire:`.
-- Inside `orderquestionnaire/settings.gradle`, only `:modules:domain`, `:modules:application`, `:modules:adapters:out:mongo`, and `:shared` are currently included; bootstrap and other adapters exist in source tree but are not active Gradle projects there.
+- Cross-cutting: `shared` (Result/Guard/stereotypes/tenant/header constants) is consumed as a composite build, plus `modules/observability`; security is wired via composite build `security-server`.
+- Root `settings.gradle` currently includes composite builds `shared`, `security-server`, and `orderquestionnaire`; root task paths for those contexts are prefixed with `:shared:`, `:security-server:`, and `:orderquestionnaire:`.
+- Inside `orderquestionnaire/settings.gradle`, only `:modules:domain`, `:modules:application`, and `:modules:adapters:out:mongo` are currently included; `shared` is consumed via `includeBuild('../shared')`, while bootstrap and other adapters exist in source tree but are not active Gradle projects there.
 
 ## Project Conventions (specific to this repo)
 - Use functional flow with `Result<V,E>` + `Guard` instead of throwing for business validation (`shared/.../result`).
@@ -27,7 +27,9 @@
 - Unit tests: `./gradlew clean test` (Windows: `.\gradlew.bat clean test`).
 - Aggregate coverage for Sonar: `./gradlew clean aggregateCoverageReport sonarqube`.
 - Domain mutation tests (orderquestionnaire composite build): `./gradlew :orderquestionnaire:modules:domain:pitest`.
+- Build shared standalone/composite from root: `./gradlew :shared:build`.
 - Windows equivalents for common advanced tasks: `.\gradlew.bat clean aggregateCoverageReport sonarqube` and `.\gradlew.bat :orderquestionnaire:modules:domain:pitest`.
+- Windows shared build from root: `\.\gradlew.bat :shared:build`.
 - Build uses Java toolchain `25` (`build.gradle`); align IDE/Gradle JVM before running tasks.
 - Local infra stack: `docker compose -f docker/docker-compose.yml up -d` (down with `down -v`).
 - Predefined IDE runs live in `runs/*.run.xml` (unit, integration, coverage, Sonar, message-manager).
@@ -42,7 +44,7 @@
 ## Known Repository State (important before changing code)
 - Several adapters/features are scaffolded or commented out (examples: `PersonController`, `RestHeadersFilter`, gRPC interceptor, mongo config).
 - `orderquestionnaire/modules/adapters/in/api-grpc`, `orderquestionnaire/modules/adapters/in/queue-sqs`, and `orderquestionnaire/modules/adapters/out/cloud-aws` are scaffold-oriented directories (`README.md`/`docs`/`src`) and currently do not have their own `build.gradle`.
-- Some docs/configs still reference legacy paths (`modules/adapters/in/*`, `modules/shared`, `modules/security`) while active Gradle modules use `orderquestionnaire/modules/adapters/*`, root `shared`, and composite build `security-server`.
+- Some docs/configs still reference legacy paths (`modules/adapters/in/*`, `modules/shared`, `modules/security`) while active Gradle modules use `orderquestionnaire/modules/adapters/*`, composite build `shared`, and composite build `security-server`.
 - `scripts/*.sh` and `scripts/*.bat` exist but are empty; prefer `Taskfile.yml`, `makefile`, or direct Gradle/Docker commands.
 - `runs/IntegrationTest.run.xml` and `makefile` target `it` call `integrationTest`, and `runs/CoverageIntegration.run.xml` calls `jacocoIntegrationTestReport`; these tasks are not explicitly declared in current Gradle scripts.
 - `runs/Run Message Manager.run.xml` points to `docker/message-manager`; current compose/runtime assets are `docker/stackport` (active) and `docker/aws-manager` (present but commented in compose).

@@ -2,11 +2,20 @@ plugins {
     id 'java-library'
 }
 
+group = 'com.acme'
+version = '0.1.0-SNAPSHOT'
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
     implementation "com.github.f4b6a3:uuid-creator:${uuidCreatorVersion}"
+    api "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
