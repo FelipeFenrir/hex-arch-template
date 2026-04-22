@@ -1,5 +1,5 @@
 # modules/bootstrap/Dockerfile
-FROM eclipse-temurin:21-jre as runtime
+FROM eclipse-temurin:25-jre as runtime
 WORKDIR /app
 ARG JAR=bootstrap-0.1.0-SNAPSHOT.jar
 COPY build/libs/${JAR} app.jar

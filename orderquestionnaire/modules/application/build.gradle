@@ -5,7 +5,7 @@ plugins {
 group = 'com.acme.orderquestionnaire'
 
 dependencies {
-    implementation project(':shared')
+    implementation 'com.acme:shared'
     implementation project(':modules:domain')
 
     testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"

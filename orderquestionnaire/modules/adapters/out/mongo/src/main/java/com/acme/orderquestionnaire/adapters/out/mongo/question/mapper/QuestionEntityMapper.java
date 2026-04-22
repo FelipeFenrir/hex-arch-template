@@ -6,13 +6,16 @@ import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.question.QuestionFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 public class QuestionEntityMapper {
 
     private final AuditInfoDocumentMapper auditInfoDocumentMapper;
 
     public QuestionEntityMapper(AuditInfoDocumentMapper auditInfoDocumentMapper) {
-        this.auditInfoDocumentMapper = auditInfoDocumentMapper;
+        this.auditInfoDocumentMapper = Objects.requireNonNull(auditInfoDocumentMapper,
+                "auditInfoDocumentMapper must not be null");
     }
 
     public QuestionEntity toEntity(Question question) {

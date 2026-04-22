@@ -1,7 +1,8 @@
-package com.acme.orderquestionnaire.adapters.out.mongo.question;
+package com.acme.orderquestionnaire.adapters.out.mongo.question.command;
 
 import com.acme.orderquestionnaire.adapters.out.mongo.audit.mapper.AuditInfoDocumentMapper;
 import com.acme.orderquestionnaire.adapters.out.mongo.audit.mapper.AuditUserDocumentMapper;
+import com.acme.orderquestionnaire.adapters.out.mongo.question.QuestionCommandAdapter;
 import com.acme.orderquestionnaire.adapters.out.mongo.question.mapper.QuestionEntityMapper;
 import com.acme.orderquestionnaire.adapters.out.mongo.question.repository.QuestionCommandRepository;
 import com.acme.orderquestionnaire.adapters.out.mongo.support.AbstractMongoContainerIT;
@@ -14,6 +15,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
@@ -94,7 +99,12 @@ class QuestionCommandAdapterMongoIT extends AbstractMongoContainerIT {
     }
 
     @SpringBootConfiguration
-    @EnableAutoConfiguration
+    @EnableAutoConfiguration(exclude = {
+            DataSourceAutoConfiguration.class,
+            DataSourceTransactionManagerAutoConfiguration.class,
+            HibernateJpaAutoConfiguration.class,
+            JpaRepositoriesAutoConfiguration.class
+    })
     @EnableMongoRepositories(basePackageClasses = QuestionCommandRepository.class)
     @Import({
             AuditUserDocumentMapper.class,
