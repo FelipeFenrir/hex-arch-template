@@ -1,6 +1,6 @@
 package com.acme.orderquestionnaire.application.questionnaire.dto.command;
 
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
 
 import java.util.List;
 

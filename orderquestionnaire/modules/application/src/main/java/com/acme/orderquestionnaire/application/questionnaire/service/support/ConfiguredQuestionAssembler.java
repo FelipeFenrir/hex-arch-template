@@ -28,7 +28,7 @@ public final class ConfiguredQuestionAssembler {
         return ConfiguredQuestionFactory.from(question)
                 .flatMap(builder -> ConditionAssembler.toDomain(param.rootCondition())
                         .flatMap(rootCondition -> {
-                    ConfiguredQuestionFactory.QuestionBuilder configuredBuilder = builder
+                    ConfiguredQuestionFactory.ConfiguredQuestionBuilder configuredBuilder = builder
                             .withOrder(param.order())
                             .withCondition(rootCondition);
                     return switch (param.answerConfig()) {

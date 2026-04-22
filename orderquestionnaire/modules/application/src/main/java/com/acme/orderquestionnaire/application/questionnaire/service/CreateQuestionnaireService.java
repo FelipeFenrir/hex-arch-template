@@ -1,12 +1,12 @@
 package com.acme.orderquestionnaire.application.questionnaire.service;
 
-import com.acme.orderquestionnaire.application.distribution.port.out.ChannelDistributionOutPort;
+import com.acme.orderquestionnaire.application.channel.port.out.ChannelDistributionOutPort;
 import com.acme.orderquestionnaire.application.audit.dto.command.AuditUserParam;
 import com.acme.orderquestionnaire.application.questionnaire.error.QuestionnaireErrors;
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.CreateQuestionnaireCommand;
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionnaireCreatedView;
 import com.acme.orderquestionnaire.application.questionnaire.port.in.usecase.CreateQuestionnaireUseCase;
-import com.acme.orderquestionnaire.application.distribution.port.out.JourneyDistributionOutPort;
+import com.acme.orderquestionnaire.application.journey.port.out.JourneyDistributionOutPort;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireFactory;
@@ -68,16 +68,12 @@ public class CreateQuestionnaireService implements CreateQuestionnaireUseCase {
         }
 
         return Guard.collect(List.of(
-                Guard.requireNonBlank(command.id(), QuestionnaireErrors.INVALID_ID),
-                Guard.requireNonBlank(
+                QuestionnaireFactory.validateCreatePayload(
+                        command.id(),
                         command.channelDistributionId(),
-                        QuestionnaireErrors.INVALID_CHANNEL_DISTRIBUTION_ID
-                ),
-                Guard.requireNonBlank(
                         command.journeyDistributionId(),
-                        QuestionnaireErrors.INVALID_JOURNEY_DISTRIBUTION_ID
-                ),
-                Guard.requireNonBlank(command.description(), QuestionnaireErrors.INVALID_DESCRIPTION)
+                        command.description()
+                )
         ));
     }
 

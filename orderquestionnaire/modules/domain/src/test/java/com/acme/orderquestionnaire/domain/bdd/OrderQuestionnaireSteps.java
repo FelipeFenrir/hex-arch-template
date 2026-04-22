@@ -2,7 +2,7 @@ package com.acme.orderquestionnaire.domain.bdd;
 
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.question.QuestionFactory;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestionFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.QuestionValidationFailure;
@@ -10,6 +10,7 @@ import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionnaireTree;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition;
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionConditionComposer;
 import com.acme.orderquestionnaire.testutils.mocks.audit.AuditTestData;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
@@ -78,7 +79,7 @@ public class OrderQuestionnaireSteps {
         );
         ConfiguredQuestion configuredQuestion = unwrapConfigured(
                 unwrapConfiguredBuilder(ConfiguredQuestionFactory.from(question))
-                        .withCondition(QuestionnaireFactory.condition(
+                        .withCondition(QuestionConditionComposer.condition(
                                 new NumericCondition(parentQuestionId, threshold, ">")
                         ).build())
                         .asOptionList(new ConfiguredQuestionFactory.ListConfig(options, "Select one"))
@@ -154,10 +155,10 @@ public class OrderQuestionnaireSteps {
                                 id,
                                 label,
                                 ParameterizationStatus.ACTIVE,
+                                salesItemReferenceCode,
                                 AuditTestData.createdAudit()
                         )
                 )
-                .withSalesItemReferenceCode(salesItemReferenceCode)
                 .build()
         );
     }
@@ -172,21 +173,21 @@ public class OrderQuestionnaireSteps {
         throw new AssertionError("Expected questionnaire builder success");
     }
 
-    private static ConfiguredQuestionFactory.QuestionBuilder unwrapConfiguredBuilder(
-            Result<ConfiguredQuestionFactory.QuestionBuilder, List<DomainError>> result
+    private static ConfiguredQuestionFactory.ConfiguredQuestionBuilder unwrapConfiguredBuilder(
+            Result<ConfiguredQuestionFactory.ConfiguredQuestionBuilder, List<DomainError>> result
     ) {
-        if (result instanceof Result.Success<ConfiguredQuestionFactory.QuestionBuilder, List<DomainError>>(
-                ConfiguredQuestionFactory.QuestionBuilder value)) {
+        if (result instanceof Result.Success<ConfiguredQuestionFactory.ConfiguredQuestionBuilder, List<DomainError>>(
+                ConfiguredQuestionFactory.ConfiguredQuestionBuilder value)) {
             return value;
         }
         throw new AssertionError("Expected configured question builder success");
     }
 
-    private static QuestionFactory.AbstractBuilder<?> unwrapQuestionBuilder(
-            Result<? extends QuestionFactory.AbstractBuilder<?>, List<DomainError>> result
+    private static QuestionFactory.RehydratedQuestionBuilder unwrapQuestionBuilder(
+            Result<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>> result
     ) {
-        if (result instanceof Result.Success<? extends QuestionFactory.AbstractBuilder<?>, List<DomainError>>(
-                QuestionFactory.AbstractBuilder<?> value)) {
+        if (result instanceof Result.Success<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>>(
+                QuestionFactory.RehydratedQuestionBuilder value)) {
             return value;
         }
         throw new AssertionError("Expected question builder success");

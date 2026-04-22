@@ -3,10 +3,12 @@ package com.acme.orderquestionnaire.domain.questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.errors.QuestionnaireDomainErrors;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.question.QuestionFactory;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionComposer;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.CompositeCondition;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.EqualCondition;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition;
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionConditionComposer;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionCondition;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
 import com.acme.orderquestionnaire.testutils.mocks.audit.AuditTestData;
@@ -49,9 +51,9 @@ class QuestionnaireCoverageAdditionalTest {
                 .withOrder(2)
                 .asText());
         ConfiguredQuestion removable = requireConfigured(requireBuilder(ConfiguredQuestionFactory.from(
-                requireQuestion(requireQuestionBuilder(QuestionFactory.createNew("removable", "Removable", AuditTestData.createdAudit()))
-                        .withSalesItemReferenceCode("SALE")
-                        .build())
+                requireQuestion(requireQuestionBuilder(
+                        QuestionFactory.createNew("removable", "Removable", "SALE", AuditTestData.createdAudit())
+                ).build())
         )).withOrder(3).asText());
 
         Questionnaire questionnaire = QuestionnaireMock.active();
@@ -110,29 +112,37 @@ class QuestionnaireCoverageAdditionalTest {
 
         assertEquals(5, questionnaire.getOrderedQuestions().size());
 
-        AnswerOptionItem option = QuestionnaireFactory.option("yes", "Yes");
+        AnswerOptionItem option = AnswerOptionComposer.option("yes", "Yes");
         assertEquals("yes", option.value());
-        assertNull(QuestionnaireFactory.combineConditions(true));
-        assertNull(QuestionnaireFactory.combineConditions(false, (QuestionCondition[]) null));
+        assertNull(QuestionConditionComposer.combineConditions(true));
+        assertNull(QuestionConditionComposer.combineConditions(false, (QuestionCondition[]) null));
 
-        ConfiguredQuestionFactory.ListConfig options = QuestionnaireFactory.options(option);
+        ConfiguredQuestionFactory.ListConfig options = AnswerOptionComposer.options(option);
         assertEquals(1, options.options().size());
         assertNull(options.customErrorMessage());
 
-        ConfiguredQuestionFactory.ListConfig optionsWithMessage = QuestionnaireFactory.options("Pick one", option);
+        ConfiguredQuestionFactory.ListConfig optionsWithMessage = AnswerOptionComposer.options("Pick one", option);
         assertEquals("Pick one", optionsWithMessage.customErrorMessage());
 
-        QuestionCondition simpleCondition = QuestionnaireFactory.condition(new NumericCondition("score", 7, ">"))
+        ConfiguredQuestionFactory.ListConfig composedOptions = AnswerOptionComposer.compose()
+                .add("maybe", "Maybe")
+                .add(option)
+                .withCustomErrorMessage("Choose one")
+                .build();
+        assertEquals(2, composedOptions.options().size());
+        assertEquals("Choose one", composedOptions.customErrorMessage());
+
+        QuestionCondition simpleCondition = QuestionConditionComposer.condition(new NumericCondition("score", 7, ">"))
                 .build();
         assertTrue(simpleCondition.isSatisfy(Map.of("score", 8)));
 
         CompositeCondition composite = new CompositeCondition(true);
         composite.addCondition(new EqualCondition("approved", true));
-        assertSame(composite, QuestionnaireFactory.composeWithAnd(composite));
+        assertSame(composite, QuestionConditionComposer.composeWithAnd(composite));
         assertInstanceOf(CompositeCondition.class,
-                QuestionnaireFactory.composeWithOr(new EqualCondition("approved", true), new EqualCondition("manual", true)));
+                QuestionConditionComposer.composeWithOr(new EqualCondition("approved", true), new EqualCondition("manual", true)));
         assertInstanceOf(CompositeCondition.class,
-                QuestionnaireFactory.composeWithAnd(new EqualCondition("approved", true), new EqualCondition("manual", true)));
+                QuestionConditionComposer.composeWithAnd(new EqualCondition("approved", true), new EqualCondition("manual", true)));
     }
 
     @Test
@@ -212,8 +222,8 @@ class QuestionnaireCoverageAdditionalTest {
                             new IllegalStateException("Expected failure")));
         }
 
-        assertThrows(NullPointerException.class, () -> QuestionnaireFactory.condition(null));
-        QuestionnaireFactory.ConditionComposer composer = QuestionnaireFactory.condition(new EqualCondition("x", 1));
+        assertThrows(NullPointerException.class, () -> QuestionConditionComposer.condition(null));
+        QuestionConditionComposer.Composer composer = QuestionConditionComposer.condition(new EqualCondition("x", 1));
         assertThrows(NullPointerException.class, () -> composer.and(null));
         assertThrows(NullPointerException.class, () -> composer.or(null));
     }
@@ -225,8 +235,8 @@ class QuestionnaireCoverageAdditionalTest {
                 new IllegalStateException("Expected success questionnaire builder but got failure: " + error));
     }
 
-    private static ConfiguredQuestionFactory.QuestionBuilder requireBuilder(
-            Result<ConfiguredQuestionFactory.QuestionBuilder, List<DomainError>> result
+    private static ConfiguredQuestionFactory.ConfiguredQuestionBuilder requireBuilder(
+            Result<ConfiguredQuestionFactory.ConfiguredQuestionBuilder, List<DomainError>> result
     ) {
         return result.getOrElseThrow(error ->
                 new IllegalStateException("Expected success configured builder but got failure: " + error));

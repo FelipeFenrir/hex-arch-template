@@ -11,7 +11,6 @@ import com.acme.shared.vo.AuditInfo;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public final class QuestionFactory {
 
@@ -20,7 +19,7 @@ public final class QuestionFactory {
     }
 
     public static Result<Void, List<DomainError>> validateQuestionId(String id) {
-        List<DomainError> errors = DomainRuleRunner.validate(id, QuestionCreationRules.createNewQuestionIdRules(id));
+        List<DomainError> errors = DomainRuleRunner.validate(id, QuestionCreationRules.createNewQuestionIdRules());
         return errors.isEmpty() ? Result.success(null) : Result.failure(errors);
     }
 
@@ -30,11 +29,11 @@ public final class QuestionFactory {
             String salesItemReferenceCode
     ) {
         List<DomainError> errors = new ArrayList<>();
-        errors.addAll(DomainRuleRunner.validate(id, QuestionCreationRules.createNewQuestionIdRules(id)));
-        errors.addAll(DomainRuleRunner.validate(label, QuestionCreationRules.createNewQuestionLabelRules(label)));
+        errors.addAll(DomainRuleRunner.validate(id, QuestionCreationRules.createNewQuestionIdRules()));
+        errors.addAll(DomainRuleRunner.validate(label, QuestionCreationRules.createNewQuestionLabelRules()));
         errors.addAll(DomainRuleRunner.validate(
                 salesItemReferenceCode,
-                QuestionBuilderRules.salesItemReferenceCodeRules(salesItemReferenceCode)
+                QuestionBuilderRules.salesItemReferenceCodeRules()
         ));
         return errors.isEmpty() ? Result.success(null) : Result.failure(errors);
     }
@@ -45,23 +44,28 @@ public final class QuestionFactory {
             String salesItemReferenceCode
     ) {
         List<DomainError> errors = new ArrayList<>();
-        errors.addAll(DomainRuleRunner.validate(id, QuestionRehydrationRules.rehydrateQuestionIdRules(id)));
-        errors.addAll(DomainRuleRunner.validate(label, QuestionRehydrationRules.rehydrateQuestionLabelRules(label)));
+        errors.addAll(DomainRuleRunner.validate(id, QuestionRehydrationRules.rehydrateQuestionIdRules()));
+        errors.addAll(DomainRuleRunner.validate(label, QuestionRehydrationRules.rehydrateQuestionLabelRules()));
         errors.addAll(DomainRuleRunner.validate(
                 salesItemReferenceCode,
-                QuestionBuilderRules.salesItemReferenceCodeRules(salesItemReferenceCode)
+                QuestionBuilderRules.salesItemReferenceCodeRules()
         ));
         return errors.isEmpty() ? Result.success(null) : Result.failure(errors);
     }
 
-    public static Result<NewQuestionBuilder, List<DomainError>> createNew(String id, String label, AuditInfo auditInfo) {
-        List<DomainError> errors = new ArrayList<>();
-        errors.addAll(DomainRuleRunner.validate(id, QuestionCreationRules.createNewQuestionIdRules(id)));
-        errors.addAll(DomainRuleRunner.validate(label, QuestionCreationRules.createNewQuestionLabelRules(label)));
-        errors.addAll(DomainRuleRunner.validate(auditInfo, QuestionCreationRules.createNewAuditInfoRules(auditInfo)));
+    public static Result<NewQuestionBuilder, List<DomainError>> createNew(
+            String id,
+            String label,
+            String salesItemReferenceCode,
+            AuditInfo auditInfo) {
+        List<DomainError> errors = collectCreateErrors(id, label, salesItemReferenceCode, auditInfo);
 
         return errors.isEmpty()
-                ? Result.success(new NewQuestionBuilder(id, label, auditInfo))
+                ? Result.success(new NewQuestionBuilder()
+                        .withId(id)
+                        .withLabel(label)
+                        .withSalesItemReferenceCode(salesItemReferenceCode)
+                        .withAuditInfo(auditInfo))
                 : Result.failure(errors);
     }
 
@@ -69,63 +73,86 @@ public final class QuestionFactory {
             String id,
             String label,
             ParameterizationStatus status,
+            String salesItemReferenceCode,
             AuditInfo auditInfo) {
-        List<DomainError> errors = new ArrayList<>();
-        errors.addAll(DomainRuleRunner.validate(id, QuestionRehydrationRules.rehydrateQuestionIdRules(id)));
-        errors.addAll(DomainRuleRunner.validate(label, QuestionRehydrationRules.rehydrateQuestionLabelRules(label)));
-        errors.addAll(DomainRuleRunner.validate(status, QuestionRehydrationRules.rehydrateQuestionStatusRules(status)));
-        errors.addAll(DomainRuleRunner.validate(auditInfo, QuestionRehydrationRules.rehydrateAuditInfoRules(auditInfo)));
+        List<DomainError> errors = collectRehydrationErrors(id, label, status, salesItemReferenceCode, auditInfo);
 
         return errors.isEmpty()
-                ? Result.success(new RehydratedQuestionBuilder(id, label, status, auditInfo))
+                ? Result.success(new RehydratedQuestionBuilder()
+                        .withId(id)
+                        .withLabel(label)
+                        .withStatus(status)
+                        .withSalesItemReferenceCode(salesItemReferenceCode)
+                        .withAuditInfo(auditInfo))
                 : Result.failure(errors);
     }
 
-    public abstract static class AbstractBuilder<T extends AbstractBuilder<T>> {
-
-        protected final String id;
-        protected final String label;
-        protected String salesItemReferenceCode;
-        protected final AuditInfo auditInfo;
-        protected final List<DomainError> errors;
-
-        protected AbstractBuilder(String id, String label, AuditInfo auditInfo) {
-            this.id = id;
-            this.label = label;
-            this.auditInfo = auditInfo;
-            this.errors = new ArrayList<>();
-        }
-
-        public T withSalesItemReferenceCode(String salesItemReferenceCode) {
-            var validationErrors = DomainRuleRunner.validate(
-                    salesItemReferenceCode,
-                    QuestionBuilderRules.salesItemReferenceCodeRules(salesItemReferenceCode));
-            this.errors.addAll(validationErrors);
-
-            if (!validationErrors.isEmpty()) {
-                return self();
-            }
-            this.salesItemReferenceCode = salesItemReferenceCode;
-            return self();
-        }
-
-        protected abstract T self();
-
-        public abstract Result<Question, List<DomainError>> build();
+    public static NewQuestionBuilder createNewBuilder() {
+        return new NewQuestionBuilder();
     }
 
-    public static final class NewQuestionBuilder extends AbstractBuilder<NewQuestionBuilder> {
-        private NewQuestionBuilder(String id, String label, AuditInfo auditInfo) {
-            super(id, label, auditInfo);
+    public static RehydratedQuestionBuilder rehydratedBuilder() {
+        return new RehydratedQuestionBuilder();
+    }
+
+    private static List<DomainError> collectCreateErrors(String id,
+                                                         String label,
+                                                         String salesItemReferenceCode,
+                                                         AuditInfo auditInfo) {
+        List<DomainError> errors = new ArrayList<>();
+        errors.addAll(DomainRuleRunner.validate(id, QuestionCreationRules.createNewQuestionIdRules()));
+        errors.addAll(DomainRuleRunner.validate(label, QuestionCreationRules.createNewQuestionLabelRules()));
+        errors.addAll(DomainRuleRunner.validate(salesItemReferenceCode, QuestionBuilderRules.salesItemReferenceCodeRules()));
+        errors.addAll(DomainRuleRunner.validate(auditInfo, QuestionCreationRules.createNewAuditInfoRules()));
+        return errors;
+    }
+
+    private static List<DomainError> collectRehydrationErrors(String id,
+                                                              String label,
+                                                              ParameterizationStatus status,
+                                                              String salesItemReferenceCode,
+                                                              AuditInfo auditInfo) {
+        List<DomainError> errors = new ArrayList<>();
+        errors.addAll(DomainRuleRunner.validate(id, QuestionRehydrationRules.rehydrateQuestionIdRules()));
+        errors.addAll(DomainRuleRunner.validate(label, QuestionRehydrationRules.rehydrateQuestionLabelRules()));
+        errors.addAll(DomainRuleRunner.validate(status, QuestionRehydrationRules.rehydrateQuestionStatusRules()));
+        errors.addAll(DomainRuleRunner.validate(salesItemReferenceCode, QuestionBuilderRules.salesItemReferenceCodeRules()));
+        errors.addAll(DomainRuleRunner.validate(auditInfo, QuestionRehydrationRules.rehydrateAuditInfoRules()));
+        return errors;
+    }
+
+    public static final class NewQuestionBuilder {
+        private String id;
+        private String label;
+        private String salesItemReferenceCode;
+        private AuditInfo auditInfo;
+        private final List<DomainError> errors = new ArrayList<>();
+
+        private NewQuestionBuilder() {
         }
 
-        @Override
-        protected NewQuestionBuilder self() {
+        public NewQuestionBuilder withId(String id) {
+            this.id = id;
             return this;
         }
 
-        @Override
+        public NewQuestionBuilder withLabel(String label) {
+            this.label = label;
+            return this;
+        }
+
+        public NewQuestionBuilder withSalesItemReferenceCode(String salesItemReferenceCode) {
+            this.salesItemReferenceCode = salesItemReferenceCode;
+            return this;
+        }
+
+        public NewQuestionBuilder withAuditInfo(AuditInfo auditInfo) {
+            this.auditInfo = auditInfo;
+            return this;
+        }
+
         public Result<Question, List<DomainError>> build() {
+            errors.addAll(collectCreateErrors(id, label, salesItemReferenceCode, auditInfo));
             if (!errors.isEmpty()) {
                 return Result.failure(List.copyOf(errors));
             }
@@ -133,23 +160,44 @@ public final class QuestionFactory {
         }
     }
 
-    public static final class RehydratedQuestionBuilder extends AbstractBuilder<RehydratedQuestionBuilder> {
-        public static final String STATUS_MUST_NOT_BE_NULL = "status must not be null";
+    public static final class RehydratedQuestionBuilder {
+        private String id;
+        private String label;
+        private ParameterizationStatus status;
+        private String salesItemReferenceCode;
+        private AuditInfo auditInfo;
+        private final List<DomainError> errors = new ArrayList<>();
 
-        private final ParameterizationStatus status;
-
-        private RehydratedQuestionBuilder(String id, String label, ParameterizationStatus status, AuditInfo auditInfo) {
-            super(id, label, auditInfo);
-            this.status = Objects.requireNonNull(status, STATUS_MUST_NOT_BE_NULL);
+        private RehydratedQuestionBuilder() {
         }
 
-        @Override
-        protected RehydratedQuestionBuilder self() {
+        public RehydratedQuestionBuilder withId(String id) {
+            this.id = id;
             return this;
         }
 
-        @Override
+        public RehydratedQuestionBuilder withLabel(String label) {
+            this.label = label;
+            return this;
+        }
+
+        public RehydratedQuestionBuilder withStatus(ParameterizationStatus status) {
+            this.status = status;
+            return this;
+        }
+
+        public RehydratedQuestionBuilder withSalesItemReferenceCode(String salesItemReferenceCode) {
+            this.salesItemReferenceCode = salesItemReferenceCode;
+            return this;
+        }
+
+        public RehydratedQuestionBuilder withAuditInfo(AuditInfo auditInfo) {
+            this.auditInfo = auditInfo;
+            return this;
+        }
+
         public Result<Question, List<DomainError>> build() {
+            errors.addAll(collectRehydrationErrors(id, label, status, salesItemReferenceCode, auditInfo));
             if (!errors.isEmpty()) {
                 return Result.failure(List.copyOf(errors));
             }

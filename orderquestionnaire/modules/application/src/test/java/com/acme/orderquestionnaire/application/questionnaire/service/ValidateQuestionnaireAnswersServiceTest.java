@@ -5,8 +5,8 @@ import com.acme.orderquestionnaire.application.questionnaire.dto.view.ValidateQu
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
-import com.acme.orderquestionnaire.domain.question.answer.strategy.AnswerConfigurationFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.CompositeCondition;
@@ -78,19 +78,22 @@ class ValidateQuestionnaireAnswersServiceTest {
     @Test
     @DisplayName("should fail when questionnaireId is blank")
     void shouldFailWhenQuestionnaireIdIsBlank() {
-        assertFailureWithCode(service.execute(command("", CHANNEL, JOURNEY, Map.of())), "INVALID_ID");
+        assertFailureWithCodeAndMessage(service.execute(command("", CHANNEL, JOURNEY, Map.of())),
+                "REQUIRED_FIELD", "id");
     }
 
     @Test
     @DisplayName("should fail when channelDistributionId is blank")
     void shouldFailWhenChannelIsBlank() {
-        assertFailureWithCode(service.execute(command(Q_ID, "", JOURNEY, Map.of())), "INVALID_CHANNEL_DISTRIBUTION_ID");
+        assertFailureWithCodeAndMessage(service.execute(command(Q_ID, "", JOURNEY, Map.of())),
+                "REQUIRED_FIELD", "channelDistributionId");
     }
 
     @Test
     @DisplayName("should fail when journeyDistributionId is blank")
     void shouldFailWhenJourneyIsBlank() {
-        assertFailureWithCode(service.execute(command(Q_ID, CHANNEL, "", Map.of())), "INVALID_JOURNEY_DISTRIBUTION_ID");
+        assertFailureWithCodeAndMessage(service.execute(command(Q_ID, CHANNEL, "", Map.of())),
+                "REQUIRED_FIELD", "journeyDistributionId");
     }
 
     @Test
@@ -689,6 +692,19 @@ class ValidateQuestionnaireAnswersServiceTest {
                 new IllegalStateException("Expected failure but got success"));
         assertTrue(errors.stream().anyMatch(e -> e.code().equals(code)),
                 "Expected error code '%s' but got: %s".formatted(code, errors));
+    }
+
+    private static void assertFailureWithCodeAndMessage(
+            Result<ValidateQuestionnaireAnswersView, List<DomainError>> result,
+            String code,
+            String messageFragment) {
+        assertInstanceOf(Result.Failure.class, result);
+        List<DomainError> errors = result.errorOrElseThrow(() ->
+                new IllegalStateException("Expected failure but got success"));
+        assertTrue(errors.stream()
+                        .anyMatch(e -> e.code().equals(code) && e.message().contains(messageFragment)),
+                "Expected error code '%s' containing '%s' but got: %s"
+                        .formatted(code, messageFragment, errors));
     }
 
     private static ValidateQuestionnaireAnswersView unwrap(

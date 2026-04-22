@@ -5,7 +5,7 @@ import com.acme.orderquestionnaire.domain.question.Question;
 
 import java.time.LocalDateTime;
 
-<span class="nc" id="L8">public record QuestionCreatedView(</span>
+<span class="fc" id="L8">public record QuestionCreatedView(</span>
         String id,
         String label,
         String status,
@@ -16,15 +16,15 @@ import java.time.LocalDateTime;
         LocalDateTime updatedAt
 ) {
     public static QuestionCreatedView from(Question question) {
-<span class="nc" id="L19">        return new QuestionCreatedView(</span>
-<span class="nc" id="L20">                question.id(),</span>
-<span class="nc" id="L21">                question.label(),</span>
-<span class="nc" id="L22">                question.status().name(),</span>
-<span class="nc" id="L23">                question.salesItemReferenceCode(),</span>
-<span class="nc" id="L24">                UserView.from(question.auditInfo().createdBy()),</span>
-<span class="nc" id="L25">                question.auditInfo().createdAt(),</span>
-<span class="nc" id="L26">                UserView.from(question.auditInfo().updatedBy()),</span>
-<span class="nc" id="L27">                question.auditInfo().updatedAt()</span>
+<span class="fc" id="L19">        return new QuestionCreatedView(</span>
+<span class="fc" id="L20">                question.id(),</span>
+<span class="fc" id="L21">                question.label(),</span>
+<span class="fc" id="L22">                question.status().name(),</span>
+<span class="fc" id="L23">                question.salesItemReferenceCode(),</span>
+<span class="fc" id="L24">                UserView.from(question.auditInfo().createdBy()),</span>
+<span class="fc" id="L25">                question.auditInfo().createdAt(),</span>
+<span class="fc" id="L26">                UserView.from(question.auditInfo().updatedBy()),</span>
+<span class="fc" id="L27">                question.auditInfo().updatedAt()</span>
         );
     }
 }

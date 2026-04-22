@@ -1,8 +1,8 @@
 package com.acme.orderquestionnaire.application.questionnaire.service;
 
 import com.acme.orderquestionnaire.application.audit.dto.command.AuditUserParam;
-import com.acme.orderquestionnaire.application.distribution.port.out.ChannelDistributionOutPort;
-import com.acme.orderquestionnaire.application.distribution.port.out.JourneyDistributionOutPort;
+import com.acme.orderquestionnaire.application.channel.port.out.ChannelDistributionOutPort;
+import com.acme.orderquestionnaire.application.journey.port.out.JourneyDistributionOutPort;
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.CreateQuestionnaireCommand;
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionnaireCreatedView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
@@ -85,25 +85,29 @@ class CreateQuestionnaireServiceTest {
     @Test
     @DisplayName("should fail when id is blank")
     void shouldFailWhenIdIsBlank() {
-        assertFailureWithCode(service.execute(command("", CHANNEL, JOURNEY, DESC)), "INVALID_ID");
+        assertFailureWithCodeAndMessage(service.execute(command("", CHANNEL, JOURNEY, DESC)),
+                "REQUIRED_FIELD", "id");
     }
 
     @Test
     @DisplayName("should fail when channelDistributionId is blank")
     void shouldFailWhenChannelIsBlank() {
-        assertFailureWithCode(service.execute(command(Q_ID, "", JOURNEY, DESC)), "INVALID_CHANNEL_DISTRIBUTION_ID");
+        assertFailureWithCodeAndMessage(service.execute(command(Q_ID, "", JOURNEY, DESC)),
+                "REQUIRED_FIELD", "channelDistributionId");
     }
 
     @Test
     @DisplayName("should fail when journeyDistributionId is blank")
     void shouldFailWhenJourneyIsBlank() {
-        assertFailureWithCode(service.execute(command(Q_ID, CHANNEL, "", DESC)), "INVALID_JOURNEY_DISTRIBUTION_ID");
+        assertFailureWithCodeAndMessage(service.execute(command(Q_ID, CHANNEL, "", DESC)),
+                "REQUIRED_FIELD", "journeyDistributionId");
     }
 
     @Test
     @DisplayName("should fail when description is blank")
     void shouldFailWhenDescriptionIsBlank() {
-        assertFailureWithCode(service.execute(command(Q_ID, CHANNEL, JOURNEY, "")), "INVALID_DESCRIPTION");
+        assertFailureWithCodeAndMessage(service.execute(command(Q_ID, CHANNEL, JOURNEY, "")),
+                "REQUIRED_FIELD", "description");
     }
 
     @Test
@@ -214,6 +218,17 @@ class CreateQuestionnaireServiceTest {
         var failure = (Result.Failure<?, List<DomainError>>) result;
         assertTrue(failure.error().stream().anyMatch(e -> e.code().equals(code)),
                 "Expected error '%s' but got: %s".formatted(code, failure.error()));
+    }
+
+    private static void assertFailureWithCodeAndMessage(Result<?, List<DomainError>> result,
+                                                        String code,
+                                                        String messageFragment) {
+        assertInstanceOf(Result.Failure.class, result);
+        var failure = (Result.Failure<?, List<DomainError>>) result;
+        assertTrue(failure.error().stream()
+                        .anyMatch(e -> e.code().equals(code) && e.message().contains(messageFragment)),
+                "Expected error '%s' containing '%s' but got: %s"
+                        .formatted(code, messageFragment, failure.error()));
     }
 }
 

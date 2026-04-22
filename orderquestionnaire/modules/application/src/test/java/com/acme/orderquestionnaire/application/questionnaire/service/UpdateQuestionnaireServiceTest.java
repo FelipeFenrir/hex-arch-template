@@ -11,7 +11,7 @@ import com.acme.orderquestionnaire.application.questionnaire.dto.view.Questionna
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
-import com.acme.orderquestionnaire.domain.question.answer.strategy.AnswerConfigurationFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;

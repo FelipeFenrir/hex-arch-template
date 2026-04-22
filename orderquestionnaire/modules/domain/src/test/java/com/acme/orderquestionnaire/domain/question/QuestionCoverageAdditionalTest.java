@@ -1,7 +1,7 @@
 package com.acme.orderquestionnaire.domain.question;
 
 import com.acme.orderquestionnaire.domain.question.errors.QuestionDomainErrors;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
 import com.acme.orderquestionnaire.testutils.mocks.audit.AuditTestData;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
@@ -39,24 +39,21 @@ class QuestionCoverageAdditionalTest {
     }
 
     @Test
-    @DisplayName("QuestionFactory builders should fail when sales item reference code is invalid")
+    @DisplayName("QuestionFactory should fail when sales item reference code is invalid")
     void shouldFailWhenSalesItemReferenceCodeIsInvalid() {
-        Result<Question, List<DomainError>> newBuild = unwrapBuilder(
-                QuestionFactory.createNew("q_one", "Question 1", AuditTestData.createdAudit()))
-                .withSalesItemReferenceCode(" ")
-                .build();
+        Result<QuestionFactory.NewQuestionBuilder, List<DomainError>> invalidCreate =
+                QuestionFactory.createNew("q_one", "Question 1", " ", AuditTestData.createdAudit());
 
-        Result<Question, List<DomainError>> rehydratedBuild = unwrapRehydratedBuilder(
-                QuestionFactory.rehydrate("q_two", "Question 2", ParameterizationStatus.ACTIVE, AuditTestData.createdAudit())
-        ).withSalesItemReferenceCode(null).build();
+        Result<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>> invalidRehydrate =
+                QuestionFactory.rehydrate("q_two", "Question 2", ParameterizationStatus.ACTIVE, null, AuditTestData.createdAudit());
 
-        assertInstanceOf(Result.Failure.class, newBuild);
-        List<DomainError> newErrors = newBuild.errorOrElseThrow(() ->
+        assertInstanceOf(Result.Failure.class, invalidCreate);
+        List<DomainError> newErrors = invalidCreate.errorOrElseThrow(() ->
                 new IllegalStateException("Expected failure"));
         assertEquals(List.of(QuestionDomainErrors.requiredField("salesItemReferenceCode")), newErrors);
 
-        assertInstanceOf(Result.Failure.class, rehydratedBuild);
-        List<DomainError> rehydratedErrors = rehydratedBuild.errorOrElseThrow(() ->
+        assertInstanceOf(Result.Failure.class, invalidRehydrate);
+        List<DomainError> rehydratedErrors = invalidRehydrate.errorOrElseThrow(() ->
                 new IllegalStateException("Expected failure"));
         assertEquals(List.of(QuestionDomainErrors.requiredField("salesItemReferenceCode")), rehydratedErrors);
     }
@@ -65,7 +62,7 @@ class QuestionCoverageAdditionalTest {
     @DisplayName("QuestionFactory should reject rehydration without status")
     void shouldRejectRehydrateWithoutStatus() {
         Result<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>> result =
-                QuestionFactory.rehydrate("q_one", "Question 1", null, AuditTestData.createdAudit());
+                QuestionFactory.rehydrate("q_one", "Question 1", null, "SALE", AuditTestData.createdAudit());
 
         assertInstanceOf(Result.Failure.class, result);
         List<DomainError> errors = result.errorOrElseThrow(() ->
@@ -77,15 +74,15 @@ class QuestionCoverageAdditionalTest {
     @DisplayName("QuestionFactory should also reject null id and label values")
     void shouldRejectNullIdAndLabelValues() {
         Result<QuestionFactory.NewQuestionBuilder, List<DomainError>> invalidCreate =
-                QuestionFactory.createNew(null, "Question 1", AuditTestData.createdAudit());
+                QuestionFactory.createNew(null, "Question 1", "SALE", AuditTestData.createdAudit());
         Result<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>> invalidRehydrate =
-                QuestionFactory.rehydrate("q_one", null, ParameterizationStatus.ACTIVE, AuditTestData.createdAudit());
+                QuestionFactory.rehydrate("q_one", null, ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit());
         Result<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>> nullIdRehydrate =
-                QuestionFactory.rehydrate(null, "Question", ParameterizationStatus.ACTIVE, AuditTestData.createdAudit());
+                QuestionFactory.rehydrate(null, "Question", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit());
         Result<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>> blankIdRehydrate =
-                QuestionFactory.rehydrate(" ", "Question", ParameterizationStatus.ACTIVE, AuditTestData.createdAudit());
+                QuestionFactory.rehydrate(" ", "Question", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit());
         Result<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>> blankLabelRehydrate =
-                QuestionFactory.rehydrate("q_one", " ", ParameterizationStatus.ACTIVE, AuditTestData.createdAudit());
+                QuestionFactory.rehydrate("q_one", " ", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit());
 
         assertInstanceOf(Result.Failure.class, invalidCreate);
         assertEquals(List.of(QuestionDomainErrors.requiredField("id")),
@@ -121,25 +118,6 @@ class QuestionCoverageAdditionalTest {
         assertEquals("No", rehydrated.label());
     }
 
-    private static QuestionFactory.NewQuestionBuilder unwrapBuilder(
-            Result<QuestionFactory.NewQuestionBuilder, List<DomainError>> result
-    ) {
-        if (result instanceof Result.Success<QuestionFactory.NewQuestionBuilder, List<DomainError>>(
-                QuestionFactory.NewQuestionBuilder value)) {
-            return value;
-        }
-        throw new AssertionError("Expected success builder");
-    }
-
-    private static QuestionFactory.RehydratedQuestionBuilder unwrapRehydratedBuilder(
-            Result<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>> result
-    ) {
-        if (result instanceof Result.Success<QuestionFactory.RehydratedQuestionBuilder, List<DomainError>>(
-                QuestionFactory.RehydratedQuestionBuilder value)) {
-            return value;
-        }
-        throw new AssertionError("Expected success builder");
-    }
 }
 
 

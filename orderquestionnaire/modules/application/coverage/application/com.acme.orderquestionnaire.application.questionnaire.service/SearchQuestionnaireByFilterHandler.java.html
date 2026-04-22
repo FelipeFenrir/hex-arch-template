@@ -13,14 +13,14 @@ public class SearchQuestionnaireByFilterHandler implements
 
     private final QuestionnaireQueryOutPort questionnaireRepository;
 
-<span class="nc" id="L16">    public SearchQuestionnaireByFilterHandler(QuestionnaireQueryOutPort questionnaireRepository) {</span>
-<span class="nc" id="L17">        this.questionnaireRepository = Objects.requireNonNull(questionnaireRepository,</span>
+<span class="fc" id="L16">    public SearchQuestionnaireByFilterHandler(QuestionnaireQueryOutPort questionnaireRepository) {</span>
+<span class="fc" id="L17">        this.questionnaireRepository = Objects.requireNonNull(questionnaireRepository,</span>
                 &quot;questionnaireRepository must not be null&quot;);
-<span class="nc" id="L19">    }</span>
+<span class="fc" id="L19">    }</span>
 
     @Override
     public PageResult&lt;QuestionnaireView&gt; execute(SearchQuestionnaireByFilter query) {
-<span class="nc" id="L23">        return questionnaireRepository.findAll(query);</span>
+<span class="fc" id="L23">        return questionnaireRepository.findAll(query);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

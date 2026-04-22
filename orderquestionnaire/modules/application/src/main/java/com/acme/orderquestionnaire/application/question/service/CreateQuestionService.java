@@ -40,10 +40,9 @@ public class CreateQuestionService implements CreateQuestionUseCase {
                  .flatMap(auditInfo -> QuestionFactory.createNew(
                          command.id(),
                          command.label(),
+                         command.salesItemReferenceCode(),
                          auditInfo))
-                 .flatMap(builder -> builder
-                         .withSalesItemReferenceCode(command.salesItemReferenceCode())
-                         .build())
+                 .flatMap(builder -> builder.build())
                  .flatMap(questionRepository::create)
                  .map(QuestionCreatedView::from);
      }

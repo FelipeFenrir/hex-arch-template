@@ -1,6 +1,6 @@
 package com.acme.orderquestionnaire.domain.questionnaire;
 
-import com.acme.orderquestionnaire.domain.question.answer.strategy.AnswerConfigurationFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition;
 import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionnaireTree;
 import com.acme.orderquestionnaire.domain.question.Question;

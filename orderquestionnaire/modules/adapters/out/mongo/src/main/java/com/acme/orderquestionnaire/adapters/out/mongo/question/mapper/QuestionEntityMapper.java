@@ -32,10 +32,8 @@ public class QuestionEntityMapper {
         var auditInfo = auditInfoDocumentMapper.toDomain(entity.auditInfo());
 
         return QuestionFactory
-                .rehydrate(entity.id(), entity.label(), entity.status(), auditInfo)
-                .flatMap(builder -> builder
-                        .withSalesItemReferenceCode(entity.salesItemReferenceCode())
-                        .build())
+                .rehydrate(entity.id(), entity.label(), entity.status(), entity.salesItemReferenceCode(), auditInfo)
+                .flatMap(builder -> builder.build())
                 .getOrElseThrow(errors -> new IllegalStateException(
                         "Failed to rehydrate Question [id=%s]: %s".formatted(entity.id(), errors)));
     }

@@ -3,9 +3,6 @@ package com.acme.orderquestionnaire.domain.questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.errors.QuestionnaireDomainErrors;
 import com.acme.orderquestionnaire.domain.questionnaire.validation.QuestionnaireBuilderRules;
 import com.acme.orderquestionnaire.domain.questionnaire.validation.QuestionnaireIdentityRules;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
-import com.acme.orderquestionnaire.domain.questionnaire.conditioner.CompositeCondition;
-import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionCondition;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
@@ -25,6 +22,53 @@ public final class QuestionnaireFactory {
         throw new IllegalStateException("Utility class");
     }
 
+    public static Result<Void, List<DomainError>> validateQuestionnaireId(String id) {
+        List<DomainError> errors = DomainRuleRunner.validate(id, QuestionnaireIdentityRules.questionnaireIdRules());
+        return errors.isEmpty() ? Result.success(null) : Result.failure(errors);
+    }
+
+    public static Result<Void, List<DomainError>> validateIdentityPayload(
+            String id,
+            String channelDistributionId,
+            String journeyDistributionId
+    ) {
+        List<DomainError> errors = new ArrayList<>();
+        collectIdentityErrors(errors, id, channelDistributionId, journeyDistributionId);
+        return errors.isEmpty() ? Result.success(null) : Result.failure(errors);
+    }
+
+    public static Result<Void, List<DomainError>> validateCreatePayload(
+            String id,
+            String channelDistributionId,
+            String journeyDistributionId,
+            String description
+    ) {
+        List<DomainError> errors = new ArrayList<>();
+        collectIdentityErrors(errors, id, channelDistributionId, journeyDistributionId);
+        errors.addAll(DomainRuleRunner.validate(
+                description,
+                List.of(QuestionnaireIdentityRules.questionnaireDescriptionNotNull())
+        ));
+        return errors.isEmpty() ? Result.success(null) : Result.failure(errors);
+    }
+
+    public static Result<Void, List<DomainError>> validateUpdatePayload(
+            String id,
+            String channelDistributionId,
+            String journeyDistributionId,
+            String description
+    ) {
+        List<DomainError> errors = new ArrayList<>();
+        collectIdentityErrors(errors, id, channelDistributionId, journeyDistributionId);
+        if (description != null) {
+            errors.addAll(DomainRuleRunner.validate(
+                    description,
+                    List.of(QuestionnaireIdentityRules.questionnaireDescriptionNotNull())
+            ));
+        }
+        return errors.isEmpty() ? Result.success(null) : Result.failure(errors);
+    }
+
 
     // -------- Questionnaire Builders --------
 
@@ -35,11 +79,9 @@ public final class QuestionnaireFactory {
             String description,
             AuditInfo auditInfo) {
         List<DomainError> errors = new ArrayList<>();
-        errors.addAll(DomainRuleRunner.validate(id, QuestionnaireIdentityRules.questionnaireIdRules()));
-        errors.addAll(DomainRuleRunner.validate(channelDistributionId, List.of(QuestionnaireIdentityRules.questionnaireChannelNotNull())));
-        errors.addAll(DomainRuleRunner.validate(journeyDistributionId, List.of(QuestionnaireIdentityRules.questionnaireJourneyNotNull())));
+        collectIdentityErrors(errors, id, channelDistributionId, journeyDistributionId);
         errors.addAll(DomainRuleRunner.validate(description, List.of(QuestionnaireIdentityRules.questionnaireDescriptionNotNull())));
-        errors.addAll(DomainRuleRunner.validate(auditInfo, QuestionnaireBuilderRules.auditInfoRules(auditInfo)));
+        errors.addAll(DomainRuleRunner.validate(auditInfo, QuestionnaireBuilderRules.auditInfoRules()));
 
         return errors.isEmpty()
                 ? Result.success(new QuestionnaireBuilder(
@@ -57,14 +99,12 @@ public final class QuestionnaireFactory {
             ParameterizationStatus status,
             AuditInfo auditInfo) {
         List<DomainError> errors = new ArrayList<>();
-        errors.addAll(DomainRuleRunner.validate(id, QuestionnaireIdentityRules.questionnaireIdRules()));
-        errors.addAll(DomainRuleRunner.validate(channelDistributionId, List.of(QuestionnaireIdentityRules.questionnaireChannelNotNull())));
-        errors.addAll(DomainRuleRunner.validate(journeyDistributionId, List.of(QuestionnaireIdentityRules.questionnaireJourneyNotNull())));
+        collectIdentityErrors(errors, id, channelDistributionId, journeyDistributionId);
         errors.addAll(DomainRuleRunner.validate(description, List.of(QuestionnaireIdentityRules.questionnaireDescriptionNotNull())));
         if (status == null) {
             errors.add(QuestionnaireDomainErrors.requiredObject(STATUS));
         }
-        errors.addAll(DomainRuleRunner.validate(auditInfo, QuestionnaireBuilderRules.auditInfoRules(auditInfo)));
+        errors.addAll(DomainRuleRunner.validate(auditInfo, QuestionnaireBuilderRules.auditInfoRules()));
 
         return errors.isEmpty()
                 ? Result.success(new QuestionnaireBuilder(
@@ -165,138 +205,22 @@ public final class QuestionnaireFactory {
         }
     }
 
-    // -------- Helper Methods for Answer Options --------
-
-    /**
-     * Create a single answer option with value and label.
-     */
-    public static AnswerOptionItem option(String value, String label) {
-        return AnswerOptionItem.createNew(value, label);
-    }
-
-    /**
-     * Create a ListConfig with options (no custom error message).
-     */
-    public static ConfiguredQuestionFactory.ListConfig options(AnswerOptionItem... options) {
-        return new ConfiguredQuestionFactory.ListConfig(List.of(options), null);
-    }
-
-    /**
-     * Create a ListConfig with options and custom error message.
-     */
-    public static ConfiguredQuestionFactory.ListConfig options(String customErrorMessage, AnswerOptionItem... options) {
-        return new ConfiguredQuestionFactory.ListConfig(List.of(options), customErrorMessage);
-    }
-
-    // -------- Condition Composition Helpers --------
-
-    /**
-     * Entry point for fluent condition composition using AND/OR with equal importance.
-     * Allows building complex conditions without varargs.
-     * Example:
-     * <pre>
-     * var condition = QuestionnaireFactory
-     *     .condition(condition1)
-     *     .and(condition2)
-     *     .or(condition3)
-     *     .and(condition4)
-     *     .build();
-     * </pre>
-     */
-    public static ConditionComposer condition(QuestionCondition first) {
-        return new ConditionComposer(first);
-    }
-
-    /**
-     * Fluent builder for composing conditions with AND/OR operators in equal priority.
-     */
-    public static final class ConditionComposer {
-        public static final String FIRST_CONDITION_MUST_NOT_BE_NULL = "first condition must not be null";
-        public static final String CONDITION_MUST_NOT_BE_NULL = "condition must not be null";
-        private QuestionCondition current;
-
-        private ConditionComposer(QuestionCondition first) {
-            this.current = wrapCondition(Objects.requireNonNull(first, FIRST_CONDITION_MUST_NOT_BE_NULL));
-        }
-
-        /**
-         * Add a condition with AND operator.
-         */
-        public ConditionComposer and(QuestionCondition other) {
-            Objects.requireNonNull(other, CONDITION_MUST_NOT_BE_NULL);
-            this.current = merge(this.current, other, true);
-            return this;
-        }
-
-        /**
-         * Add a condition with OR operator.
-         */
-        public ConditionComposer or(QuestionCondition other) {
-            Objects.requireNonNull(other, CONDITION_MUST_NOT_BE_NULL);
-            this.current = merge(this.current, other, false);
-            return this;
-        }
-
-        /**
-         * Build and return the final composed condition.
-         */
-        public QuestionCondition build() {
-            return this.current;
-        }
-    }
-
-    // -------- Shortcut Helpers for Common Cases --------
-
-    /**
-     * Shortcut helper to compose conditions with AND operator (varargs style).
-     * For complex compositions, prefer ConditionComposer.condition(...).and(...).or(...).build()
-     */
-    public static QuestionCondition composeWithAnd(QuestionCondition... conditions) {
-        return combineConditions(true, conditions);
-    }
-
-    /**
-     * Shortcut helper to compose conditions with OR operator (varargs style).
-     * For complex compositions, prefer ConditionComposer.condition(...).and(...).or(...).build()
-     */
-    public static QuestionCondition composeWithOr(QuestionCondition... conditions) {
-        return combineConditions(false, conditions);
-    }
-
-    /**
-     * Internal helper to combine conditions with a given operator.
-     */
-    public static QuestionCondition combineConditions(boolean isAnd, QuestionCondition... conditions) {
-        if (conditions == null || conditions.length == 0) {
-            return null;
-        }
-        if (conditions.length == 1) {
-            return wrapCondition(conditions[0]);
-        }
-
-        QuestionCondition result = wrapCondition(conditions[0]);
-        for (int i = 1; i < conditions.length; i++) {
-            result = merge(result, conditions[i], isAnd);
-        }
-        return result;
-    }
-
     // -------- Private Helpers --------
 
-    private static QuestionCondition merge(QuestionCondition left, QuestionCondition right, boolean isAnd) {
-        CompositeCondition composite = new CompositeCondition(isAnd);
-        composite.addCondition(left);
-        composite.addCondition(right);
-        return composite;
+    private static void collectIdentityErrors(List<DomainError> errors,
+                                              String id,
+                                              String channelDistributionId,
+                                              String journeyDistributionId) {
+        errors.addAll(DomainRuleRunner.validate(id, QuestionnaireIdentityRules.questionnaireIdRules()));
+        errors.addAll(DomainRuleRunner.validate(
+                channelDistributionId,
+                List.of(QuestionnaireIdentityRules.questionnaireChannelNotNull())
+        ));
+        errors.addAll(DomainRuleRunner.validate(
+                journeyDistributionId,
+                List.of(QuestionnaireIdentityRules.questionnaireJourneyNotNull())
+        ));
     }
 
-    private static QuestionCondition wrapCondition(QuestionCondition condition) {
-        if (condition instanceof CompositeCondition) {
-            return condition;
-        }
-        CompositeCondition composite = new CompositeCondition(true);
-        composite.addCondition(condition);
-        return composite;
-    }
 }
 

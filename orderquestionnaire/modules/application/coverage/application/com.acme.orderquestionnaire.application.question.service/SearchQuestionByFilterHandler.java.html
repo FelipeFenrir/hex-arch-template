@@ -12,14 +12,14 @@ public class SearchQuestionByFilterHandler implements QueryHandler&lt;SearchQues
 
     private final QuestionQueryOutPort questionRepository;
 
-<span class="nc" id="L15">    public SearchQuestionByFilterHandler(QuestionQueryOutPort questionRepository) {</span>
-<span class="nc" id="L16">        this.questionRepository = Objects.requireNonNull(questionRepository,</span>
+<span class="fc" id="L15">    public SearchQuestionByFilterHandler(QuestionQueryOutPort questionRepository) {</span>
+<span class="fc" id="L16">        this.questionRepository = Objects.requireNonNull(questionRepository,</span>
                 &quot;questionRepository must not be null&quot;);
-<span class="nc" id="L18">    }</span>
+<span class="fc" id="L18">    }</span>
 
     @Override
     public PageResult&lt;QuestionView&gt; execute(SearchQuestionByFilter query) {
-<span class="nc" id="L22">        return questionRepository.findAll(query);</span>
+<span class="fc" id="L22">        return questionRepository.findAll(query);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
