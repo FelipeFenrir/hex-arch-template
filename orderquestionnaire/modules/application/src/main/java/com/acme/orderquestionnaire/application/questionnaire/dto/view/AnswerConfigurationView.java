@@ -1,6 +1,6 @@
 package com.acme.orderquestionnaire.application.questionnaire.dto.view;
 
-import com.acme.orderquestionnaire.domain.question.answer.AnswerConfiguration;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerConfiguration;
 import com.acme.orderquestionnaire.domain.questionnaire.tree.AnswerConfigurationTreeNode;
 
 import java.util.Map;

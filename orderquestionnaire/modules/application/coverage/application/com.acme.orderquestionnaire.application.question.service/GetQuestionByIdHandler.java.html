@@ -12,17 +12,17 @@ public class GetQuestionByIdHandler implements QueryHandler&lt;GetQuestionById, 
 
     private final QuestionQueryOutPort questionRepository;
 
-<span class="nc" id="L15">    public GetQuestionByIdHandler(QuestionQueryOutPort questionRepository) {</span>
-<span class="nc" id="L16">        this.questionRepository = Objects.requireNonNull(questionRepository,</span>
+<span class="fc" id="L15">    public GetQuestionByIdHandler(QuestionQueryOutPort questionRepository) {</span>
+<span class="fc" id="L16">        this.questionRepository = Objects.requireNonNull(questionRepository,</span>
                 &quot;questionRepository must not be null&quot;);
-<span class="nc" id="L18">    }</span>
+<span class="fc" id="L18">    }</span>
 
     @Override
     public Optional&lt;QuestionView&gt; execute(GetQuestionById query) {
-<span class="nc bnc" id="L22" title="All 4 branches missed.">        if (query.id() == null || query.id().isBlank()) {</span>
-<span class="nc" id="L23">            return Optional.empty();</span>
+<span class="fc bfc" id="L22" title="All 4 branches covered.">        if (query.id() == null || query.id().isBlank()) {</span>
+<span class="fc" id="L23">            return Optional.empty();</span>
         }
-<span class="nc" id="L25">        return questionRepository.findById(query);</span>
+<span class="fc" id="L25">        return questionRepository.findById(query);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

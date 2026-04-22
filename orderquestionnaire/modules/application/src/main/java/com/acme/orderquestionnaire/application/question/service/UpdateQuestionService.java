@@ -101,10 +101,13 @@ public class UpdateQuestionService implements UpdateQuestionUseCase {
                                                                      QuestionStatusTransitionContext> transition) {
         AuditInfo updatedAuditInfo = transition.context().auditInfo();
 
-        return QuestionFactory.rehydrate(id, command.label(), transition.targetState(), updatedAuditInfo)
-                .flatMap(builder -> builder
-                        .withSalesItemReferenceCode(command.salesItemReferenceCode())
-                        .build());
+        return QuestionFactory.rehydrate(
+                        id,
+                        command.label(),
+                        transition.targetState(),
+                        command.salesItemReferenceCode(),
+                        updatedAuditInfo)
+                .flatMap(builder -> builder.build());
     }
 }
 

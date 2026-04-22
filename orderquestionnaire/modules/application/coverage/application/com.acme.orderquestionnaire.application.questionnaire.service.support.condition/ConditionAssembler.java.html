@@ -10,7 +10,7 @@ import java.util.List;
 
 public final class ConditionAssembler {
 
-<span class="nc" id="L13">    private static final List&lt;ConditionAssemblerStrategy&gt; STRATEGIES = List.of(</span>
+<span class="fc" id="L13">    private static final List&lt;ConditionAssemblerStrategy&gt; STRATEGIES = List.of(</span>
             new EqualConditionAssemblerStrategy(),
             new NumericConditionAssemblerStrategy(),
             new VisibilityConditionAssemblerStrategy(),
@@ -22,14 +22,14 @@ public final class ConditionAssembler {
     }
 
     public static Result&lt;QuestionCondition, List&lt;DomainError&gt;&gt; toDomain(ConditionParam param) {
-<span class="nc bnc" id="L25" title="All 2 branches missed.">        if (param == null) {</span>
-<span class="nc" id="L26">            return Result.success(null);</span>
+<span class="fc bfc" id="L25" title="All 2 branches covered.">        if (param == null) {</span>
+<span class="fc" id="L26">            return Result.success(null);</span>
         }
-<span class="nc" id="L28">        return STRATEGIES.stream()</span>
-<span class="nc" id="L29">                .filter(strategy -&gt; strategy.supports(param))</span>
-<span class="nc" id="L30">                .findFirst()</span>
-<span class="nc" id="L31">                .&lt;Result&lt;QuestionCondition, List&lt;DomainError&gt;&gt;&gt;map(strategy -&gt; strategy.assemble(param, ConditionAssembler::toDomain))</span>
-<span class="nc" id="L32">                .orElseGet(QuestionErrors.INVALID_COMMAND::asFailure);</span>
+<span class="fc" id="L28">        return STRATEGIES.stream()</span>
+<span class="fc" id="L29">                .filter(strategy -&gt; strategy.supports(param))</span>
+<span class="fc" id="L30">                .findFirst()</span>
+<span class="fc" id="L31">                .&lt;Result&lt;QuestionCondition, List&lt;DomainError&gt;&gt;&gt;map(strategy -&gt; strategy.assemble(param, ConditionAssembler::toDomain))</span>
+<span class="fc" id="L32">                .orElseGet(QuestionErrors.INVALID_COMMAND::asFailure);</span>
     }
 }
 

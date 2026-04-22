@@ -17,8 +17,8 @@ import com.acme.orderquestionnaire.application.questionnaire.dto.view.Questionna
 import com.acme.orderquestionnaire.application.questionnaire.service.support.ConditionQuestionIdExtractor;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
-import com.acme.orderquestionnaire.domain.question.answer.strategy.AnswerConfigurationFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.EqualCondition;
@@ -131,7 +131,7 @@ class QuestionnaireViewTest {
     @Test
     @DisplayName("AnswerConfigurationView.from(null AnswerConfiguration): should return null")
     void answerViewFromNullAnswerConfig() {
-        assertNull(AnswerConfigurationView.from((com.acme.orderquestionnaire.domain.question.answer.AnswerConfiguration) null));
+        assertNull(AnswerConfigurationView.from((com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerConfiguration) null));
     }
 
     @Test

@@ -2,8 +2,8 @@ package com.acme.orderquestionnaire.domain.questionnaire;
 
 import com.acme.orderquestionnaire.domain.questionnaire.errors.QuestionnaireDomainErrors;
 import com.acme.orderquestionnaire.domain.question.Question;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerConfiguration;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerConfiguration;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.EqualCondition;
 import com.acme.orderquestionnaire.testutils.mocks.question.QuestionMock;
 import com.acme.shared.pattern.result.DomainError;
@@ -36,7 +36,7 @@ class ConfiguredQuestionFactoryCoverageTest {
     @Test
     @DisplayName("ConfiguredQuestionFactory should reject null question")
     void shouldRejectNullQuestion() {
-        Result<ConfiguredQuestionFactory.QuestionBuilder, List<DomainError>> result = ConfiguredQuestionFactory.from(null);
+        Result<ConfiguredQuestionFactory.ConfiguredQuestionBuilder, List<DomainError>> result = ConfiguredQuestionFactory.from(null);
 
         assertTrue(result.isFailure());
         List<DomainError> error = result.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));
@@ -101,16 +101,16 @@ class ConfiguredQuestionFactoryCoverageTest {
     @Test
     @DisplayName("QuestionBuilder should reject negative order and null answer configuration")
     void shouldRejectNegativeOrderAndNullAnswerConfiguration() throws Exception {
-        ConfiguredQuestionFactory.QuestionBuilder invalidOrderBuilder = ConfiguredQuestionFactory.from(QUESTION_1)
+        ConfiguredQuestionFactory.ConfiguredQuestionBuilder invalidOrderBuilder = ConfiguredQuestionFactory.from(QUESTION_1)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success builder but got failure: " + error));
         Result<ConfiguredQuestion, List<DomainError>> invalidOrder = invalidOrderBuilder.withOrder(-1).asText();
         assertTrue(invalidOrder.isFailure());
         assertEquals(List.of(QuestionnaireDomainErrors.invalidOrder()),
                 invalidOrder.errorOrElseThrow(() -> new IllegalStateException("Expected failure")));
 
-        ConfiguredQuestionFactory.QuestionBuilder nullStrategyBuilder = ConfiguredQuestionFactory.from(QUESTION_2)
+        ConfiguredQuestionFactory.ConfiguredQuestionBuilder nullStrategyBuilder = ConfiguredQuestionFactory.from(QUESTION_2)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success builder but got failure: " + error));
-        Method buildMethod = ConfiguredQuestionFactory.QuestionBuilder.class
+        Method buildMethod = ConfiguredQuestionFactory.ConfiguredQuestionBuilder.class
                 .getDeclaredMethod("build", AnswerConfiguration.class);
         buildMethod.setAccessible(true);
 

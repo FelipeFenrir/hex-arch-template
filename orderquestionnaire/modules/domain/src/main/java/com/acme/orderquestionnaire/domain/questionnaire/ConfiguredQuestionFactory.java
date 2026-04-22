@@ -2,16 +2,15 @@ package com.acme.orderquestionnaire.domain.questionnaire;
 
 import com.acme.orderquestionnaire.domain.questionnaire.errors.QuestionnaireDomainErrors;
 import com.acme.orderquestionnaire.domain.question.Question;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerConfiguration;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
-import com.acme.orderquestionnaire.domain.question.answer.strategy.AnswerConfigurationFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerConfiguration;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionCondition;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public final class ConfiguredQuestionFactory {
 
@@ -37,19 +36,18 @@ public final class ConfiguredQuestionFactory {
     private static final DateConfig DEFAULT_DATE_CONFIG = new DateConfig(null, true, null);
 
     /**
-     * Entry point: create a fluent builder for configuring a Question.
+     * Entry point for a configuration builder that composes a ConfiguredQuestion from an existing Question.
      */
-    public static Result<QuestionBuilder, List<DomainError>> from(Question question) {
+    public static Result<ConfiguredQuestionBuilder, List<DomainError>> from(Question question) {
         if (question == null) {
             return Result.failure(List.of(QuestionnaireDomainErrors.requiredObject(QUESTION)));
         }
-        return Result.success(new QuestionBuilder(question));
+        return Result.success(new ConfiguredQuestionBuilder(question));
     }
 
     // -------- Fluent builder --------
 
-    public static final class QuestionBuilder {
-        public static final String QUESTION_MUST_NOT_BE_NULL = "question must not be null";
+    public static final class ConfiguredQuestionBuilder {
         public static final String ANSWER_CONFIGURATION = "answerConfiguration";
 
         private final Question question;
@@ -57,11 +55,11 @@ public final class ConfiguredQuestionFactory {
         private QuestionCondition condition;
         private final List<DomainError> errors = new ArrayList<>();
 
-        private QuestionBuilder(Question question) {
-            this.question = Objects.requireNonNull(question, QUESTION_MUST_NOT_BE_NULL);
+        private ConfiguredQuestionBuilder(Question question) {
+            this.question = question;
         }
 
-        public QuestionBuilder withOrder(Integer order) {
+        public ConfiguredQuestionBuilder withOrder(Integer order) {
             if (order != null && order >= 0) {
                 this.order = order;
             } else if (order != null) {
@@ -70,7 +68,7 @@ public final class ConfiguredQuestionFactory {
             return this;
         }
 
-        public QuestionBuilder withCondition(QuestionCondition condition) {
+        public ConfiguredQuestionBuilder withCondition(QuestionCondition condition) {
             this.condition = condition;
             return this;
         }

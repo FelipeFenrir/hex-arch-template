@@ -20,7 +20,7 @@ class QuestionFactoryMutationTest {
     @Test
     @DisplayName("createNew accumulates both required field errors")
     void shouldAccumulateRequiredFieldErrorsOnCreateNew() {
-        var result = QuestionFactory.createNew(" ", " ", AuditTestData.createdAudit());
+        var result = QuestionFactory.createNew(" ", " ", "SALE", AuditTestData.createdAudit());
 
         assertInstanceOf(Result.Failure.class, result);
         List<DomainError> errors = result.errorOrElseThrow(() ->
@@ -30,12 +30,9 @@ class QuestionFactoryMutationTest {
     }
 
     @Test
-    @DisplayName("build fails when sales item reference code is blank")
+    @DisplayName("createNew fails when sales item reference code is blank")
     void shouldFailWhenSalesItemReferenceCodeIsBlank() {
-        var result = unwrapBuilder(QuestionFactory.createNew("q_one", "Question", AuditTestData.createdAudit()))
-                .withSalesItemReferenceCode(" ")
-                .build();
-
+        var result = QuestionFactory.createNew("q_one", "Question", " ", AuditTestData.createdAudit());
         assertInstanceOf(Result.Failure.class, result);
         List<DomainError> errors = result.errorOrElseThrow(() ->
                 new IllegalStateException("Expected failure"));
@@ -46,8 +43,7 @@ class QuestionFactoryMutationTest {
     @Test
     @DisplayName("rehydrate fails when status is null")
     void shouldFailWhenStatusIsNull() {
-        var result = QuestionFactory.rehydrate("q-1", "Question", null, AuditTestData.createdAudit());
-
+        var result = QuestionFactory.rehydrate("q-1", "Question", null, "SALE", AuditTestData.createdAudit());
         assertInstanceOf(Result.Failure.class, result);
         List<DomainError> errors = result.errorOrElseThrow(() ->
                 new IllegalStateException("Expected failure"));
@@ -59,17 +55,15 @@ class QuestionFactoryMutationTest {
     @DisplayName("rehydrate keeps provided status on success")
     void shouldKeepProvidedStatusOnRehydrate() {
         var question = unwrapQuestion(unwrapRehydratedBuilder(
-                QuestionFactory.rehydrate("q-2", "Question 2", ParameterizationStatus.ACTIVE, AuditTestData.createdAudit())
-        ).withSalesItemReferenceCode("SALE").build());
-
+                QuestionFactory.rehydrate("q-2", "Question 2", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit())
+        ).build());
         assertEquals(ParameterizationStatus.ACTIVE, question.status());
     }
 
     @Test
     @DisplayName("createNew with blank id and null auditInfo accumulates two errors")
     void shouldAccumulateErrorsWhenIdBlankAndAuditInfoNull() {
-        var result = QuestionFactory.createNew(" ", "Label", null);
-
+        var result = QuestionFactory.createNew(" ", "Label", "SALE", null);
         assertInstanceOf(Result.Failure.class, result);
         List<DomainError> errors = result.errorOrElseThrow(() ->
                 new IllegalStateException("Expected failure"));
@@ -79,8 +73,7 @@ class QuestionFactoryMutationTest {
     @Test
     @DisplayName("rehydrate with null status and null auditInfo accumulates two errors")
     void shouldAccumulateErrorsWhenStatusAndAuditInfoNull() {
-        var result = QuestionFactory.rehydrate("q_one", "Label", null, null);
-
+        var result = QuestionFactory.rehydrate("q_one", "Label", null, "SALE", null);
         assertInstanceOf(Result.Failure.class, result);
         List<DomainError> errors = result.errorOrElseThrow(() ->
                 new IllegalStateException("Expected failure"));

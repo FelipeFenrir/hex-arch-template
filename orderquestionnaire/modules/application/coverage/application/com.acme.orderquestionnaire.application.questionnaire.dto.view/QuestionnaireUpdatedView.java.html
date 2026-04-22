@@ -7,7 +7,7 @@ import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import java.time.LocalDateTime;
 import java.util.List;
 
-<span class="nc" id="L10">public record QuestionnaireUpdatedView(</span>
+<span class="fc" id="L10">public record QuestionnaireUpdatedView(</span>
         String id,
         String channelDistributionId,
         String journeyDistributionId,
@@ -20,29 +20,29 @@ import java.util.List;
         LocalDateTime updatedAt
 ) {
     public static QuestionnaireUpdatedView from(Questionnaire questionnaire) {
-<span class="nc" id="L23">        return new QuestionnaireUpdatedView(</span>
-<span class="nc" id="L24">                questionnaire.id(),</span>
-<span class="nc" id="L25">                questionnaire.channelDistributionId(),</span>
-<span class="nc" id="L26">                questionnaire.journeyDistributionId(),</span>
-<span class="nc" id="L27">                questionnaire.description(),</span>
-<span class="nc" id="L28">                questionnaire.status().name(),</span>
-<span class="nc" id="L29">                questionnaire.configuredQuestions().stream()</span>
-<span class="nc" id="L30">                        .map(configuredQuestion -&gt; new QuestionConfigurationDetailedView(</span>
-<span class="nc" id="L31">                                configuredQuestion.question().id(),</span>
-<span class="nc" id="L32">                                configuredQuestion.order(),</span>
-<span class="nc" id="L33">                                AnswerConfigurationView.from(configuredQuestion.answerConfiguration()),</span>
-<span class="nc" id="L34">                                QuestionConditionView.from(configuredQuestion.rootCondition()),</span>
-<span class="nc" id="L35">                                ConditionQuestionIdExtractor.extract(configuredQuestion.rootCondition()).stream().toList()</span>
+<span class="fc" id="L23">        return new QuestionnaireUpdatedView(</span>
+<span class="fc" id="L24">                questionnaire.id(),</span>
+<span class="fc" id="L25">                questionnaire.channelDistributionId(),</span>
+<span class="fc" id="L26">                questionnaire.journeyDistributionId(),</span>
+<span class="fc" id="L27">                questionnaire.description(),</span>
+<span class="fc" id="L28">                questionnaire.status().name(),</span>
+<span class="fc" id="L29">                questionnaire.configuredQuestions().stream()</span>
+<span class="fc" id="L30">                        .map(configuredQuestion -&gt; new QuestionConfigurationDetailedView(</span>
+<span class="fc" id="L31">                                configuredQuestion.question().id(),</span>
+<span class="fc" id="L32">                                configuredQuestion.order(),</span>
+<span class="fc" id="L33">                                AnswerConfigurationView.from(configuredQuestion.answerConfiguration()),</span>
+<span class="fc" id="L34">                                QuestionConditionView.from(configuredQuestion.rootCondition()),</span>
+<span class="fc" id="L35">                                ConditionQuestionIdExtractor.extract(configuredQuestion.rootCondition()).stream().toList()</span>
                         ))
-<span class="nc" id="L37">                        .toList(),</span>
-<span class="nc" id="L38">                UserView.from(questionnaire.auditInfo().createdBy()),</span>
-<span class="nc" id="L39">                questionnaire.auditInfo().createdAt(),</span>
-<span class="nc" id="L40">                UserView.from(questionnaire.auditInfo().updatedBy()),</span>
-<span class="nc" id="L41">                questionnaire.auditInfo().updatedAt()</span>
+<span class="fc" id="L37">                        .toList(),</span>
+<span class="fc" id="L38">                UserView.from(questionnaire.auditInfo().createdBy()),</span>
+<span class="fc" id="L39">                questionnaire.auditInfo().createdAt(),</span>
+<span class="fc" id="L40">                UserView.from(questionnaire.auditInfo().updatedBy()),</span>
+<span class="fc" id="L41">                questionnaire.auditInfo().updatedAt()</span>
         );
     }
 
-<span class="nc" id="L45">    public record QuestionConfigurationDetailedView(</span>
+<span class="fc" id="L45">    public record QuestionConfigurationDetailedView(</span>
             String questionId,
             Integer order,
             AnswerConfigurationView answerConfiguration,

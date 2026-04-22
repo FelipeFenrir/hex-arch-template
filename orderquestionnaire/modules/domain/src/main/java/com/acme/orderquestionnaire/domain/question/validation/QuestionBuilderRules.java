@@ -49,7 +49,7 @@ public final class QuestionBuilderRules {
     /**
      * Factory: retorna lista de regras para validar salesItemReferenceCode.
      */
-    public static List<DomainRule<String>> salesItemReferenceCodeRules(String salesItemRefCode) {
+    public static List<DomainRule<String>> salesItemReferenceCodeRules() {
         return List.of(
                 salesItemReferenceCodeNotNull()
         );
@@ -58,7 +58,7 @@ public final class QuestionBuilderRules {
     /**
      * Factory: retorna lista de regras para validar auditInfo.
      */
-    public static List<DomainRule<AuditInfo>> auditInfoRules(AuditInfo auditInfo) {
+    public static List<DomainRule<AuditInfo>> auditInfoRules() {
         return List.of(
                 auditInfoNotNull()
         );

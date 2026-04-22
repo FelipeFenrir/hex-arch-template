@@ -1,7 +1,9 @@
 package com.acme.orderquestionnaire.domain.questionnaire;
 
 import com.acme.orderquestionnaire.domain.question.Question;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionComposer;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionConditionComposer;
 import com.acme.orderquestionnaire.testutils.mocks.question.QuestionMock;
 import com.acme.shared.pattern.result.Result;
 import com.acme.shared.stereotypes.test.UnitTest;
@@ -26,7 +28,7 @@ class ConfiguredQuestionFactoryTest {
     void shouldCreateTextQuestionWithoutCondition() {
 
         ConfiguredQuestion configuredQuestion = ConfiguredQuestionFactory.from(QUESTION_1)
-                .flatMap(ConfiguredQuestionFactory.QuestionBuilder::asText)
+                .flatMap(ConfiguredQuestionFactory.ConfiguredQuestionBuilder::asText)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         assertNotNull(configuredQuestion);
@@ -37,7 +39,7 @@ class ConfiguredQuestionFactoryTest {
     @Test
     @DisplayName("When creating a number question with condition, it should apply the condition")
     void shouldCreateNumberQuestionWithCondition() {
-        var condition = QuestionnaireFactory.condition(
+        var condition = QuestionConditionComposer.condition(
                 new com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition("q1",
                         5, ">")
         ).build();
@@ -85,7 +87,7 @@ class ConfiguredQuestionFactoryTest {
     @DisplayName("When question is visible without condition, isVisible should return true")
     void shouldReturnTrueWhenNoCondition() {
         ConfiguredQuestion configuredQuestion = ConfiguredQuestionFactory.from(QUESTION_1)
-                .flatMap(ConfiguredQuestionFactory.QuestionBuilder::asText)
+                .flatMap(ConfiguredQuestionFactory.ConfiguredQuestionBuilder::asText)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         Map<String, Object> answers = new HashMap<>();
@@ -95,7 +97,7 @@ class ConfiguredQuestionFactoryTest {
     @Test
     @DisplayName("When question has condition and is satisfied, isVisible should return true")
     void shouldReturnTrueWhenConditionSatisfied() {
-        var condition = QuestionnaireFactory.condition(
+        var condition = QuestionConditionComposer.condition(
                 new com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition("q1",
                         5, ">")
         ).build();
@@ -114,7 +116,7 @@ class ConfiguredQuestionFactoryTest {
     @Test
     @DisplayName("When question with order and condition, should build with all properties")
     void shouldCreateQuestionWithAllProperties() {
-        var condition = QuestionnaireFactory.condition(
+        var condition = QuestionConditionComposer.condition(
                 new com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition(
                         "satisfaction", 5, ">")
         ).build();
@@ -123,9 +125,9 @@ class ConfiguredQuestionFactoryTest {
                 .flatMap(builder -> builder
                         .withOrder(2)
                         .withCondition(condition)
-                        .asOptionList(QuestionnaireFactory.options(
-                                QuestionnaireFactory.option("yes", "Yes"),
-                                QuestionnaireFactory.option("no", "No")
+                        .asOptionList(AnswerOptionComposer.options(
+                                AnswerOptionComposer.option("yes", "Yes"),
+                                AnswerOptionComposer.option("no", "No")
                         )))
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
@@ -138,7 +140,7 @@ class ConfiguredQuestionFactoryTest {
     @DisplayName("When validating visible question with missing answer, should return failure")
     void shouldReturnFailureForMissingMandatoryAnswer() {
         ConfiguredQuestion configuredQuestion = ConfiguredQuestionFactory.from(QUESTION_1)
-                .flatMap(ConfiguredQuestionFactory.QuestionBuilder::asText)
+                .flatMap(ConfiguredQuestionFactory.ConfiguredQuestionBuilder::asText)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         Result<Void, QuestionValidationFailure> result = configuredQuestion.validate(new HashMap<>());

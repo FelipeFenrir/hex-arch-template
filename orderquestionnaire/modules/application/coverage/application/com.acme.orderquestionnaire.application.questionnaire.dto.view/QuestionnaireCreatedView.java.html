@@ -5,7 +5,7 @@ import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 
 import java.time.LocalDateTime;
 
-<span class="nc" id="L8">public record QuestionnaireCreatedView(</span>
+<span class="fc" id="L8">public record QuestionnaireCreatedView(</span>
         String id,
         String channelDistributionId,
         String journeyDistributionId,
@@ -17,16 +17,16 @@ import java.time.LocalDateTime;
         LocalDateTime updatedAt
 ) {
     public static QuestionnaireCreatedView from(Questionnaire questionnaire) {
-<span class="nc" id="L20">        return new QuestionnaireCreatedView(</span>
-<span class="nc" id="L21">                questionnaire.id(),</span>
-<span class="nc" id="L22">                questionnaire.channelDistributionId(),</span>
-<span class="nc" id="L23">                questionnaire.journeyDistributionId(),</span>
-<span class="nc" id="L24">                questionnaire.description(),</span>
-<span class="nc" id="L25">                questionnaire.status().name(),</span>
-<span class="nc" id="L26">                UserView.from(questionnaire.auditInfo().createdBy()),</span>
-<span class="nc" id="L27">                questionnaire.auditInfo().createdAt(),</span>
-<span class="nc" id="L28">                UserView.from(questionnaire.auditInfo().updatedBy()),</span>
-<span class="nc" id="L29">                questionnaire.auditInfo().updatedAt()</span>
+<span class="fc" id="L20">        return new QuestionnaireCreatedView(</span>
+<span class="fc" id="L21">                questionnaire.id(),</span>
+<span class="fc" id="L22">                questionnaire.channelDistributionId(),</span>
+<span class="fc" id="L23">                questionnaire.journeyDistributionId(),</span>
+<span class="fc" id="L24">                questionnaire.description(),</span>
+<span class="fc" id="L25">                questionnaire.status().name(),</span>
+<span class="fc" id="L26">                UserView.from(questionnaire.auditInfo().createdBy()),</span>
+<span class="fc" id="L27">                questionnaire.auditInfo().createdAt(),</span>
+<span class="fc" id="L28">                UserView.from(questionnaire.auditInfo().updatedBy()),</span>
+<span class="fc" id="L29">                questionnaire.auditInfo().updatedAt()</span>
         );
     }
 }

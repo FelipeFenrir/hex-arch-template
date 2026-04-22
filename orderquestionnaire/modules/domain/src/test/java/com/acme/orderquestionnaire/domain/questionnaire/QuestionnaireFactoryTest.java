@@ -1,6 +1,7 @@
 package com.acme.orderquestionnaire.domain.questionnaire;
 
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition;
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionConditionComposer;
 import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionnaireTree;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.testutils.mocks.audit.AuditTestData;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -78,11 +80,41 @@ class QuestionnaireFactoryTest {
     }
 
     @Test
+    @DisplayName("When validating payloads, questionnaire factory should expose domain-level create, update and identity validation")
+    void shouldValidatePayloadsThroughQuestionnaireFactory() {
+        var invalidCreate = QuestionnaireFactory.validateCreatePayload(null, " ", null, " ");
+        assertInstanceOf(com.acme.shared.pattern.result.Result.Failure.class, invalidCreate);
+        List<DomainError> createErrors = invalidCreate.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));
+        assertEquals(4, createErrors.size());
+
+        var invalidIdentity = QuestionnaireFactory.validateIdentityPayload("SurveyId", " ", "journey");
+        assertInstanceOf(com.acme.shared.pattern.result.Result.Failure.class, invalidIdentity);
+        List<DomainError> identityErrors = invalidIdentity.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));
+        assertTrue(identityErrors.stream().anyMatch(error -> "INVALID_ID_FORMAT".equals(error.code())));
+        assertTrue(identityErrors.stream().anyMatch(error -> "REQUIRED_FIELD".equals(error.code())
+                && error.message().contains("channelDistributionId")));
+
+        var invalidUpdate = QuestionnaireFactory.validateUpdatePayload("survey_id", "channel", "journey", " ");
+        assertInstanceOf(com.acme.shared.pattern.result.Result.Failure.class, invalidUpdate);
+        List<DomainError> updateErrors = invalidUpdate.errorOrElseThrow(() -> new IllegalStateException("Expected failure"));
+        assertEquals(List.of(new DomainError("REQUIRED_FIELD", "description must not be blank")), updateErrors);
+
+        assertTrue(QuestionnaireFactory.validateQuestionnaireId("survey_id").isSuccess());
+        var invalidQuestionnaireId = QuestionnaireFactory.validateQuestionnaireId("SurveyId");
+        assertInstanceOf(com.acme.shared.pattern.result.Result.Failure.class, invalidQuestionnaireId);
+        assertTrue(invalidQuestionnaireId.errorOrElseThrow(() -> new IllegalStateException("Expected failure"))
+                .stream().anyMatch(error -> "INVALID_ID_FORMAT".equals(error.code())));
+        assertTrue(QuestionnaireFactory.validateIdentityPayload("survey_id", "channel", "journey").isSuccess());
+        assertTrue(QuestionnaireFactory.validateCreatePayload("survey_id", "channel", "journey", "desc").isSuccess());
+        assertTrue(QuestionnaireFactory.validateUpdatePayload("survey_id", "channel", "journey", null).isSuccess());
+    }
+
+    @Test
     @DisplayName("When adding Result-configured questions, builder should collect all valid ones")
     void shouldAddQuestionResultToQuestionnaire() {
         var questionResult = ConfiguredQuestionFactory
                 .from(QUESTION_1)
-                .flatMap(ConfiguredQuestionFactory.QuestionBuilder::asText);
+                .flatMap(ConfiguredQuestionFactory.ConfiguredQuestionBuilder::asText);
 
         var questionnaire = QuestionnaireFactory
                 .createNew("survey_one", "channel_one", "journey_one", "desc", AuditTestData.createdAudit())
@@ -95,7 +127,7 @@ class QuestionnaireFactoryTest {
     @Test
     @DisplayName("When composing conditions fluently with AND/OR, it should handle mixed operators")
     void shouldComposeConditionsWithMixedOperators() {
-        var condition = QuestionnaireFactory
+        var condition = QuestionConditionComposer
                 .condition(new NumericCondition("q1", 5, ">"))
                 .and(new NumericCondition("q1", 10, "<="))
                 .or(new NumericCondition("q2", 3, "=="))
@@ -121,10 +153,10 @@ class QuestionnaireFactoryTest {
     @DisplayName("When validating answers, should accumulate errors across visible questions")
     void shouldAccumulateValidationErrors() {
         var q1 = ConfiguredQuestionFactory.from(QUESTION_1)
-                .flatMap(ConfiguredQuestionFactory.QuestionBuilder::asNumber)
+                .flatMap(ConfiguredQuestionFactory.ConfiguredQuestionBuilder::asNumber)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
         var q2 = ConfiguredQuestionFactory.from(QUESTION_2)
-                .flatMap(ConfiguredQuestionFactory.QuestionBuilder::asText)
+                .flatMap(ConfiguredQuestionFactory.ConfiguredQuestionBuilder::asText)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         var questionnaire = QuestionnaireFactory
@@ -147,7 +179,7 @@ class QuestionnaireFactoryTest {
     @Test
     @DisplayName("When exporting questionnaire tree, it should contain question, rule and condition")
     void shouldExportTree() {
-        var condition = QuestionnaireFactory.condition(new NumericCondition("how_satisfied_are_you",
+        var condition = QuestionConditionComposer.condition(new NumericCondition("how_satisfied_are_you",
                 7, ">=")).build();
 
         var configuredQuestion = ConfiguredQuestionFactory.from(QUESTION_1)

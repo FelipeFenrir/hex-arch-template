@@ -2,7 +2,7 @@ package com.acme.orderquestionnaire.domain.questionnaire;
 
 import com.acme.orderquestionnaire.domain.questionnaire.errors.QuestionnaireDomainErrors;
 import com.acme.orderquestionnaire.domain.question.Question;
-import com.acme.orderquestionnaire.domain.question.answer.AnswerConfiguration;
+import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerConfiguration;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionCondition;
 import com.acme.orderquestionnaire.domain.questionnaire.tree.ConfiguredQuestionTreeNode;
 import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionTreeNode;

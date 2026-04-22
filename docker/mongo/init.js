@@ -54,3 +54,29 @@ dbSecurity.getCollection("users").updateOne(
 
 // --- CONFIGURAÇÃO PARA O MÓDULO DE DISTRIBUIÇÃO DE QUESTIONARIO ---
 var dbOderQuestionnaire = db.getSiblingDB("oderquestionnaire");
+
+// 1. Criar o Canal inicial (Essencial para teste do desenvolvedor)
+dbSecurity.getCollection("channel_distributions").updateOne(
+    { id: "mobile_acmeapp" },
+    {
+        $set: {
+            referenceCode: "mobile_acmeapp",
+            name: "Canal de Vendas Mobile",
+            active: true
+        }
+    },
+    { upsert: true }
+);
+
+// 2. Criar o Jornada de Venda inicial (Essencial para teste do desenvolvedor)
+dbSecurity.getCollection("journey_distributions").updateOne(
+    { id: "journey_vendaavulsaacme" },
+    {
+        $set: {
+            referenceCode: "journey_vendaavulsaacme",
+            name: "Jornada de Venda Avulsa ACME",
+            active: true
+        }
+    },
+    { upsert: true }
+);

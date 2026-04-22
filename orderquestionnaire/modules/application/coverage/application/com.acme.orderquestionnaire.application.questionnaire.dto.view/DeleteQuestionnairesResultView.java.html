@@ -5,9 +5,9 @@ import java.util.List;
 public record DeleteQuestionnairesResultView(
         List&lt;DeleteQuestionnaireFailureView&gt; failures
 ) {
-<span class="nc" id="L8">    public DeleteQuestionnairesResultView {</span>
-<span class="nc bnc" id="L9" title="All 2 branches missed.">        failures = failures == null ? List.of() : List.copyOf(failures);</span>
-<span class="nc" id="L10">    }</span>
+<span class="fc" id="L8">    public DeleteQuestionnairesResultView {</span>
+<span class="pc bpc" id="L9" title="1 of 2 branches missed.">        failures = failures == null ? List.of() : List.copyOf(failures);</span>
+<span class="fc" id="L10">    }</span>
 
     public static DeleteQuestionnairesResultView empty() {
 <span class="nc" id="L13">        return new DeleteQuestionnairesResultView(List.of());</span>

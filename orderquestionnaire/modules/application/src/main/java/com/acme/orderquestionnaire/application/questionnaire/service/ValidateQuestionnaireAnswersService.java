@@ -14,6 +14,7 @@ import com.acme.orderquestionnaire.application.questionnaire.service.support.Vio
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.QuestionValidationFailure;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
+import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Guard;
@@ -56,14 +57,10 @@ public class ValidateQuestionnaireAnswersService implements ValidateQuestionnair
         }
 
         return Guard.collect(List.of(
-                Guard.requireNonBlank(command.questionnaireId(), QuestionnaireErrors.INVALID_ID),
-                Guard.requireNonBlank(
+                QuestionnaireFactory.validateIdentityPayload(
+                        command.questionnaireId(),
                         command.channelDistributionId(),
-                        QuestionnaireErrors.INVALID_CHANNEL_DISTRIBUTION_ID
-                ),
-                Guard.requireNonBlank(
-                        command.journeyDistributionId(),
-                        QuestionnaireErrors.INVALID_JOURNEY_DISTRIBUTION_ID
+                        command.journeyDistributionId()
                 ),
                 Guard.requireNonNull(command.answers(), QuestionnaireErrors.INVALID_ANSWERS)
         ));

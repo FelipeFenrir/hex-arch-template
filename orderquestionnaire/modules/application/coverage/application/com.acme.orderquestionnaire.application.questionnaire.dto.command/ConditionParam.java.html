@@ -8,7 +8,7 @@ public sealed interface ConditionParam permits
         ConditionParam.Visibility,
         ConditionParam.Composite {
 
-<span class="nc" id="L11">    record Equal(String questionRootCode, Object expectedValue) implements ConditionParam { }</span>
+<span class="fc" id="L11">    record Equal(String questionRootCode, Object expectedValue) implements ConditionParam { }</span>
 
 <span class="nc" id="L13">    record Numeric(String questionRootCode, Double expectedValue, String operator) implements ConditionParam { }</span>
 
