@@ -6,15 +6,17 @@ plugins {
 group = 'com.acme.orderquestionnaire'
 
 dependencies {
+    implementation 'com.acme:shared'
+
     implementation project(':modules:domain')
     implementation project(':modules:application')
 //    implementation project(':modules:adapters:in:api-rest')
 //    implementation project(':modules:adapters:in:api-grpc')
 //    implementation project(':modules:adapters:in:queue-sqs')
     implementation project(':modules:adapters:out:mongo')
+    implementation project(':modules:adapters:out:api-distribution')
 //    implementation project(':modules:adapters:out:cloud-aws')
-//    implementation project(':modules:observability')
-    implementation project(':shared')
+
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'

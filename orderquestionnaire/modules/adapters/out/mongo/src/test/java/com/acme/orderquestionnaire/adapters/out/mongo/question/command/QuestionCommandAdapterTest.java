@@ -1,5 +1,6 @@
-package com.acme.orderquestionnaire.adapters.out.mongo.question;
+package com.acme.orderquestionnaire.adapters.out.mongo.question.command;
 
+import com.acme.orderquestionnaire.adapters.out.mongo.question.QuestionCommandAdapter;
 import com.acme.orderquestionnaire.adapters.out.mongo.question.entity.QuestionEntity;
 import com.acme.orderquestionnaire.adapters.out.mongo.question.mapper.QuestionEntityMapper;
 import com.acme.orderquestionnaire.adapters.out.mongo.question.repository.QuestionCommandRepository;

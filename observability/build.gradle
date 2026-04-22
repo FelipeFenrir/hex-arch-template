@@ -1,5 +1,13 @@
+plugins {
+    id 'java-library'
+}
+
+repositories {
+    mavenCentral()
+}
+
 dependencies {
-    implementation project(':shared')
+    implementation 'com.acme:shared'
 
     implementation "io.micrometer:micrometer-registry-prometheus"
     implementation "io.opentelemetry:opentelemetry-exporter-otlp"

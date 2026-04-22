@@ -1,32 +1,32 @@
-# Prompt: Smart Pipeline com Rollback Transacional (Banco de Dados)
+# Prompt: Smart Pipeline com Rollback Transacional (Database-Driven)
 
-**Objetivo:** Implementar uma esteira de execução ("Smart Pipeline") em Java que respeite a Arquitetura Hexagonal e utilize o gerenciamento de transações nativo do banco de dados para reversão de falhas.
+**Objetivo:** Implementar uma esteira de execução ("Smart Pipeline") em Java que utilize o gerenciamento de transações do Banco de Dados para garantir a atomicidade de um Caso de Uso decomposto em múltiplos Steps.
 
 ---
 
-### Requisitos Técnicos:
+### Requisitos Técnicos Mandatórios:
 
-1. **Purismo Hexagonal:**
-    - A lógica de orquestração da esteira deve residir no Domínio, mantendo-se agnóstica a tecnologias de persistência ou frameworks de DI.
+1. **Purismo Hexagonal e Borda Transacional:**
+    - O `UseCase` (Domínio) coordena a execução dos Steps de forma agnóstica, mas deve sinalizar falhas de forma que a camada de **Infraestrutura** possa reagir.
+    - A transação deve ser aberta na Borda (Adaptador de Entrada ou Configuração de Infra) e não dentro do Domínio.
 
-2. **Result Pattern:**
-    - Os Steps devem retornar um objeto `Result<T>`.
-    - O Use Case deve avaliar o resultado e, em caso de falha, sinalizar a necessidade de Rollback para a camada de Infraestrutura.
+2. **Result Pattern e Sinalização de Rollback:**
+    - Utilize o `Result Pattern` para retornos de cada etapa.
+    - Como transações de banco de dados SQL dependem geralmente de Exceções para Rollback (ex: Spring `@Transactional`), o orquestrador deve converter um `Result.fail()` em uma `RuntimeException` específica (ex: `PipelineTransactionException`) apenas no ponto de saída da esteira para forçar o descarte da transação.
 
-3. **Configuração e Ordem:**
-    - Na camada de **Infraestrutura**, implemente a lógica que lê a sequência das etapas de um arquivo de configuração.
-    - Use um `Comparator` para ordenar os Beans dos Steps antes de injetá-los no Use Case. Deve ser possível desativar etapas via configuração sem alterar o código.
+3. **Configuração via Comparator:**
+    - A ordem dos Steps deve ser definida externamente (YAML/JSON).
+    - Na camada de Infraestrutura, utilize um `Comparator` para injetar a `List<Step>` no UseCase na sequência correta. Steps marcados como `enabled: false` na config devem ser ignorados.
 
 4. **Data Bag Context com Type-Safety:**
-    - Implemente o objeto de contexto utilizando a abordagem de Mapa de Tipos (`Map<Class<?>, Object>`).
-    - Garanta que cada etapa possa ler e escrever dados de forma tipada e segura.
+    - O tráfego de dados entre os Steps deve ocorrer via mapa de classes (`Map<Class<?>, Object>`).
+    - Garanta que o acesso aos dados seja feito por `context.get(AlgumaClasse.class)`, garantindo que cada Step tenha apenas o que precisa.
 
-5. **Rollback Transacional:**
-    - O rollback deve ser delegado ao Banco de Dados (ex: `@Transactional` do Spring).
-    - Demonstre como o adaptador de entrada (Controller ou Command Handler) ou a classe de Configuração deve tratar o `Result.fail()` do Use Case para disparar o `rollback` da transação (ex: lançando uma exceção de infraestrutura capturada por um Interceptor).
+5. **Robustez:**
+    - Cada Step deve ser responsável por validar se os dados necessários para sua execução estão presentes no contexto antes de iniciar a lógica de banco de dados.
 
 ### O que deve ser gerado:
 - Classes de Domínio: `Step`, `Result`, `UseCase` e `PipelineContext`.
-- O motor da esteira dentro do `UseCase`.
-- A classe de Configuração na Infraestrutura responsável por montar a esteira ordenada.
-- Exemplo de como a transação é aberta e fechada na borda da aplicação (Infra), reagindo ao `Result` do Domínio.
+- O motor da esteira no `UseCase` avaliando sucessos/falhas.
+- Exemplo de um Adaptador de Entrada (ou Service de Infra) que inicia a `@Transactional`, chama o UseCase e trata a exceção gerada pelo `Result.fail()`.
+- Lógica do `Comparator` para montagem dinâmica da lista de steps.

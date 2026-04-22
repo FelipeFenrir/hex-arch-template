@@ -18,7 +18,7 @@ public final class QuestionCreationRules {
      * Regra: id deve estar presente (não nulo, não blank).
      */
     public static DomainRule<String> questionIdNotNull() {
-        return new DomainRule<String>() {
+        return new DomainRule<>() {
             @Override
             public boolean isSatisfiedBy(String candidate) {
                 return candidate != null && !candidate.isBlank();
@@ -35,7 +35,7 @@ public final class QuestionCreationRules {
      * Regra: id deve estar em formato snake_case.
      */
     public static DomainRule<String> questionIdSnakeCaseFormat() {
-        return new DomainRule<String>() {
+        return new DomainRule<>() {
             @Override
             public boolean isSatisfiedBy(String candidate) {
                 return candidate == null || candidate.isBlank() || candidate.matches(SNAKE_CASE_PATTERN);
@@ -52,7 +52,7 @@ public final class QuestionCreationRules {
      * Regra: label deve estar presente (não nulo, não blank).
      */
     public static DomainRule<String> questionLabelNotNull() {
-        return new DomainRule<String>() {
+        return new DomainRule<>() {
             @Override
             public boolean isSatisfiedBy(String candidate) {
                 return candidate != null && !candidate.isBlank();
@@ -66,7 +66,7 @@ public final class QuestionCreationRules {
     }
 
     /**
-     * Factory: retorna lista de regras para criar nova Question.
+     * Factory: retorna lista de regras para criar Question.
      */
     public static List<DomainRule<String>> createNewQuestionIdRules(String id) {
         return List.of(
@@ -85,7 +85,7 @@ public final class QuestionCreationRules {
      * Regra: auditInfo deve estar presente (não nulo).
      */
     public static DomainRule<AuditInfo> auditInfoNotNull() {
-        return new DomainRule<AuditInfo>() {
+        return new DomainRule<>() {
             @Override
             public boolean isSatisfiedBy(AuditInfo candidate) {
                 return candidate != null;

@@ -1,6 +1,6 @@
 # modules/bootstrap/src/main/resources/application.yml
 server:
-  port: 8080
+  port: ${ORDERQUESTIONNAIRE_SERVER_PORT:9005}
 
 management:
   endpoints.web.exposure.include: health,info,prometheus
@@ -20,7 +20,8 @@ otel:
     attributes: service.name=orderquestionnaire,service.namespace=acme
 
 spring:
-  application.name: orderquestionnaire
-#  data:
-#    mongodb:
-#      uri: mongodb://mongo:27017/admin
+  application:
+    name: orderquestionnaire
+  data:
+    mongodb:
+      uri: ${ORDERQUESTIONNAIRE_MONGODB_URI:mongodb://localhost:27017/orderquestionnaire}

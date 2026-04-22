@@ -4,6 +4,8 @@ import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditInfo;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditUser;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.question.QuestionFactory;
+import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
+import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireFactory;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.vo.AuditInfo;
 import com.acme.shared.vo.AuditUser;
@@ -55,6 +57,19 @@ public final class MongoTestDataFactory {
         return QuestionFactory.rehydrate(id, "Question " + id, ParameterizationStatus.ACTIVE, updatedAuditInfo())
                 .flatMap(builder -> builder.withSalesItemReferenceCode("sales_item_code_2").build())
                 .getOrElseThrow(errors -> new IllegalStateException("Invalid fixture rehydrated question: " + errors));
+    }
+
+    public static Questionnaire newQuestionnaire(String id, String channelId, String journeyId) {
+        return QuestionnaireFactory.createNew(id, channelId, journeyId, "Questionnaire " + id, createdAuditInfo())
+                .flatMap(QuestionnaireFactory.QuestionnaireBuilder::build)
+                .getOrElseThrow(errors -> new IllegalStateException("Invalid fixture questionnaire: " + errors));
+    }
+
+    public static Questionnaire rehydratedActiveQuestionnaire(String id, String channelId, String journeyId) {
+        return QuestionnaireFactory.rehydrate(id, channelId, journeyId, "Questionnaire " + id,
+                        ParameterizationStatus.ACTIVE, updatedAuditInfo())
+                .flatMap(QuestionnaireFactory.QuestionnaireBuilder::build)
+                .getOrElseThrow(errors -> new IllegalStateException("Invalid fixture rehydrated questionnaire: " + errors));
     }
 }
 

@@ -5,7 +5,7 @@ plugins {
 group = 'com.acme.orderquestionnaire'
 
 dependencies {
-    implementation project(':shared')
+    implementation 'com.acme:shared'
     implementation project(':modules:application')
 
     implementation "org.springframework.boot:spring-boot-starter-web"

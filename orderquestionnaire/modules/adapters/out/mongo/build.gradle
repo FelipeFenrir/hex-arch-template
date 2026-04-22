@@ -5,11 +5,10 @@ plugins {
 group = 'com.acme.orderquestionnaire'
 
 dependencies {
-    implementation project(':shared')
+    implementation 'com.acme:shared'
     implementation project(':modules:domain')
     implementation project(':modules:application')
 
-    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
 
     testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"
