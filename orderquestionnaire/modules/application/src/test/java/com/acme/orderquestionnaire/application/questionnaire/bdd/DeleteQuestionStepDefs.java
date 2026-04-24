@@ -3,9 +3,15 @@ package com.acme.orderquestionnaire.application.questionnaire.bdd;
 import com.acme.orderquestionnaire.application.question.dto.view.DeleteQuestionsResultView;
 import com.acme.orderquestionnaire.application.question.port.out.repository.QuestionCommandOutPort;
 import com.acme.orderquestionnaire.application.question.service.DeleteQuestionService;
+import com.acme.orderquestionnaire.application.question.service.context.DeleteQuestionPipelineContext;
+import com.acme.orderquestionnaire.application.question.service.step.CheckQuestionNotInUseStep;
+import com.acme.orderquestionnaire.application.question.service.step.DeleteQuestionStep;
+import com.acme.orderquestionnaire.application.question.service.step.FetchQuestionForDeleteStep;
+import com.acme.orderquestionnaire.application.question.service.step.ValidateDeleteQuestionIdStep;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
@@ -48,7 +54,7 @@ public class DeleteQuestionStepDefs {
     public void setUp() {
         questionRepository = mock(QuestionCommandOutPort.class);
         questionnaireRepository = mock(QuestionnaireCommandOutPort.class);
-        service = new DeleteQuestionService(questionRepository, questionnaireRepository);
+        service = buildService(questionRepository, questionnaireRepository);
 
         singleId = null;
         batchIds = null;
@@ -125,6 +131,17 @@ public class DeleteQuestionStepDefs {
         assertTrue(view.failures().stream().anyMatch(failure ->
                 failure.questionId().equals(questionId)
                         && failure.code().equals(code)));
+    }
+
+    private static DeleteQuestionService buildService(QuestionCommandOutPort questionRepo,
+                                                      QuestionnaireCommandOutPort questionnaireRepo) {
+        List<Step<DeleteQuestionPipelineContext>> steps = List.of(
+                new ValidateDeleteQuestionIdStep(),
+                new FetchQuestionForDeleteStep(questionRepo),
+                new CheckQuestionNotInUseStep(questionnaireRepo),
+                new DeleteQuestionStep(questionRepo)
+        );
+        return new DeleteQuestionService(steps);
     }
 
     private static Question question(String id) {

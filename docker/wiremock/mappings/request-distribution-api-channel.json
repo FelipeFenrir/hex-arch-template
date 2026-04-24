@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "GET",
-    "url": "/distribution/channel/mobile_acmeapp"
+    "url": "/distribution/channels/mobile_acmeapp"
   },
   "response": {
     "status": 200,

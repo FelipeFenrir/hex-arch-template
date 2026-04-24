@@ -1,15 +1,22 @@
 package com.acme.orderquestionnaire.application.question.service;
 
-import com.acme.orderquestionnaire.application.question.dto.command.CreateQuestionCommand;
 import com.acme.orderquestionnaire.application.audit.dto.command.AuditUserParam;
-import com.acme.orderquestionnaire.application.question.port.out.repository.QuestionCommandOutPort;
+import com.acme.orderquestionnaire.application.question.dto.command.CreateQuestionCommand;
 import com.acme.orderquestionnaire.application.question.dto.view.QuestionCreatedView;
-import com.acme.orderquestionnaire.application.question.service.CreateQuestionService;
+import com.acme.orderquestionnaire.application.question.port.out.repository.QuestionCommandOutPort;
+import com.acme.orderquestionnaire.application.question.service.context.CreateQuestionPipelineContext;
+import com.acme.orderquestionnaire.application.question.service.step.BuildAndPersistQuestionStep;
+import com.acme.orderquestionnaire.application.question.service.step.BuildCreateQuestionAuditStep;
+import com.acme.orderquestionnaire.application.question.service.step.CheckNoDuplicateStep;
+import com.acme.orderquestionnaire.application.question.service.step.ValidateCreateQuestionCommandStep;
 import com.acme.orderquestionnaire.domain.question.Question;
+import com.acme.shared.pattern.pipeline.RollbackStyle;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
 import com.acme.shared.stereotypes.test.UnitTest;
 import com.acme.shared.vo.Id;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +25,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -27,19 +35,45 @@ import static org.mockito.Mockito.when;
 
 @UnitTest
 @DisplayName("CreateQuestionService")
-class CreateQuestionServiceTest {
+public class CreateQuestionServiceTest {
 
     private static final Id DEFAULT_USER_ID = Id.withId("11111111-1111-1111-1111-111111111111");
+
+    private QuestionCommandOutPort repository;
+    private CreateQuestionService service;
+
+    @BeforeEach
+    void setUp() {
+        repository = mock(QuestionCommandOutPort.class);
+        service = buildService(repository);
+    }
+
+    @Test
+    @DisplayName("should throw when steps list is null")
+    void shouldThrowWhenStepsListIsNull() {
+        assertThrows(NullPointerException.class, () -> new CreateQuestionService(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionCommandOutPort is null inside CheckNoDuplicateStep")
+    void shouldThrowWhenRepositoryIsNullInCheckNoDuplicateStep() {
+        assertThrows(NullPointerException.class, () -> new CheckNoDuplicateStep(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionCommandOutPort is null inside BuildAndPersistQuestionStep")
+    void shouldThrowWhenRepositoryIsNullInBuildAndPersistStep() {
+        assertThrows(NullPointerException.class,
+                () -> new BuildAndPersistQuestionStep(null, RollbackStyle.FRAMEWORK_TRANSACTION));
+    }
 
     @Test
     @DisplayName("should return QuestionCreatedView when question is created successfully")
     void shouldReturnQuestionCreatedViewWhenQuestionIsCreated() {
-        QuestionCommandOutPort repository = mock(QuestionCommandOutPort.class);
         when(repository.existsById("question_one")).thenReturn(false);
         when(repository.create(any(Question.class)))
                 .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
 
-        CreateQuestionService service = new CreateQuestionService(repository);
         CreateQuestionCommand command = new CreateQuestionCommand(
                 "question_one", "Age", "SKU-1", defaultUser(), defaultNow());
 
@@ -61,10 +95,7 @@ class CreateQuestionServiceTest {
     @Test
     @DisplayName("should fail when id is not in snake_case format")
     void shouldFailWhenIdIsNotSnakeCase() {
-        QuestionCommandOutPort repository = mock(QuestionCommandOutPort.class);
         when(repository.existsById(any())).thenReturn(false);
-
-        CreateQuestionService service = new CreateQuestionService(repository);
 
         List<String> invalidIds = List.of("myQuestion", "my-question", "MyQuestion", "question1", "QUESTION");
         for (String invalidId : invalidIds) {
@@ -85,9 +116,6 @@ class CreateQuestionServiceTest {
     @Test
     @DisplayName("should fail when id is blank")
     void shouldFailWhenIdIsBlank() {
-        QuestionCommandOutPort repository = mock(QuestionCommandOutPort.class);
-        CreateQuestionService service = new CreateQuestionService(repository);
-
         Result<QuestionCreatedView, List<DomainError>> result =
                 service.execute(new CreateQuestionCommand("", "Label", "SKU-1", defaultUser(), defaultNow()));
 
@@ -99,10 +127,7 @@ class CreateQuestionServiceTest {
     @Test
     @DisplayName("should fail when question already exists")
     void shouldFailWhenQuestionAlreadyExists() {
-        QuestionCommandOutPort repository = mock(QuestionCommandOutPort.class);
         when(repository.existsById("question_three")).thenReturn(true);
-
-        CreateQuestionService service = new CreateQuestionService(repository);
 
         Result<QuestionCreatedView, List<DomainError>> result = service.execute(
                 new CreateQuestionCommand("question_three", "Name", "SKU-3", defaultUser(), defaultNow())
@@ -121,14 +146,55 @@ class CreateQuestionServiceTest {
     @Test
     @DisplayName("should fail when command is null")
     void shouldFailWhenCommandIsNull() {
-        QuestionCommandOutPort repository = mock(QuestionCommandOutPort.class);
-        CreateQuestionService service = new CreateQuestionService(repository);
-
         Result<QuestionCreatedView, List<DomainError>> result = service.execute(null);
 
         assertInstanceOf(Result.Failure.class, result);
         verify(repository, never()).existsById(any());
         verify(repository, never()).create(any());
+    }
+
+    @Test
+    @DisplayName("should fail when createdBy is null")
+    void shouldFailWhenCreatedByIsNull() {
+        Result<QuestionCreatedView, List<DomainError>> result = service.execute(
+                new CreateQuestionCommand("question_one", "Label", "SKU-1", null, defaultNow())
+        );
+
+        assertInstanceOf(Result.Failure.class, result);
+        List<DomainError> errors = result.errorOrElseThrow(() ->
+                new IllegalStateException("Expected failure"));
+        assertTrue(errors.stream().anyMatch(error -> error.code().equals("INVALID_USER_ID")));
+        verify(repository).existsById("question_one");
+        verify(repository, never()).create(any());
+    }
+
+    @Test
+    @DisplayName("should fail when createdAt is null")
+    void shouldFailWhenCreatedAtIsNull() {
+        Result<QuestionCreatedView, List<DomainError>> result = service.execute(
+                new CreateQuestionCommand("question_one", "Label", "SKU-1", defaultUser(), null)
+        );
+
+        assertInstanceOf(Result.Failure.class, result);
+        List<DomainError> errors = result.errorOrElseThrow(() ->
+                new IllegalStateException("Expected failure"));
+        assertTrue(errors.stream().anyMatch(error -> error.code().equals("INVALID_CREATED_AT")));
+        verify(repository).existsById("question_one");
+        verify(repository, never()).create(any());
+    }
+
+    /**
+     * Builds a fully wired {@link CreateQuestionService} with the default step set.
+     * Use in test setup, functional tests, and BDD step definitions.
+     */
+    public static CreateQuestionService buildService(QuestionCommandOutPort repository) {
+        List<Step<CreateQuestionPipelineContext>> steps = List.of(
+                new ValidateCreateQuestionCommandStep(),
+                new CheckNoDuplicateStep(repository),
+                new BuildCreateQuestionAuditStep(),
+                new BuildAndPersistQuestionStep(repository, RollbackStyle.FRAMEWORK_TRANSACTION)
+        );
+        return new CreateQuestionService(steps);
     }
 
     private static AuditUserParam defaultUser() {

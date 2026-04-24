@@ -13,7 +13,7 @@ Template/playground de arquitetura hexagonal com foco em boundaries claros entre
 - [`docker/`](docker/) - stack local (observabilidade, localstack, mongo, message-manager)
 - [`scripts/`](scripts/) - scripts utilitarios (`.sh` e `.bat`)
 - [`runs/`](runs/) - configuracoes de execucao da IDE
-- [`insomnia/`](insomnia/) - colecoes para testes de API
+- [`insomnia/`](api_collection/) - colecoes para testes de API
 - [`modules/`](modules/) - modulos da aplicacao (detalhado abaixo)
 
 ## Indice completo de modulos

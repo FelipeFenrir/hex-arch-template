@@ -1,5 +1,7 @@
 package com.acme.shared.exception;
 
+import com.acme.shared.pattern.pipeline.PipelineOrchestrator;
+import com.acme.shared.pattern.pipeline.RollbackStyle;
 import com.acme.shared.pattern.result.DomainError;
 
 import java.util.List;
@@ -26,8 +28,8 @@ import java.util.Objects;
  * {@link PipelineFailureException} and maps {@link #errors()} back to the
  * appropriate protocol error response — without rethrowing or losing the error list.
  *
- * @see com.acme.shared.engine.pipeline.PipelineOrchestrator
- * @see com.acme.shared.engine.pipeline.RollbackStyle#FRAMEWORK_TRANSACTION
+ * @see PipelineOrchestrator
+ * @see RollbackStyle#FRAMEWORK_TRANSACTION
  */
 public class PipelineFailureException extends RuntimeException {
 

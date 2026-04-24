@@ -1,8 +1,8 @@
 package com.acme.orderquestionnaire.domain.question;
 
-import com.acme.shared.engine.state.StateMachineConfig;
-import com.acme.shared.engine.state.TransitionResult;
-import com.acme.shared.engine.state.TransitionAction;
+import com.acme.shared.pattern.state.StateMachineConfig;
+import com.acme.shared.pattern.state.TransitionResult;
+import com.acme.shared.pattern.state.TransitionAction;
 import com.acme.shared.engine.rule.GenericRule;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;

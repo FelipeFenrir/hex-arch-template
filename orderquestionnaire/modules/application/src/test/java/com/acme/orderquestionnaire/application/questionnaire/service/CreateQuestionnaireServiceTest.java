@@ -6,7 +6,15 @@ import com.acme.orderquestionnaire.application.journey.port.out.JourneyDistribut
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.CreateQuestionnaireCommand;
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionnaireCreatedView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.BuildAndPersistQuestionnaireStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.BuildAuditStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.CheckChannelDistributionStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.CheckJourneyDistributionStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.CheckNoDuplicateStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateCommandStep;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
+import com.acme.shared.pattern.pipeline.RollbackStyle;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
 import com.acme.shared.stereotypes.test.UnitTest;
@@ -30,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 @UnitTest
 @DisplayName("CreateQuestionnaireService")
-class CreateQuestionnaireServiceTest {
+public class CreateQuestionnaireServiceTest {
 
     private static final String Q_ID      = "q_001";
     private static final String CHANNEL   = "APP";
@@ -40,37 +48,51 @@ class CreateQuestionnaireServiceTest {
     private QuestionnaireCommandOutPort  questionnaireRepository;
     private ChannelDistributionOutPort   channelPort;
     private JourneyDistributionOutPort   journeyPort;
-    private CreateQuestionnaireService service;
+    private CreateQuestionnaireService   service;
 
     @BeforeEach
     void setUp() {
         questionnaireRepository = mock(QuestionnaireCommandOutPort.class);
         channelPort  = mock(ChannelDistributionOutPort.class);
         journeyPort  = mock(JourneyDistributionOutPort.class);
-        service = new CreateQuestionnaireService(questionnaireRepository, channelPort, journeyPort);
+        service = buildService(questionnaireRepository, channelPort, journeyPort);
     }
 
     // ── Constructor guards ────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("should throw when questionnaireRepository is null")
-    void shouldThrowWhenRepositoryIsNull() {
+    @DisplayName("should throw when steps list is null")
+    void shouldThrowWhenStepsListIsNull() {
         assertThrows(NullPointerException.class,
-                () -> new CreateQuestionnaireService(null, channelPort, journeyPort));
+                () -> new CreateQuestionnaireService(null));
     }
 
     @Test
-    @DisplayName("should throw when channelDistributionOutPort is null")
+    @DisplayName("should throw when channelDistributionOutPort is null inside step")
     void shouldThrowWhenChannelPortIsNull() {
         assertThrows(NullPointerException.class,
-                () -> new CreateQuestionnaireService(questionnaireRepository, null, journeyPort));
+                () -> new CheckChannelDistributionStep(null));
     }
 
     @Test
-    @DisplayName("should throw when journeyDistributionOutPort is null")
+    @DisplayName("should throw when journeyDistributionOutPort is null inside step")
     void shouldThrowWhenJourneyPortIsNull() {
         assertThrows(NullPointerException.class,
-                () -> new CreateQuestionnaireService(questionnaireRepository, channelPort, null));
+                () -> new CheckJourneyDistributionStep(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionnaireCommandOutPort is null inside CheckNoDuplicateStep")
+    void shouldThrowWhenRepoIsNullInCheckNoDuplicate() {
+        assertThrows(NullPointerException.class,
+                () -> new CheckNoDuplicateStep(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionnaireCommandOutPort is null inside BuildAndPersistStep")
+    void shouldThrowWhenRepoIsNullInBuildAndPersist() {
+        assertThrows(NullPointerException.class,
+                () -> new BuildAndPersistQuestionnaireStep(null, RollbackStyle.FRAMEWORK_TRANSACTION));
     }
 
     // ── Validation failures ───────────────────────────────────────────────────
@@ -195,6 +217,25 @@ class CreateQuestionnaireServiceTest {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Builds a fully wired {@link CreateQuestionnaireService} with the default step set.
+     * Use in test setup and in {@link com.acme.orderquestionnaire.application.FunctionalTest}.
+     */
+    public static CreateQuestionnaireService buildService(
+            QuestionnaireCommandOutPort repo,
+            ChannelDistributionOutPort channelPort,
+            JourneyDistributionOutPort journeyPort) {
+        List<Step<com.acme.orderquestionnaire.application.questionnaire.service.context.CreateQuestionnairePipelineContext>> steps = List.of(
+                new ValidateCommandStep(),
+                new BuildAuditStep(),
+                new CheckChannelDistributionStep(channelPort),
+                new CheckJourneyDistributionStep(journeyPort),
+                new CheckNoDuplicateStep(repo),
+                new BuildAndPersistQuestionnaireStep(repo, RollbackStyle.FRAMEWORK_TRANSACTION)
+        );
+        return new CreateQuestionnaireService(steps);
+    }
 
     private CreateQuestionnaireCommand validCommand() {
         return new CreateQuestionnaireCommand(Q_ID, CHANNEL, JOURNEY, DESC, defaultUser(), defaultNow());

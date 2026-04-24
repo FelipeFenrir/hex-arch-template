@@ -12,10 +12,10 @@ import com.acme.orderquestionnaire.application.question.dto.view.QuestionUpdated
 import com.acme.orderquestionnaire.application.question.dto.view.QuestionView;
 import com.acme.orderquestionnaire.application.question.port.out.repository.QuestionCommandOutPort;
 import com.acme.orderquestionnaire.application.question.port.out.repository.QuestionQueryOutPort;
-import com.acme.orderquestionnaire.application.question.service.CreateQuestionService;
+import com.acme.orderquestionnaire.application.question.service.CreateQuestionServiceTest;
 import com.acme.orderquestionnaire.application.question.service.GetQuestionByIdHandler;
 import com.acme.orderquestionnaire.application.question.service.SearchQuestionByFilterHandler;
-import com.acme.orderquestionnaire.application.question.service.UpdateQuestionService;
+import com.acme.orderquestionnaire.application.question.service.UpdateQuestionServiceTest;
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.AnswerConfigParam;
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.ConfiguredQuestionParam;
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.CreateQuestionnaireCommand;
@@ -25,9 +25,13 @@ import com.acme.orderquestionnaire.application.questionnaire.dto.command.Validat
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionnaireCreatedView;
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionnaireUpdatedView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
-import com.acme.orderquestionnaire.application.questionnaire.service.CreateQuestionnaireService;
-import com.acme.orderquestionnaire.application.questionnaire.service.UpdateQuestionnaireService;
+import com.acme.orderquestionnaire.application.questionnaire.service.CreateQuestionnaireServiceTest;
+import com.acme.orderquestionnaire.application.questionnaire.service.UpdateQuestionnaireServiceTest;
 import com.acme.orderquestionnaire.application.questionnaire.service.ValidateQuestionnaireAnswersService;
+import com.acme.orderquestionnaire.application.questionnaire.service.context.ValidateQuestionnaireAnswersPipelineContext;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.FetchQuestionnaireForAnswersValidationStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateAnswersAgainstQuestionnaireStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateQuestionnaireAnswersCommandStep;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.question.QuestionFactory;
@@ -42,6 +46,7 @@ import com.acme.shared.engine.pagination.HybridPageRequest;
 import com.acme.shared.engine.pagination.PageResult;
 import com.acme.shared.engine.pagination.SortDirection;
 import com.acme.shared.engine.pagination.SortSpec;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
 import com.acme.shared.stereotypes.test.UnitTest;
@@ -119,7 +124,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionService(mockCommandOutPort);
+        var useCase = CreateQuestionServiceTest.buildService(mockCommandOutPort);
 
         // Execute the use case
         Result<QuestionCreatedView, List<DomainError>> result = useCase.execute(command);
@@ -157,7 +162,7 @@ public class FunctionalTest {
         QuestionCommandOutPort mockCommandOutPort = mock(QuestionCommandOutPort.class);
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionService(mockCommandOutPort);
+        var useCase = CreateQuestionServiceTest.buildService(mockCommandOutPort);
 
         // Execute the use case
         var result = useCase.execute(command);
@@ -201,7 +206,7 @@ public class FunctionalTest {
         QuestionCommandOutPort mockCommandOutPort = mock(QuestionCommandOutPort.class);
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionService(mockCommandOutPort);
+        var useCase = CreateQuestionServiceTest.buildService(mockCommandOutPort);
 
         // Execute the use case
         var result = useCase.execute(command);
@@ -243,7 +248,7 @@ public class FunctionalTest {
         when(mockCommandOutPort.existsById("mocked_question")).thenReturn(true);
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionService(mockCommandOutPort);
+        var useCase = CreateQuestionServiceTest.buildService(mockCommandOutPort);
 
         // Execute the use case
         var result = useCase.execute(command);
@@ -332,7 +337,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionService(mockCommandOutPort);
+        var useCase = UpdateQuestionServiceTest.buildService(mockCommandOutPort);
 
         // Execute the use case
         Result<QuestionUpdatedView, List<DomainError>> result = useCase.execute("question_one", command);
@@ -379,7 +384,7 @@ public class FunctionalTest {
         );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionService(mockCommandOutPort);
+        var useCase = UpdateQuestionServiceTest.buildService(mockCommandOutPort);
 
         // Execute the use case
         Result<QuestionUpdatedView, List<DomainError>> result = useCase.execute("question_one", command);
@@ -418,7 +423,7 @@ public class FunctionalTest {
         QuestionCommandOutPort mockCommandOutPort = mock(QuestionCommandOutPort.class);
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionService(mockCommandOutPort);
+        var useCase = UpdateQuestionServiceTest.buildService(mockCommandOutPort);
 
         // Execute the use case
         Result<QuestionUpdatedView, List<DomainError>> result = useCase.execute("question_one", command);
@@ -483,7 +488,7 @@ public class FunctionalTest {
         );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionService(mockCommandOutPort);
+        var useCase = UpdateQuestionServiceTest.buildService(mockCommandOutPort);
 
         // Execute the use case
         Result<QuestionUpdatedView, List<DomainError>> result = useCase.execute("question_one", command);
@@ -755,7 +760,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionnaireService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
+        var useCase = CreateQuestionnaireServiceTest.buildService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
 
         // Execute the use case
         Result<QuestionnaireCreatedView, List<DomainError>> result = useCase.execute(command);
@@ -809,7 +814,7 @@ public class FunctionalTest {
         when(mockCommandOutPort.existsById(any(QuestionnaireId.class))).thenReturn(true);
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionnaireService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
+        var useCase = CreateQuestionnaireServiceTest.buildService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
 
         // Execute the use case
         Result<QuestionnaireCreatedView, List<DomainError>> result = useCase.execute(command);
@@ -860,7 +865,7 @@ public class FunctionalTest {
         when(journeyDistributionOutPort.existsById(anyString())).thenReturn(false);
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionnaireService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
+        var useCase = CreateQuestionnaireServiceTest.buildService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
 
         // Execute the use case
         Result<QuestionnaireCreatedView, List<DomainError>> result = useCase.execute(command);
@@ -909,7 +914,7 @@ public class FunctionalTest {
         when(channelDistributionOutPort.existsById(anyString())).thenReturn(false);
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionnaireService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
+        var useCase = CreateQuestionnaireServiceTest.buildService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
 
         // Execute the use case
         Result<QuestionnaireCreatedView, List<DomainError>> result = useCase.execute(command);
@@ -955,7 +960,7 @@ public class FunctionalTest {
         JourneyDistributionOutPort journeyDistributionOutPort =  mock(JourneyDistributionOutPort.class);
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionnaireService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
+        var useCase = CreateQuestionnaireServiceTest.buildService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
 
         // Execute the use case
         Result<QuestionnaireCreatedView, List<DomainError>> result = useCase.execute(command);
@@ -995,7 +1000,7 @@ public class FunctionalTest {
         JourneyDistributionOutPort journeyDistributionOutPort =  mock(JourneyDistributionOutPort.class);
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new CreateQuestionnaireService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
+        var useCase = CreateQuestionnaireServiceTest.buildService(mockCommandOutPort, channelDistributionOutPort, journeyDistributionOutPort);
 
         // Execute the use case
         Result<QuestionnaireCreatedView, List<DomainError>> result = useCase.execute(command);
@@ -1109,7 +1114,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionnaireService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
+        var useCase = UpdateQuestionnaireServiceTest.buildService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
 
         // Execute the use case
         Result<QuestionnaireUpdatedView, List<DomainError>> result = useCase.execute(command);
@@ -1163,7 +1168,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionnaireService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
+        var useCase = UpdateQuestionnaireServiceTest.buildService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
 
         // Execute the use case
         Result<QuestionnaireUpdatedView, List<DomainError>> result = useCase.execute(command);
@@ -1237,7 +1242,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionnaireService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
+        var useCase = UpdateQuestionnaireServiceTest.buildService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
 
         // Execute the use case
         Result<QuestionnaireUpdatedView, List<DomainError>> result = useCase.execute(command);
@@ -1310,7 +1315,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionnaireService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
+        var useCase = UpdateQuestionnaireServiceTest.buildService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
 
         // Execute the use case
         Result<QuestionnaireUpdatedView, List<DomainError>> result = useCase.execute(command);
@@ -1464,7 +1469,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionnaireService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
+        var useCase = UpdateQuestionnaireServiceTest.buildService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
 
         // Execute the use case
         Result<QuestionnaireUpdatedView, List<DomainError>> result = useCase.execute(command);
@@ -1624,7 +1629,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionnaireService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
+        var useCase = UpdateQuestionnaireServiceTest.buildService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
 
         // Execute the use case
         Result<QuestionnaireUpdatedView, List<DomainError>> result = useCase.execute(command);
@@ -1716,7 +1721,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionnaireService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
+        var useCase = UpdateQuestionnaireServiceTest.buildService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
 
         // Execute the use case
         Result<QuestionnaireUpdatedView, List<DomainError>> result = useCase.execute(command);
@@ -1891,7 +1896,7 @@ public class FunctionalTest {
                 );
 
         // Initialize Use Case implementation with mocked out-port
-        var useCase = new UpdateQuestionnaireService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
+        var useCase = UpdateQuestionnaireServiceTest.buildService(mockQuestionnaireCommandOutPort, mockQuestionCommandOutPort);
 
         // Execute the use case
         Result<QuestionnaireUpdatedView, List<DomainError>> result = useCase.execute(command);
@@ -1927,7 +1932,7 @@ public class FunctionalTest {
         when(mockCommandOutPort.findQuestionnaireById(any(QuestionnaireId.class)))
                 .thenReturn(Optional.of(mockedQuestionnaire));
 
-        var useCase = new ValidateQuestionnaireAnswersService(mockCommandOutPort);
+        var useCase = buildValidateQuestionnaireAnswersService(mockCommandOutPort);
 
         var command = new ValidateQuestionnaireAnswersCommand(
                 "qst_validation", "channel_dist_1", "journey_dist_1", Map.of("q_income", 50000.0));
@@ -1955,7 +1960,7 @@ public class FunctionalTest {
         when(mockCommandOutPort.findQuestionnaireById(any(QuestionnaireId.class)))
                 .thenReturn(Optional.of(mockedQuestionnaire));
 
-        var useCase = new ValidateQuestionnaireAnswersService(mockCommandOutPort);
+        var useCase = buildValidateQuestionnaireAnswersService(mockCommandOutPort);
 
         var command = new ValidateQuestionnaireAnswersCommand(
                 "qst_validation", "channel_dist_1", "journey_dist_1", Map.of("q_income", -100.0));
@@ -2007,7 +2012,7 @@ public class FunctionalTest {
         when(mockCommandOutPort.findQuestionnaireById(any(QuestionnaireId.class)))
                 .thenReturn(Optional.of(questionnaire));
 
-        var useCase = new ValidateQuestionnaireAnswersService(mockCommandOutPort);
+        var useCase = buildValidateQuestionnaireAnswersService(mockCommandOutPort);
 
         var answers = new java.util.HashMap<String, Object>();
         answers.put("q_marital", "SINGLE");
@@ -2043,7 +2048,7 @@ public class FunctionalTest {
         when(mockCommandOutPort.findQuestionnaireById(any(QuestionnaireId.class)))
                 .thenReturn(Optional.empty());
 
-        var useCase = new ValidateQuestionnaireAnswersService(mockCommandOutPort);
+        var useCase = buildValidateQuestionnaireAnswersService(mockCommandOutPort);
 
         var command = new ValidateQuestionnaireAnswersCommand(
                 "qst_missing", "channel_dist_1", "journey_dist_1", Map.of());
@@ -2060,7 +2065,7 @@ public class FunctionalTest {
     @Test
     @DisplayName("When answers map is null, then result is failure with INVALID_ANSWERS")
     void shouldFailValidationWhenAnswersIsNull() {
-        var useCase = new ValidateQuestionnaireAnswersService(
+        var useCase = buildValidateQuestionnaireAnswersService(
                 mock(QuestionnaireCommandOutPort.class));
 
         var command = new ValidateQuestionnaireAnswersCommand(
@@ -2095,6 +2100,16 @@ public class FunctionalTest {
                 "Survey questionnaire", ParameterizationStatus.ACTIVE, List.of(cq),
                 audit(Id.withId("11111111-1111-1111-1111-111111111111"),
                         "REF", "User", "u@acme.com", createDate));
+    }
+
+    private static ValidateQuestionnaireAnswersService buildValidateQuestionnaireAnswersService(
+            QuestionnaireCommandOutPort questionnaireCommandOutPort) {
+        List<Step<ValidateQuestionnaireAnswersPipelineContext>> steps = List.of(
+                new ValidateQuestionnaireAnswersCommandStep(),
+                new FetchQuestionnaireForAnswersValidationStep(questionnaireCommandOutPort),
+                new ValidateAnswersAgainstQuestionnaireStep()
+        );
+        return new ValidateQuestionnaireAnswersService(steps);
     }
 
     private static AuditInfo audit(Id id, String referenceCode, String name, String email, LocalDateTime createdAt) {

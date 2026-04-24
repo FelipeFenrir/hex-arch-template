@@ -9,12 +9,21 @@ import com.acme.orderquestionnaire.application.questionnaire.dto.command.UpdateC
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.UpdateQuestionnaireCommand;
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionnaireUpdatedView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
+import com.acme.orderquestionnaire.application.questionnaire.service.context.UpdateQuestionnairePipelineContext;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ApplyQuestionnaireUpdateTransitionStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.BuildUpdateQuestionnaireAuditStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.FetchExistingQuestionnaireStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.PersistUpdatedQuestionnaireStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ResolveConfiguredQuestionsStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateActiveQuestionnaireUpdateRestrictionsStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateUpdateQuestionnaireCommandStep;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
@@ -31,6 +40,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -40,7 +50,7 @@ import static org.mockito.Mockito.when;
 
 @UnitTest
 @DisplayName("UpdateQuestionnaireService")
-class UpdateQuestionnaireServiceTest {
+public class UpdateQuestionnaireServiceTest {
 
     private static final String QUESTIONNAIRE_ID = "q_001";
     private static final String CHANNEL = "APP";
@@ -54,7 +64,31 @@ class UpdateQuestionnaireServiceTest {
     void setUp() {
         questionnaireRepository = mock(QuestionnaireCommandOutPort.class);
         questionRepository = mock(QuestionCommandOutPort.class);
-        service = new UpdateQuestionnaireService(questionnaireRepository, questionRepository);
+        service = buildService(questionnaireRepository, questionRepository);
+    }
+
+    @Test
+    @DisplayName("should throw when steps list is null")
+    void shouldThrowWhenStepsListIsNull() {
+        assertThrows(NullPointerException.class, () -> new UpdateQuestionnaireService(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionnaire repository is null inside fetch step")
+    void shouldThrowWhenQuestionnaireRepositoryIsNullInFetchStep() {
+        assertThrows(NullPointerException.class, () -> new FetchExistingQuestionnaireStep(null));
+    }
+
+    @Test
+    @DisplayName("should throw when question repository is null inside configured-question resolver step")
+    void shouldThrowWhenQuestionRepositoryIsNullInResolverStep() {
+        assertThrows(NullPointerException.class, () -> new ResolveConfiguredQuestionsStep(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionnaire repository is null inside persist step")
+    void shouldThrowWhenQuestionnaireRepositoryIsNullInPersistStep() {
+        assertThrows(NullPointerException.class, () -> new PersistUpdatedQuestionnaireStep(null));
     }
 
     @Test
@@ -328,6 +362,20 @@ class UpdateQuestionnaireServiceTest {
 
     private static LocalDateTime updatedAt() {
         return LocalDateTime.parse("2026-01-01T11:00:00");
+    }
+
+    public static UpdateQuestionnaireService buildService(QuestionnaireCommandOutPort questionnaireRepository,
+                                                          QuestionCommandOutPort questionRepository) {
+        List<Step<UpdateQuestionnairePipelineContext>> steps = List.of(
+                new ValidateUpdateQuestionnaireCommandStep(),
+                new BuildUpdateQuestionnaireAuditStep(),
+                new FetchExistingQuestionnaireStep(questionnaireRepository),
+                new ValidateActiveQuestionnaireUpdateRestrictionsStep(),
+                new ResolveConfiguredQuestionsStep(questionRepository),
+                new ApplyQuestionnaireUpdateTransitionStep(),
+                new PersistUpdatedQuestionnaireStep(questionnaireRepository)
+        );
+        return new UpdateQuestionnaireService(steps);
     }
 
     private static void assertFailureWithCode(Result<QuestionnaireUpdatedView, List<DomainError>> result,

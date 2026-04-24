@@ -3,7 +3,7 @@ package com.acme.orderquestionnaire.adapters.out.mongo.support;
 import com.acme.orderquestionnaire.application.audit.dto.queries.SearchByAuditInfo;
 import com.acme.shared.engine.pagination.SortDirection;
 import com.acme.shared.engine.pagination.SortSpec;
-import com.acme.shared.engine.search.TextPatternUtils;
+import com.acme.shared.utils.TextPatternUtils;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.query.Criteria;
 
