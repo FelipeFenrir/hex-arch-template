@@ -5,6 +5,10 @@ import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionAn
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.ValidateQuestionnaireAnswersView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
 import com.acme.orderquestionnaire.application.questionnaire.service.ValidateQuestionnaireAnswersService;
+import com.acme.orderquestionnaire.application.questionnaire.service.context.ValidateQuestionnaireAnswersPipelineContext;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.FetchQuestionnaireForAnswersValidationStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateAnswersAgainstQuestionnaireStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateQuestionnaireAnswersCommandStep;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
@@ -15,6 +19,7 @@ import com.acme.orderquestionnaire.domain.questionnaire.conditioner.EqualConditi
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.pattern.result.Result;
 import com.acme.shared.stereotypes.test.BddTestSteps;
 import com.acme.shared.vo.AuditInfo;
@@ -56,7 +61,7 @@ public class ValidateQuestionnaireAnswersStepDefs {
     @Before
     public void setUpValidation() {
         repository = mock(QuestionnaireCommandOutPort.class);
-        service = new ValidateQuestionnaireAnswersService(repository);
+        service = buildService(repository);
         currentQuestionnaire = null;
         pendingAnswers.clear();
         command = null;
@@ -320,6 +325,15 @@ public class ValidateQuestionnaireAnswersStepDefs {
                 "REF-1", "Test User", "test@acme.com",
                 LocalDateTime.parse("2026-01-01T10:00:00"))
                 .getOrElseThrow(e -> new IllegalStateException("Invalid audit: " + e));
+    }
+
+    private static ValidateQuestionnaireAnswersService buildService(QuestionnaireCommandOutPort repo) {
+        List<Step<ValidateQuestionnaireAnswersPipelineContext>> steps = List.of(
+                new ValidateQuestionnaireAnswersCommandStep(),
+                new FetchQuestionnaireForAnswersValidationStep(repo),
+                new ValidateAnswersAgainstQuestionnaireStep()
+        );
+        return new ValidateQuestionnaireAnswersService(steps);
     }
 }
 

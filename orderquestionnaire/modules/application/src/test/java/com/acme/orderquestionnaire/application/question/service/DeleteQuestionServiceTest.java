@@ -2,9 +2,15 @@ package com.acme.orderquestionnaire.application.question.service;
 
 import com.acme.orderquestionnaire.application.question.dto.view.DeleteQuestionsResultView;
 import com.acme.orderquestionnaire.application.question.port.out.repository.QuestionCommandOutPort;
+import com.acme.orderquestionnaire.application.question.service.context.DeleteQuestionPipelineContext;
+import com.acme.orderquestionnaire.application.question.service.step.CheckQuestionNotInUseStep;
+import com.acme.orderquestionnaire.application.question.service.step.DeleteQuestionStep;
+import com.acme.orderquestionnaire.application.question.service.step.FetchQuestionForDeleteStep;
+import com.acme.orderquestionnaire.application.question.service.step.ValidateDeleteQuestionIdStep;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
@@ -22,6 +28,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -42,11 +49,39 @@ class DeleteQuestionServiceTest {
     void setUp() {
         questionRepository = mock(QuestionCommandOutPort.class);
         questionnaireRepository = mock(QuestionnaireCommandOutPort.class);
-        service = new DeleteQuestionService(questionRepository, questionnaireRepository);
+        service = buildService(questionRepository, questionnaireRepository);
 
         when(questionnaireRepository.findReferencingQuestionnaireIdsByQuestionIds(anyList())).thenReturn(Map.of());
         when(questionRepository.deleteById(any())).thenReturn(Result.success(null));
     }
+
+    // ── Constructor / step guards ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("should throw when steps list is null")
+    void shouldThrowWhenStepsListIsNull() {
+        assertThrows(NullPointerException.class, () -> new DeleteQuestionService(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionCommandOutPort is null inside FetchQuestionForDeleteStep")
+    void shouldThrowWhenPortIsNullInFetchStep() {
+        assertThrows(NullPointerException.class, () -> new FetchQuestionForDeleteStep(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionnaireCommandOutPort is null inside CheckQuestionNotInUseStep")
+    void shouldThrowWhenPortIsNullInCheckStep() {
+        assertThrows(NullPointerException.class, () -> new CheckQuestionNotInUseStep(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionCommandOutPort is null inside DeleteQuestionStep")
+    void shouldThrowWhenPortIsNullInDeleteStep() {
+        assertThrows(NullPointerException.class, () -> new DeleteQuestionStep(null));
+    }
+
+    // ── Single delete ─────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("execute(id): should delete question when it exists and has no questionnaire references")
@@ -92,13 +127,33 @@ class DeleteQuestionServiceTest {
     }
 
     @Test
+    @DisplayName("execute(id): QUESTION_IN_USE message should contain sorted questionnaire ids and question id (snapshot)")
+    void singleDeleteInUseErrorMessageSnapshot() {
+        when(questionRepository.findQuestionById("q_abc")).thenReturn(Optional.of(question("q_abc")));
+        when(questionnaireRepository.findReferencingQuestionnaireIdsByQuestionIds(List.of("q_abc")))
+                .thenReturn(Map.of("q_abc", List.of("qst_z", "qst_a", "qst_m")));
+
+        Result<Void, List<DomainError>> result = service.execute("q_abc");
+
+        assertInstanceOf(Result.Failure.class, result);
+        DomainError error = result.errorOrElseThrow(() ->
+                new IllegalStateException("Expected failure")).getFirst();
+
+        assertEquals("QUESTION_IN_USE", error.code());
+        assertEquals("question 'q_abc' is referenced by questionnaires: qst_a,qst_m,qst_z", error.message());
+        verify(questionRepository, never()).deleteById(any());
+    }
+
+    // ── Batch delete ──────────────────────────────────────────────────────────
+
+    @Test
     @DisplayName("execute(ids): should process full batch and return only per-question failures")
     void shouldProcessBatchAndReturnOnlyFailures() {
         when(questionRepository.findQuestionById("q_ok")).thenReturn(Optional.of(question("q_ok")));
         when(questionRepository.findQuestionById("q_in_use")).thenReturn(Optional.of(question("q_in_use")));
         when(questionRepository.findQuestionById("q_missing")).thenReturn(Optional.empty());
 
-        when(questionnaireRepository.findReferencingQuestionnaireIdsByQuestionIds(List.of("q_ok", "q_in_use", "q_missing")))
+        when(questionnaireRepository.findReferencingQuestionnaireIdsByQuestionIds(List.of("q_in_use")))
                 .thenReturn(Map.of("q_in_use", List.of("qst_9")));
 
         Result<DeleteQuestionsResultView, List<DomainError>> result = service.execute(List.of("q_ok", "q_in_use", "q_missing"));
@@ -117,24 +172,6 @@ class DeleteQuestionServiceTest {
 
         verify(questionRepository).deleteById("q_ok");
         verify(questionRepository, never()).deleteById("q_in_use");
-    }
-
-    @Test
-    @DisplayName("execute(id): QUESTION_IN_USE message should contain sorted questionnaire ids and question id (snapshot)")
-    void singleDeleteInUseErrorMessageSnapshot() {
-        when(questionRepository.findQuestionById("q_abc")).thenReturn(Optional.of(question("q_abc")));
-        when(questionnaireRepository.findReferencingQuestionnaireIdsByQuestionIds(List.of("q_abc")))
-                .thenReturn(Map.of("q_abc", List.of("qst_z", "qst_a", "qst_m")));
-
-        Result<Void, List<DomainError>> result = service.execute("q_abc");
-
-        assertInstanceOf(Result.Failure.class, result);
-        DomainError error = result.errorOrElseThrow(() ->
-                new IllegalStateException("Expected failure")).getFirst();
-
-        assertEquals("QUESTION_IN_USE", error.code());
-        assertEquals("question 'q_abc' is referenced by questionnaires: qst_a,qst_m,qst_z", error.message());
-        verify(questionRepository, never()).deleteById(any());
     }
 
     @Test
@@ -165,6 +202,19 @@ class DeleteQuestionServiceTest {
         assertInstanceOf(Result.Failure.class, emptyResult);
     }
 
+    // ── Factory helpers ───────────────────────────────────────────────────────
+
+    public static DeleteQuestionService buildService(QuestionCommandOutPort questionRepo,
+                                                     QuestionnaireCommandOutPort questionnaireRepo) {
+        List<Step<DeleteQuestionPipelineContext>> steps = List.of(
+                new ValidateDeleteQuestionIdStep(),
+                new FetchQuestionForDeleteStep(questionRepo),
+                new CheckQuestionNotInUseStep(questionnaireRepo),
+                new DeleteQuestionStep(questionRepo)
+        );
+        return new DeleteQuestionService(steps);
+    }
+
     private static Question question(String id) {
         return Question.rehydrate(id, "Label " + id, ParameterizationStatus.ACTIVE, "SKU-1", audit());
     }
@@ -177,5 +227,4 @@ class DeleteQuestionServiceTest {
         ).getOrElseThrow(error -> new IllegalStateException("Invalid audit test data: " + error));
     }
 }
-
 

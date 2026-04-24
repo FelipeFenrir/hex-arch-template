@@ -9,6 +9,7 @@ import com.acme.orderquestionnaire.application.questionnaire.dto.command.UpdateQ
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionnaireUpdatedView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
 import com.acme.orderquestionnaire.application.questionnaire.service.UpdateQuestionnaireService;
+import com.acme.orderquestionnaire.application.questionnaire.service.UpdateQuestionnaireServiceTest;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
@@ -55,7 +56,7 @@ public class UpdateQuestionnaireStepDefs {
     public void setup() {
         questionnaireRepository = mock(QuestionnaireCommandOutPort.class);
         questionRepository = mock(QuestionCommandOutPort.class);
-        service = new UpdateQuestionnaireService(questionnaireRepository, questionRepository);
+        service = UpdateQuestionnaireServiceTest.buildService(questionnaireRepository, questionRepository);
         command = null;
         result = null;
         successView = null;
