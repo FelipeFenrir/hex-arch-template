@@ -28,7 +28,7 @@ import com.acme.orderquestionnaire.domain.questionnaire.validation.Questionnaire
 import com.acme.orderquestionnaire.domain.questionnaire.validation.QuestionnaireIdentityRules;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
 import com.acme.orderquestionnaire.testutils.mocks.audit.AuditTestData;
-import com.acme.shared.engine.state.TransitionResult;
+import com.acme.shared.pattern.state.TransitionResult;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
@@ -42,9 +42,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

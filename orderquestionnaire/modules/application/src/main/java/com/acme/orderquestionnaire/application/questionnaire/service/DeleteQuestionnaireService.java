@@ -5,62 +5,41 @@ import com.acme.orderquestionnaire.application.questionnaire.dto.view.DeleteQues
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.DeleteQuestionnairesResultView;
 import com.acme.orderquestionnaire.application.questionnaire.error.QuestionnaireErrors;
 import com.acme.orderquestionnaire.application.questionnaire.port.in.usecase.DeleteQuestionnaireUseCase;
-import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
-import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
-import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
+import com.acme.orderquestionnaire.application.questionnaire.service.context.DeleteQuestionnairePipelineContext;
+import com.acme.shared.pattern.pipeline.PipelineOrchestrator;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.pattern.result.DomainError;
-import com.acme.shared.pattern.result.Guard;
 import com.acme.shared.pattern.result.Result;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
-public class DeleteQuestionnaireService implements DeleteQuestionnaireUseCase {
+/**
+ * Orchestrates the deletion of a {@link com.acme.orderquestionnaire.domain.questionnaire.Questionnaire}
+ * through an ordered pipeline of independent {@link Step}s.
+ *
+ * <p>Default pipeline steps (in order, as declared in {@code application.yml}):
+ * <ol>
+ *   <li>{@code VALIDATE_DELETE_COMMAND} — validates composite identity fields</li>
+ *   <li>{@code FETCH_QUESTIONNAIRE_FOR_DELETE} — loads the questionnaire or fails with NOT_FOUND</li>
+ *   <li>{@code VALIDATE_DELETE_ELIGIBILITY} — ensures status is DRAFT or INACTIVE</li>
+ *   <li>{@code DELETE_QUESTIONNAIRE} — performs the physical deletion</li>
+ * </ol>
+ *
+ * <p>The batch overload {@link #execute(List)} runs the single-delete pipeline per command,
+ * collecting per-item failures. A global failure is only returned when the input list is null or empty.
+ */
+public class DeleteQuestionnaireService
+        extends PipelineOrchestrator<DeleteQuestionnairePipelineContext, Void>
+        implements DeleteQuestionnaireUseCase {
 
-    private final QuestionnaireCommandOutPort questionnaireRepository;
-
-    public DeleteQuestionnaireService(QuestionnaireCommandOutPort questionnaireRepository) {
-        this.questionnaireRepository = Objects.requireNonNull(questionnaireRepository,
-                "questionnaireRepository must not be null");
+    public DeleteQuestionnaireService(List<Step<DeleteQuestionnairePipelineContext>> steps) {
+        super(steps);
     }
 
     @Override
     public Result<Void, List<DomainError>> execute(DeleteQuestionnaireCommand command) {
-        Result<Void, List<DomainError>> validations = validateCommand(command);
-        if (validations.isFailure()) {
-            return Result.failure(validations.errorOrElseThrow(() ->
-                    new IllegalStateException("Expected failure validations result")));
-        }
-
-        QuestionnaireId questionnaireId = QuestionnaireId.of(
-                command.id(),
-                command.channelDistributionId(),
-                command.journeyDistributionId()
-        );
-
-        Optional<Questionnaire> existing = questionnaireRepository.findQuestionnaireById(questionnaireId);
-        if (existing.isEmpty()) {
-            return QuestionnaireErrors.QUESTIONNAIRE_NOT_FOUND.asFailure(command.id());
-        }
-
-        Questionnaire questionnaire = existing.get();
-        if (!questionnaire.canBeDeleted()) {
-            return QuestionnaireErrors.QUESTIONNAIRE_DELETE_NOT_ALLOWED.asFailure(command.id(), questionnaire.status().name());
-        }
-
-        Result<Void, List<DomainError>> deleteResult = questionnaireRepository.deleteById(questionnaireId);
-        if (deleteResult.isFailure()) {
-            List<DomainError> errors = deleteResult.errorOrElseThrow(() ->
-                    new IllegalStateException("Expected delete failure result"));
-            if (errors.isEmpty()) {
-                return QuestionnaireErrors.QUESTIONNAIRE_DELETE_FAILED.asFailure(command.id(), "unknown reason");
-            }
-            return Result.failure(errors);
-        }
-
-        return Result.success(null);
+        return run(new DeleteQuestionnairePipelineContext(command));
     }
 
     @Override
@@ -72,92 +51,29 @@ public class DeleteQuestionnaireService implements DeleteQuestionnaireUseCase {
         List<DeleteQuestionnaireFailureView> failures = new ArrayList<>();
 
         for (DeleteQuestionnaireCommand command : commands) {
-            Optional<DeleteQuestionnaireFailureView> failure = deleteOneAndCollectFailure(command);
-            failure.ifPresent(failures::add);
+            Result<Void, List<DomainError>> result = execute(command);
+            if (result.isFailure()) {
+                List<DomainError> errors = result.errorOrElseThrow(() ->
+                        new IllegalStateException("Expected failure result"));
+                DomainError first = errors.isEmpty()
+                        ? QuestionnaireErrors.QUESTIONNAIRE_DELETE_FAILED.toDomainError(
+                                command != null ? command.id() : null, "unknown reason")
+                        : errors.getFirst();
+                failures.add(new DeleteQuestionnaireFailureView(
+                        command != null ? command.id() : null,
+                        command != null ? command.channelDistributionId() : null,
+                        command != null ? command.journeyDistributionId() : null,
+                        first.code(),
+                        first.message()
+                ));
+            }
         }
 
         return Result.success(new DeleteQuestionnairesResultView(failures));
     }
 
-    private Optional<DeleteQuestionnaireFailureView> deleteOneAndCollectFailure(DeleteQuestionnaireCommand command) {
-        if (command == null) {
-            DomainError error = QuestionnaireErrors.INVALID_COMMAND.toDomainError();
-            return Optional.of(new DeleteQuestionnaireFailureView(null, null, null, error.code(), error.message()));
-        }
-
-        Result<Void, List<DomainError>> validations = validateCommand(command);
-        if (validations.isFailure()) {
-            DomainError firstError = validations.errorOrElseThrow(() ->
-                    new IllegalStateException("Expected failure validations result")).getFirst();
-            return Optional.of(new DeleteQuestionnaireFailureView(
-                    command.id(),
-                    command.channelDistributionId(),
-                    command.journeyDistributionId(),
-                    firstError.code(),
-                    firstError.message()
-            ));
-        }
-
-        QuestionnaireId questionnaireId = QuestionnaireId.of(
-                command.id(),
-                command.channelDistributionId(),
-                command.journeyDistributionId()
-        );
-
-        Optional<Questionnaire> existing = questionnaireRepository.findQuestionnaireById(questionnaireId);
-        if (existing.isEmpty()) {
-            DomainError error = QuestionnaireErrors.QUESTIONNAIRE_NOT_FOUND.toDomainError(command.id());
-            return Optional.of(new DeleteQuestionnaireFailureView(
-                    command.id(),
-                    command.channelDistributionId(),
-                    command.journeyDistributionId(),
-                    error.code(),
-                    error.message()
-            ));
-        }
-
-        Questionnaire questionnaire = existing.get();
-        if (!questionnaire.canBeDeleted()) {
-            DomainError error = QuestionnaireErrors.QUESTIONNAIRE_DELETE_NOT_ALLOWED
-                    .toDomainError(command.id(), questionnaire.status().name());
-            return Optional.of(new DeleteQuestionnaireFailureView(
-                    command.id(),
-                    command.channelDistributionId(),
-                    command.journeyDistributionId(),
-                    error.code(),
-                    error.message()
-            ));
-        }
-
-        Result<Void, List<DomainError>> deleteResult = questionnaireRepository.deleteById(questionnaireId);
-        if (deleteResult.isFailure()) {
-            List<DomainError> errors = deleteResult.errorOrElseThrow(() ->
-                    new IllegalStateException("Expected delete failure result"));
-            DomainError firstError = errors.isEmpty()
-                    ? QuestionnaireErrors.QUESTIONNAIRE_DELETE_FAILED.toDomainError(command.id(), "unknown reason")
-                    : errors.getFirst();
-            return Optional.of(new DeleteQuestionnaireFailureView(
-                    command.id(),
-                    command.channelDistributionId(),
-                    command.journeyDistributionId(),
-                    firstError.code(),
-                    firstError.message()
-            ));
-        }
-
-        return Optional.empty();
-    }
-
-    private Result<Void, List<DomainError>> validateCommand(DeleteQuestionnaireCommand command) {
-        if (command == null) {
-            return QuestionnaireErrors.INVALID_COMMAND.asFailure();
-        }
-
-        return Guard.collect(List.of(
-                Guard.requireNonBlank(command.id(), QuestionnaireErrors.INVALID_ID),
-                Guard.requireNonBlank(command.channelDistributionId(), QuestionnaireErrors.INVALID_CHANNEL_DISTRIBUTION_ID),
-                Guard.requireNonBlank(command.journeyDistributionId(), QuestionnaireErrors.INVALID_JOURNEY_DISTRIBUTION_ID)
-        ));
+    @Override
+    protected Void extractResult(DeleteQuestionnairePipelineContext context) {
+        return null;
     }
 }
-

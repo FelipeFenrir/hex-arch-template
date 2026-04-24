@@ -27,10 +27,15 @@ public class HexagonalArchitectureModuleTest {
     static final ArchRule services_should_have_specific_format =
             classes().that()
                     .resideInAPackage("..service..")
+                    .and().areNotNestedClasses()
+                    .and().areNotInnerClasses()
                     // Filtro: Ignoramos as interfaces de estratégia (Strategy) e extratores (Extractor)
                     // que são classes de suporte internas
                     .and().haveSimpleNameNotEndingWith("Strategy")
                     .and().haveSimpleNameNotEndingWith("Extractor")
+                    // Filtro: Ignoramos steps e contextos do pipeline (são unidades de execução internas)
+                    .and().haveSimpleNameNotEndingWith("Step")
+                    .and().haveSimpleNameNotEndingWith("Context")
                     .should().notBeInterfaces()
                     .andShould().bePublic() // Simplifica o "notBePackagePrivate"
                     .andShould(

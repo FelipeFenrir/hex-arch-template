@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/distribution/journeys/journey_vendaavulsaacme"
+  },
+  "response": {
+    "status": 200,
+    "bodyFileName": "response-journey-journey_vendaavulsaacme.json",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}

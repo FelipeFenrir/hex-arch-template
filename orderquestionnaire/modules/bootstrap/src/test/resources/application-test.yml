@@ -9,3 +9,25 @@ spring:
     mongodb:
       uri: mongodb://localhost:27017/orderquestionnaire_test
 
+orderquestionnaire:
+  adapters:
+    out:
+      channel-distribution:
+        provider: MONGO
+        use-app-database: true
+        integrations:
+          api:
+            base-url: http://localhost:8082
+            connect-timeout: 2s
+            read-timeout: 3s
+            authentication: false
+      journey-distribution:
+        provider: MONGO
+        use-app-database: true
+        integrations:
+          api:
+            base-url: http://localhost:8082
+            connect-timeout: 2s
+            read-timeout: 3s
+            authentication: false
+

@@ -4,12 +4,18 @@ import com.acme.orderquestionnaire.application.questionnaire.dto.command.DeleteQ
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.DeleteQuestionnairesResultView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
 import com.acme.orderquestionnaire.application.questionnaire.service.DeleteQuestionnaireService;
+import com.acme.orderquestionnaire.application.questionnaire.service.context.DeleteQuestionnairePipelineContext;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.DeleteQuestionnaireStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.FetchQuestionnaireForDeleteStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateDeleteQuestionnaireCommandStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateQuestionnaireDeleteEligibilityStep;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerConfigurationFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
@@ -51,7 +57,7 @@ public class DeleteQuestionnaireStepDefs {
     @Before
     public void setUp() {
         questionnaireRepository = mock(QuestionnaireCommandOutPort.class);
-        service = new DeleteQuestionnaireService(questionnaireRepository);
+        service = buildService(questionnaireRepository);
 
         questionnaires.clear();
         singleCommand = null;
@@ -169,6 +175,16 @@ public class DeleteQuestionnaireStepDefs {
         Result.Failure<DeleteQuestionnairesResultView, List<DomainError>> failure =
                 (Result.Failure<DeleteQuestionnairesResultView, List<DomainError>>) batchResult;
         assertTrue(failure.error().stream().anyMatch(error -> error.code().equals(code)));
+    }
+
+    private static DeleteQuestionnaireService buildService(QuestionnaireCommandOutPort repo) {
+        List<Step<DeleteQuestionnairePipelineContext>> steps = List.of(
+                new ValidateDeleteQuestionnaireCommandStep(),
+                new FetchQuestionnaireForDeleteStep(repo),
+                new ValidateQuestionnaireDeleteEligibilityStep(),
+                new DeleteQuestionnaireStep(repo)
+        );
+        return new DeleteQuestionnaireService(steps);
     }
 
     private DeleteQuestionnaireCommand toCommand(String raw) {

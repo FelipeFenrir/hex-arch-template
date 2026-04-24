@@ -52,15 +52,35 @@ dbSecurity.getCollection("users").updateOne(
     { upsert: true }
 );
 
-// --- CONFIGURAÇÃO PARA O MÓDULO DE DISTRIBUIÇÃO DE QUESTIONARIO ---
-var dbOderQuestionnaire = db.getSiblingDB("oderquestionnaire");
 
-// 1. Criar o Canal inicial (Essencial para teste do desenvolvedor)
-dbSecurity.getCollection("channel_distributions").updateOne(
+
+// --- CONFIGURAÇÃO PARA O MÓDULO DE DISTRIBUIÇÃO DE QUESTIONARIO ---
+var dbOrderQuestionnaire = db.getSiblingDB("orderquestionnaire");
+
+var now = new Date();
+var auditInfo = {
+    created_by: {
+        id: "usr-seed",
+        reference_code: "seed_user",
+        name: "Seed User",
+        email: "seed.user@acme.com"
+    },
+    created_at: now,
+    updated_by: {
+        id: "usr-seed",
+        reference_code: "seed_user",
+        name: "Seed User",
+        email: "seed.user@acme.com"
+    },
+    updated_at: now
+};
+
+// 1. Canais de distribuicao em estados diferentes
+dbOrderQuestionnaire.getCollection("channel_distributions").updateOne(
     { id: "mobile_acmeapp" },
     {
         $set: {
-            referenceCode: "mobile_acmeapp",
+            reference_code: "mobile_acmeapp",
             name: "Canal de Vendas Mobile",
             active: true
         }
@@ -68,14 +88,109 @@ dbSecurity.getCollection("channel_distributions").updateOne(
     { upsert: true }
 );
 
-// 2. Criar o Jornada de Venda inicial (Essencial para teste do desenvolvedor)
-dbSecurity.getCollection("journey_distributions").updateOne(
+dbOrderQuestionnaire.getCollection("channel_distributions").updateOne(
+    { id: "store_acme" },
+    {
+        $set: {
+            reference_code: "store_acme",
+            name: "Canal Loja Fisica",
+            active: false
+        }
+    },
+    { upsert: true }
+);
+
+// 2. Jornadas de distribuicao em estados diferentes
+dbOrderQuestionnaire.getCollection("journey_distributions").updateOne(
     { id: "journey_vendaavulsaacme" },
     {
         $set: {
-            referenceCode: "journey_vendaavulsaacme",
+            reference_code: "journey_vendaavulsaacme",
             name: "Jornada de Venda Avulsa ACME",
             active: true
+        }
+    },
+    { upsert: true }
+);
+
+dbOrderQuestionnaire.getCollection("journey_distributions").updateOne(
+    { id: "journey_retencao" },
+    {
+        $set: {
+            reference_code: "journey_retencao",
+            name: "Jornada de Retencao",
+            active: false
+        }
+    },
+    { upsert: true }
+);
+
+// 3. Questoes em estados diferentes
+dbOrderQuestionnaire.getCollection("questions").updateOne(
+    { _id: "q_name" },
+    {
+        $set: {
+            label: "Qual o seu nome?",
+            status: "ACTIVE",
+            sales_item_reference_code: "prd001",
+            audit_info: auditInfo
+        }
+    },
+    { upsert: true }
+);
+
+dbOrderQuestionnaire.getCollection("questions").updateOne(
+    { _id: "q_age" },
+    {
+        $set: {
+            label: "Qual a sua idade?",
+            status: "DRAFT",
+            sales_item_reference_code: "prd001",
+            audit_info: auditInfo
+        }
+    },
+    { upsert: true }
+);
+
+dbOrderQuestionnaire.getCollection("questions").updateOne(
+    { _id: "q_consent" },
+    {
+        $set: {
+            label: "Aceita compartilhar dados?",
+            status: "INACTIVE",
+            sales_item_reference_code: "prd002",
+            audit_info: auditInfo
+        }
+    },
+    { upsert: true }
+);
+
+// 4. Questionarios em estados diferentes
+dbOrderQuestionnaire.getCollection("questionnaires").updateOne(
+    { id: "questionnaire_checkout" },
+    {
+        $set: {
+            channel_distribution_id: "mobile_acmeapp",
+            journey_distribution_id: "journey_vendaavulsaacme",
+            description: "Questionario de Checkout",
+            status: "ACTIVE",
+            configured_questions: [],
+            audit_info: auditInfo
+        }
+    },
+    { upsert: true }
+);
+
+dbOrderQuestionnaire.getCollection("questionnaires").updateOne(
+    { id: "questionnaire_onboarding" },
+    {
+        $set: {
+            channel_distribution_id: "store_acme",
+            journey_distribution_id: "journey_retencao",
+            description: "Questionario de Onboarding",
+            status: "DRAFT",
+            configured_questions: [],
+            audit_info: auditInfo
         }
     },
     { upsert: true }

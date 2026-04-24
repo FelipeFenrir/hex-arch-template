@@ -3,9 +3,15 @@ package com.acme.orderquestionnaire.application.questionnaire.service;
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.DeleteQuestionnaireCommand;
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.DeleteQuestionnairesResultView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
+import com.acme.orderquestionnaire.application.questionnaire.service.context.DeleteQuestionnairePipelineContext;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.DeleteQuestionnaireStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.FetchQuestionnaireForDeleteStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateDeleteQuestionnaireCommandStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateQuestionnaireDeleteEligibilityStep;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
+import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
@@ -39,15 +45,31 @@ class DeleteQuestionnaireServiceTest {
     @BeforeEach
     void setUp() {
         questionnaireRepository = mock(QuestionnaireCommandOutPort.class);
-        service = new DeleteQuestionnaireService(questionnaireRepository);
+        service = buildService(questionnaireRepository);
         when(questionnaireRepository.deleteById(any())).thenReturn(Result.success(null));
     }
 
+    // ── Constructor / step guards ─────────────────────────────────────────────
+
     @Test
-    @DisplayName("should throw when questionnaireRepository is null")
-    void shouldThrowWhenQuestionnaireRepositoryIsNull() {
+    @DisplayName("should throw when steps list is null")
+    void shouldThrowWhenStepsListIsNull() {
         assertThrows(NullPointerException.class, () -> new DeleteQuestionnaireService(null));
     }
+
+    @Test
+    @DisplayName("should throw when questionnaireCommandOutPort is null inside FetchQuestionnaireForDeleteStep")
+    void shouldThrowWhenPortIsNullInFetchStep() {
+        assertThrows(NullPointerException.class, () -> new FetchQuestionnaireForDeleteStep(null));
+    }
+
+    @Test
+    @DisplayName("should throw when questionnaireCommandOutPort is null inside DeleteQuestionnaireStep")
+    void shouldThrowWhenPortIsNullInDeleteStep() {
+        assertThrows(NullPointerException.class, () -> new DeleteQuestionnaireStep(null));
+    }
+
+    // ── Single delete ─────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("execute(single): should delete questionnaire in DRAFT")
@@ -140,6 +162,8 @@ class DeleteQuestionnaireServiceTest {
         verify(questionnaireRepository, never()).deleteById(any());
     }
 
+    // ── Batch delete ──────────────────────────────────────────────────────────
+
     @Test
     @DisplayName("execute(batch): should process all commands and return only failures")
     void shouldProcessBatchAndReturnOnlyFailures() {
@@ -202,6 +226,18 @@ class DeleteQuestionnaireServiceTest {
 
         assertInstanceOf(Result.Failure.class, nullResult);
         assertInstanceOf(Result.Failure.class, emptyResult);
+    }
+
+    // ── Factory helpers ───────────────────────────────────────────────────────
+
+    public static DeleteQuestionnaireService buildService(QuestionnaireCommandOutPort repo) {
+        List<Step<DeleteQuestionnairePipelineContext>> steps = List.of(
+                new ValidateDeleteQuestionnaireCommandStep(),
+                new FetchQuestionnaireForDeleteStep(repo),
+                new ValidateQuestionnaireDeleteEligibilityStep(),
+                new DeleteQuestionnaireStep(repo)
+        );
+        return new DeleteQuestionnaireService(steps);
     }
 
     private static DeleteQuestionnaireCommand command(String id, String channel, String journey) {

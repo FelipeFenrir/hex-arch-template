@@ -25,3 +25,106 @@ spring:
   data:
     mongodb:
       uri: ${ORDERQUESTIONNAIRE_MONGODB_URI:mongodb://localhost:27017/orderquestionnaire}
+
+orderquestionnaire:
+  adapters:
+    out:
+      channel-distribution:
+        provider: ${ORDERQUESTIONNAIRE_CHANNEL_DISTRIBUTION_PROVIDER:MONGO}
+        use-app-database: ${ORDERQUESTIONNAIRE_CHANNEL_DISTRIBUTION_USE_APP_DATABASE:true}
+        integrations:
+          api:
+            base-url: ${ORDERQUESTIONNAIRE_CHANNEL_DISTRIBUTION_API_BASE_URL:http://localhost:8082}
+            connect-timeout: ${ORDERQUESTIONNAIRE_CHANNEL_DISTRIBUTION_API_CONNECT_TIMEOUT:2s}
+            read-timeout: ${ORDERQUESTIONNAIRE_CHANNEL_DISTRIBUTION_API_READ_TIMEOUT:3s}
+            authentication: ${ORDERQUESTIONNAIRE_CHANNEL_DISTRIBUTION_API_AUTHENTICATION:false}
+      journey-distribution:
+        provider: ${ORDERQUESTIONNAIRE_JOURNEY_DISTRIBUTION_PROVIDER:MONGO}
+        use-app-database: ${ORDERQUESTIONNAIRE_JOURNEY_DISTRIBUTION_USE_APP_DATABASE:true}
+        integrations:
+          api:
+            base-url: ${ORDERQUESTIONNAIRE_JOURNEY_DISTRIBUTION_API_BASE_URL:http://localhost:8082}
+            connect-timeout: ${ORDERQUESTIONNAIRE_JOURNEY_DISTRIBUTION_API_CONNECT_TIMEOUT:2s}
+            read-timeout: ${ORDERQUESTIONNAIRE_JOURNEY_DISTRIBUTION_API_READ_TIMEOUT:3s}
+            authentication: ${ORDERQUESTIONNAIRE_JOURNEY_DISTRIBUTION_API_AUTHENTICATION:false}
+
+question:
+  pipeline:
+    createquestion:
+      VALIDATE_COMMAND:
+        enabled: true
+      CHECK_NO_DUPLICATE:
+        enabled: true
+      BUILD_AUDIT:
+        enabled: true
+      BUILD_AND_PERSIST_QUESTION:
+        enabled: true
+    updatequestion:
+      VALIDATE_COMMAND:
+        enabled: true
+      BUILD_AUDIT:
+        enabled: true
+      FETCH_EXISTING_QUESTION:
+        enabled: true
+      RESOLVE_TRANSITION:
+        enabled: true
+      BUILD_UPDATED_QUESTION:
+        enabled: true
+      PERSIST_UPDATED_QUESTION:
+        enabled: true
+    deletequestion:
+      VALIDATE_QUESTION_ID:
+        enabled: true
+      FETCH_QUESTION_FOR_DELETE:
+        enabled: true
+      CHECK_NOT_IN_USE:
+        enabled: true
+      DELETE_QUESTION:
+        enabled: true
+
+questionnaire:
+  pipeline:
+    createquestionnaire:
+      VALIDATE_COMMAND:
+        enabled: true
+      BUILD_AUDIT:
+        enabled: true
+      CHECK_CHANNEL_DISTRIBUTION:
+        enabled: true
+      CHECK_JOURNEY_DISTRIBUTION:
+        enabled: true
+      CHECK_NO_DUPLICATE:
+        enabled: true
+      BUILD_AND_PERSIST_QUESTIONNAIRE:
+        enabled: true
+    updatequestionnaire:
+      VALIDATE_COMMAND:
+        enabled: true
+      BUILD_AUDIT:
+        enabled: true
+      FETCH_EXISTING_QUESTIONNAIRE:
+        enabled: true
+      VALIDATE_ACTIVE_UPDATE_RESTRICTIONS:
+        enabled: true
+      RESOLVE_CONFIGURED_QUESTIONS:
+        enabled: true
+      APPLY_UPDATE_TRANSITION:
+        enabled: true
+      PERSIST_UPDATED_QUESTIONNAIRE:
+        enabled: true
+    deletequestionnaire:
+      VALIDATE_DELETE_COMMAND:
+        enabled: true
+      FETCH_QUESTIONNAIRE_FOR_DELETE:
+        enabled: true
+      VALIDATE_DELETE_ELIGIBILITY:
+        enabled: true
+      DELETE_QUESTIONNAIRE:
+        enabled: true
+    validatequestionnaireanswers:
+      VALIDATE_ANSWERS_COMMAND:
+        enabled: true
+      FETCH_QUESTIONNAIRE_FOR_ANSWER_VALIDATION:
+        enabled: true
+      VALIDATE_QUESTIONNAIRE_ANSWERS:
+        enabled: true

@@ -13,6 +13,7 @@ Se voce nunca usou este modulo: comece pela trilha de leitura em `Guia de inicio
 - Estereotipos arquiteturais (`@UseCase`, `@InputPort`, `@OutputPort`, etc.)
 - Contratos de paginacao hibrida (page/cursor)
 - Maquina de estados generica com guardas e acoes
+- **Pipeline engine** com compensacao LIFO e rollback ambidestro (`Step`, `PipelineContext`, `PipelineOrchestrator`, `RollbackStyle`)
 - Contexto de tenant por thread (`TenantContextHolder`)
 - Constantes de headers (`HeaderConstants`)
 - Value objects e enums compartilhados (`Id`, `AuditInfo`, `ParameterizationStatus`, etc.)
@@ -67,6 +68,7 @@ Ao final da trilha, abra exemplos reais em:
 - [`docs/TenantHeaders.md`](docs/TenantHeaders.md) - `TenantContextHolder` e `HeaderConstants`
 - [`docs/Pagination.md`](docs/Pagination.md) - `HybridPageRequest`, `PageResult`, `SortSpec`
 - [`docs/StateMachine.md`](docs/StateMachine.md) - `StateMachineConfig`, `TransitionAction`, `TransitionResult`
+- [`docs/Pipeline.md`](docs/Pipeline.md) - `Step`, `PipelineContext`, `PipelineOrchestrator`, `RollbackStyle`, `PipelineFailureException`
 - [`docs/ValueObjectsEnums.md`](docs/ValueObjectsEnums.md) - `Id`, `User`, `AuditInfo`, `ParameterizationStatus`, `PortType`
 
 ## Onde isso aparece no projeto

@@ -3,6 +3,10 @@ package com.acme.orderquestionnaire.application.questionnaire.service;
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.ValidateQuestionnaireAnswersCommand;
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.ValidateQuestionnaireAnswersView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireCommandOutPort;
+import com.acme.orderquestionnaire.application.questionnaire.service.context.ValidateQuestionnaireAnswersPipelineContext;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.FetchQuestionnaireForAnswersValidationStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateAnswersAgainstQuestionnaireStep;
+import com.acme.orderquestionnaire.application.questionnaire.service.step.ValidateQuestionnaireAnswersCommandStep;
 import com.acme.orderquestionnaire.domain.audit.OrderQuestionnaireAuditFactory;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerOptionItem;
@@ -18,6 +22,7 @@ import com.acme.shared.pattern.result.Result;
 import com.acme.shared.stereotypes.test.UnitTest;
 import com.acme.shared.vo.AuditInfo;
 import com.acme.shared.vo.Id;
+import com.acme.shared.pattern.pipeline.Step;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,16 +59,23 @@ class ValidateQuestionnaireAnswersServiceTest {
     @BeforeEach
     void setUp() {
         repository = mock(QuestionnaireCommandOutPort.class);
-        service = new ValidateQuestionnaireAnswersService(repository);
+        service = buildService(repository);
     }
 
     // ── Constructor guard ─────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("should throw when repository is null")
-    void shouldThrowWhenRepositoryIsNull() {
+    @DisplayName("should throw when steps list is null")
+    void shouldThrowWhenStepsListIsNull() {
         assertThrows(NullPointerException.class,
                 () -> new ValidateQuestionnaireAnswersService(null));
+    }
+
+    @Test
+    @DisplayName("should throw when repository is null inside fetch step")
+    void shouldThrowWhenRepositoryIsNullInFetchStep() {
+        assertThrows(NullPointerException.class,
+                () -> new FetchQuestionnaireForAnswersValidationStep(null));
     }
 
     // ── Command validation failures ───────────────────────────────────────────
@@ -720,7 +732,17 @@ class ValidateQuestionnaireAnswersServiceTest {
         assertTrue(violations.stream().anyMatch(v -> v.source().equals(source)),
                 "Expected source '%s' but got: %s".formatted(source, violations));
     }
+
+    public static ValidateQuestionnaireAnswersService buildService(QuestionnaireCommandOutPort repo) {
+        List<Step<ValidateQuestionnaireAnswersPipelineContext>> steps = List.of(
+                new ValidateQuestionnaireAnswersCommandStep(),
+                new FetchQuestionnaireForAnswersValidationStep(repo),
+                new ValidateAnswersAgainstQuestionnaireStep()
+        );
+        return new ValidateQuestionnaireAnswersService(steps);
+    }
 }
+
 
 
 
