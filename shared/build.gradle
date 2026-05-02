@@ -11,6 +11,7 @@ repositories {
 
 dependencies {
     implementation "com.github.f4b6a3:uuid-creator:${uuidCreatorVersion}"
+    compileOnly "org.slf4j:slf4j-api:${slf4jVersion}"
     api "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
     testImplementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"

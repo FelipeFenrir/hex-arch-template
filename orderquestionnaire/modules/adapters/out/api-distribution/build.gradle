@@ -38,3 +38,23 @@ jacocoTestCoverageVerification {
 }
 
 check.dependsOn jacocoTestCoverageVerification
+
+pitest {
+    pitestVersion = '1.20.3'
+    junit5PluginVersion = '1.2.1'
+
+    targetClasses = [
+            'com.acme.orderquestionnaire.adapters.out.api.distribution.channel.*',
+            'com.acme.orderquestionnaire.adapters.out.api.distribution.journey.*'
+    ]
+
+    targetTests = [
+            'com.acme.orderquestionnaire.adapters.out.api.distribution.*'
+    ]
+
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    failWhenNoMutations = true
+    mutationThreshold = 60
+    coverageThreshold = 65
+}

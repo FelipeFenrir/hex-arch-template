@@ -107,3 +107,4 @@ nb-configuration.xml
 .venv/
 **/coverage/
 **/coverage/**
+/docker/stackport/

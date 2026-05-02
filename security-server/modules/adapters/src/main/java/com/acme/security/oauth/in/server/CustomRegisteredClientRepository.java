@@ -2,6 +2,7 @@ package com.acme.security.oauth.in.server;
 
 import com.acme.security.client.port.in.usecase.FindClientUseCase;
 import com.acme.security.client.Client;
+import com.acme.security.tenant.erros.TenantDomainErrors;
 import com.acme.shared.TenantContextHolder;
 import com.acme.shared.vo.TenantId;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
@@ -41,7 +42,9 @@ public class CustomRegisteredClientRepository implements RegisteredClientReposit
     public RegisteredClient findByClientId(String clientId) {
 
         // Aqui o TenantContext.getTenant() deve estar preenchido pelo filtro
-        TenantId tenantId = TenantId.fromString(TenantContextHolder.currentTenant());
+        String tenantValue = TenantContextHolder.currentTenantRequired(TenantDomainErrors::tenantContextMissing)
+                .getOrElseThrow(error -> new IllegalStateException(error.message()));
+        TenantId tenantId = TenantId.fromString(tenantValue);
 
         return findClientUseCase.findByClientId(clientId, tenantId)
                 .map(this::toRegisteredClient)

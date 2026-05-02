@@ -14,8 +14,9 @@ public class TokenConfig {
     public OAuth2TokenCustomizer<JwtEncodingContext> jwtTokenCustomizer() {
         return (context) -> {
             // Adiciona o tenant_id nas claims do Access Token e ID Token
-            if (TenantContextHolder.currentTenant() != null) {
-                context.getClaims().claim("tenant_id", TenantContextHolder.currentTenant());
+            String tenantId = TenantContextHolder.currentTenantOrNull();
+            if (tenantId != null) {
+                context.getClaims().claim("tenant_id", tenantId);
             }
 
             // Você também pode injetar as Roles do usuário aqui se desejar

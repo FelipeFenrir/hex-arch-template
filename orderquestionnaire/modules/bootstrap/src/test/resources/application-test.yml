@@ -8,6 +8,9 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/orderquestionnaire_test
+  threads:
+    virtual:
+      enabled: true
 
 orderquestionnaire:
   adapters:

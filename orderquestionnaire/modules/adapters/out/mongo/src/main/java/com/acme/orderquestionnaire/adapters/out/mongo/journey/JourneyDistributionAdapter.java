@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
+@Deprecated
 @Component
 @OutputAdapter
 public class JourneyDistributionAdapter implements JourneyDistributionOutPort {

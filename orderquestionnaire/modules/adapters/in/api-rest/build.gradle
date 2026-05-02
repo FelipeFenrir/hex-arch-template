@@ -6,6 +6,7 @@ group = 'com.acme.orderquestionnaire'
 
 dependencies {
     implementation 'com.acme:shared'
+    implementation 'com.acme:observability'
     implementation project(':modules:application')
 
     implementation "org.springframework.boot:spring-boot-starter-web"

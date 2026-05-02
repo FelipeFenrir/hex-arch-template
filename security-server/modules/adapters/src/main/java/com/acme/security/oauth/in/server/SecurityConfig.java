@@ -95,6 +95,7 @@ public class SecurityConfig {
                 .addFilterBefore(tenantFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
+                                "/actuator/**",
                                 "/login",
                                 "/register",
                                 "/api/v1/clients/**",

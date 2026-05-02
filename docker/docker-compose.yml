@@ -30,18 +30,6 @@ services:
   # ---------------------------------------------------------
   # MiniStack (AWS)
   # ---------------------------------------------------------
-#  ministack:
-#    image: nahuelnucera/ministack
-#    container_name: ministack
-#    environment:
-#      #SERVICES: sqs,sns, s3, dynamodb, lambda, cloudwatch, ecs, ec2, iam
-#      AWS_DEFAULT_REGION: us-east-1
-#      LS_LOG: info
-#    ports: [ "4566:4566" ]
-#    volumes:
-#      # Mount a local shell script to be executed once the container starts
-#      - ./ministack/init-resources.sh:/etc/ministack/init/ready.d/init-resources.sh
-
   ministack:
     image: ministackorg/ministack:latest
     container_name: ministack
@@ -58,6 +46,20 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  # ---------------------------------------------------------
+  # Wiremock (simula APIs externas)
+  # ---------------------------------------------------------
+  wiremock:
+    image: wiremock/wiremock:latest
+    container_name: wiremock
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./wiremock:/home/wiremock
+    command:
+      - --global-response-templating
+      - --verbose
 
   # ---------------------------------------------------------
   # OpenTelemetry Collector
@@ -115,6 +117,8 @@ services:
       - ./promtail/config.yml:/etc/promtail/config.yml
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - ../security-server/modules/bootstrap/build/logs:/var/log/security-server-host:ro
+      - ../orderquestionnaire/modules/bootstrap/build/logs:/var/log/orderquestionnaire-host:ro
     depends_on:
       - loki
 
@@ -132,21 +136,6 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     depends_on: [ loki, tempo, prometheus ]
-
-  # ---------------------------------------------------------
-  # Wiremock (simula APIs externas)
-  # ---------------------------------------------------------
-  wiremock:
-    image: wiremock/wiremock:latest
-    container_name: wiremock
-    ports:
-      - "8082:8080"
-    volumes:
-      - ./wiremock:/home/wiremock
-    command:
-      - --global-response-templating
-      - --verbose
-
 
   # ---------------------------------------------------------
   # StackPort (simula AWS)
@@ -197,29 +186,29 @@ services:
 #      - ./aws-manager/data:/app/data
 
   # ---------------------------------------------------------
-  # Aplicação (bootstrap)
+  # Aplicação Security Server (opcional - container)
+  # Ative com: docker compose --profile app-container up -d
+  # Default continua sendo rodar via IDE/Gradle (host).
   # ---------------------------------------------------------
-#  app:
-#    image: acme/hex-arch-template:latest
-#    container_name: app
-#    environment:
-##      - SPRING_PROFILES_ACTIVE:docker
-#      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-#      - AWS_ENDPOINT=http://localstack:4566
-#      - AWS_REGION=us-east-1
-#      - AWS_ACCESS_KEY_ID=test
-#      - AWS_SECRET_ACCESS_KEY=test
-#      - MONGO_URI:mongodb://mongo:27017
-##      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/admin
-#    depends_on: [ localstack, mongo, otel-collector, promtail ]
-#    ports:
-#      - "8080:8080"
-#    logging: # opcional; logs vão para stdout
-#      driver: "json-file"
-#      options:
-#        max-size: "10m"
-#        max-file: "5"
-#        mode: non-blocking
+  app:
+    profiles: ["app-container"]
+    build:
+      context: ../security-server/modules/bootstrap
+      dockerfile: Dockerfile
+    container_name: security-server
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - SECURITY_MONGODB_URI=mongodb://mongo:27017/security
+      - SECURITY_SERVER_PORT=9001
+    depends_on: [ mongo, otel-collector, promtail ]
+    ports:
+      - "9001:9001"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        mode: non-blocking
 
 volumes:
   mongo_data:
