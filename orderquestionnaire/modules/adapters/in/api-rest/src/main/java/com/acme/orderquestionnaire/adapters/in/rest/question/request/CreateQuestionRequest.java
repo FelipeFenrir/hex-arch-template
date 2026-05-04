@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 public record CreateQuestionRequest(
         @NotBlank String id,
         @NotBlank String label,
-        @NotBlank String salesItemReferenceCode
+        @NotBlank String salesItemReferenceCode,
+        @NotNull AuditUserParam createdBy
 ) {
     public CreateQuestionCommand toCommand() {
         return new CreateQuestionCommand(

@@ -1,75 +1,88 @@
 package com.acme.observability;
 
+import com.acme.observability.config.ObservabilityLoggingProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.acme.shared.pattern.result.Result;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.MDC;
-import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Aspect
-@Component
-@Slf4j
-@RequiredArgsConstructor
 public class LoggingAspect {
+    private static final Logger log = LoggerFactory.getLogger(LoggingAspect.class);
+
     private final ObjectMapper mapper;
+    private final LogSanitizer sanitizer;
+    private final ObservabilityLoggingProperties properties;
+
+    public LoggingAspect(
+            ObjectMapper mapper,
+            LogSanitizer sanitizer,
+            ObservabilityLoggingProperties properties
+    ) {
+        this.mapper = mapper;
+        this.sanitizer = sanitizer;
+        this.properties = properties;
+    }
 
     @Around("@within(com.acme.observability.Loggable) || @annotation(com.acme.observability.Loggable)")
     public Object around(ProceedingJoinPoint pjp) throws Throwable {
         long startedAt = System.currentTimeMillis();
-        var args = pjp.getArgs();
         String className = pjp.getSignature().getDeclaringTypeName();
         String methodName = pjp.getSignature().getName();
 
-        log.info(map(
-                "event", "method.start",
-                "class", className,
-                "method", methodName,
-                "correlationId", MDC.get("correlationId"),
-                "flowId", MDC.get("flowId"),
-                "args", args
-        ));
+        Map<String, Object> startPayload = basePayload("method.start", className, methodName);
+        if (properties.isLogArguments()) {
+            startPayload.put("args", sanitizer.sanitize(pjp.getArgs()));
+        }
+        log.info(write(startPayload));
 
         try {
             var result = pjp.proceed();
-            var successPayload = map(
-                    "event", "method.success",
-                    "class", className,
-                    "method", methodName,
-                    "correlationId", MDC.get("correlationId"),
-                    "flowId", MDC.get("flowId"),
-                    "durationMs", System.currentTimeMillis() - startedAt,
-                    "result", result
-            );
+
+            Map<String, Object> successPayload = basePayload("method.success", className, methodName);
+            successPayload.put("durationMs", System.currentTimeMillis() - startedAt);
+            if (properties.isLogResult()) {
+                successPayload.put("result", sanitizer.sanitize(result));
+            }
+
+            String successMessage = write(successPayload);
             if (result instanceof Result<?, ?> outcome && outcome.isFailure()) {
-                log.warn(successPayload);
+                log.warn(successMessage);
             } else {
-                log.info(successPayload);
+                log.info(successMessage);
             }
             return result;
         } catch (Throwable throwable) {
-            log.error(map(
-                    "event", "method.error",
-                    "class", className,
-                    "method", methodName,
-                    "correlationId", MDC.get("correlationId"),
-                    "flowId", MDC.get("flowId"),
-                    "durationMs", System.currentTimeMillis() - startedAt,
-                    "error", throwable.getClass().getName(),
-                    "message", throwable.getMessage()
-            ));
+            Map<String, Object> errorPayload = basePayload("method.error", className, methodName);
+            errorPayload.put("durationMs", System.currentTimeMillis() - startedAt);
+            errorPayload.put("error", throwable.getClass().getName());
+            errorPayload.put("message", throwable.getMessage());
+
+            log.error(write(errorPayload));
             throw throwable;
         }
     }
 
-    private String map(Object... kv) {
+    private Map<String, Object> basePayload(String event, String className, String methodName) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("event", event);
+        payload.put("class", className);
+        payload.put("method", methodName);
+        payload.put("correlationId", MDC.get("correlationId"));
+        payload.put("flowId", MDC.get("flowId"));
+        return payload;
+    }
+
+    private String write(Map<String, Object> payload) {
         try {
-            var m = new java.util.LinkedHashMap<String, Object>();
-            for (int i = 0; i < kv.length; i += 2) m.put(kv[i].toString(), kv[i + 1]);
-            return mapper.writeValueAsString(m);
+            return mapper.writeValueAsString(payload);
         } catch (Exception e) {
             return "{\"log\":\"serialization_error\"}";
         }

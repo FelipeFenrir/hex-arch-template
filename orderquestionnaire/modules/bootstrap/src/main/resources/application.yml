@@ -44,6 +44,14 @@ logging:
     root: INFO
     org.springframework: INFO
 
+acme:
+  observability:
+    logging:
+      enabled: ${ORDERQUESTIONNAIRE_OBS_LOG_ENABLED:true}
+      log-arguments: ${ORDERQUESTIONNAIRE_OBS_LOG_ARGUMENTS:true}
+      log-result: ${ORDERQUESTIONNAIRE_OBS_LOG_RESULT:true}
+      max-payload-length: ${ORDERQUESTIONNAIRE_OBS_MAX_PAYLOAD_LENGTH:4000}
+
 orderquestionnaire:
   adapters:
     out:
