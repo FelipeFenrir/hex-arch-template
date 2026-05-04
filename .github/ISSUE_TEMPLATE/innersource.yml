@@ -1,0 +1,71 @@
+name: "InnerSource: proposta de contribuição"
+description: "Solicite aprovação para contribuir e gerar branch automaticamente"
+title: "[InnerSource] "
+labels:
+  - inner-source
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por contribuir com InnerSource.
+        Preencha os campos abaixo para análise.
+
+        Fluxo atual:
+        1) Abrir esta issue com a label `inner-source`
+        2) Aguardar aprovação (label `approved`)
+        3) Branch automática criada no padrão `innersource/issue-<numero>-<slug>`
+
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Qual problema, necessidade ou oportunidade motivou esta proposta?
+      placeholder: "Ex.: Precisamos validar melhor os headers de tenant no adapter REST."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta técnica
+      description: Descreva abordagem, módulos e impactos esperados.
+      placeholder: |
+        Ex.: Ajustar validação em `orderquestionnaire/modules/adapters/in/api-rest`.
+        Ex.: Orquestração no application e regras no domain.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: branch_base
+    attributes:
+      label: Branch base desejada
+      description: Se não houver indicação operacional, o fluxo prioriza `develop`.
+      options:
+        - develop
+        - main
+    validations:
+      required: true
+
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceite
+      description: Como vamos saber que está pronto?
+      placeholder: |
+        - [ ] Testes do módulo alterado passando
+        - [ ] Sem regressão no fluxo principal
+        - [ ] Documentação técnica atualizada (se necessário)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmacoes
+    attributes:
+      label: Confirmações
+      options:
+        - label: Li `AGENTS.md` e seguirei as convenções de arquitetura hexagonal do repositório.
+          required: true
+        - label: Estou ciente de que a implementação começa após aprovação da issue.
+          required: true
+
+

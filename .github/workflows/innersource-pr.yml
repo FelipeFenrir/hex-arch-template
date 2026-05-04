@@ -1,0 +1,149 @@
+name: InnerSource - Abrir PR apos primeiro push
+
+on:
+  push:
+    branches:
+      - 'innersource/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  open-pr:
+    name: Abrir PR draft para develop
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verificar se ja existe PR para esta branch
+        id: check_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = context.ref.replace('refs/heads/', '');
+
+            const { data: pulls } = await github.rest.pulls.list({
+              owner,
+              repo,
+              head: `${owner}:${branch}`,
+              state: 'open'
+            });
+
+            if (pulls.length > 0) {
+              core.setOutput('exists', 'true');
+              core.setOutput('pr_url', pulls[0].html_url);
+            } else {
+              core.setOutput('exists', 'false');
+            }
+
+            core.setOutput('branch', branch);
+
+      - name: Extrair numero da issue do nome da branch
+        id: issue_number
+        if: steps.check_pr.outputs.exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = '${{ steps.check_pr.outputs.branch }}';
+            const match = branch.match(/innersource\/issue-(\d+)-/);
+            if (!match) {
+              core.setFailed(`Nao foi possivel extrair numero da issue do nome: ${branch}`);
+              return;
+            }
+            core.setOutput('number', match[1]);
+
+      - name: Buscar titulo da issue
+        id: issue_info
+        if: steps.check_pr.outputs.exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = parseInt('${{ steps.issue_number.outputs.number }}');
+
+            const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+            core.setOutput('title', issue.title);
+            core.setOutput('url', issue.html_url);
+
+      - name: Resolver base (develop ou main)
+        id: base_branch
+        if: steps.check_pr.outputs.exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            for (const candidate of ['develop', 'main']) {
+              try {
+                await github.rest.git.getRef({ owner, repo, ref: `heads/${candidate}` });
+                core.setOutput('base', candidate);
+                return;
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+            core.setFailed('Nenhuma branch base encontrada (esperado: develop ou main).');
+
+      - name: Criar PR draft
+        id: create_pr
+        if: steps.check_pr.outputs.exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = '${{ steps.check_pr.outputs.branch }}';
+            const base = '${{ steps.base_branch.outputs.base }}';
+            const issueTitle = '${{ steps.issue_info.outputs.title }}';
+            const issueUrl = '${{ steps.issue_info.outputs.url }}';
+            const issueNumber = '${{ steps.issue_number.outputs.number }}';
+
+            const body = [
+              `## InnerSource`,
+              ``,
+              `Issue de origem: ${issueUrl}`,
+              ``,
+              `### Checklist antes de solicitar revisao`,
+              `- [ ] Testes do modulo alterado passando`,
+              `- [ ] Sem regressao no fluxo principal`,
+              `- [ ] Seguidas as convencoes de \`AGENTS.md\` (Result/Guard, portas antes de adapters, sem Spring no domain)`,
+              `- [ ] Documentacao tecnica atualizada (se necessario)`,
+            ].join('\n');
+
+            const { data: pr } = await github.rest.pulls.create({
+              owner,
+              repo,
+              title: `[InnerSource] ${issueTitle}`,
+              head: branch,
+              base,
+              body,
+              draft: true
+            });
+
+            core.setOutput('pr_url', pr.html_url);
+            core.setOutput('pr_number', pr.number);
+
+      - name: Comentar PR na issue
+        if: steps.check_pr.outputs.exists == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = parseInt('${{ steps.issue_number.outputs.number }}');
+            const pr_url = '${{ steps.create_pr.outputs.pr_url }}';
+            const base = '${{ steps.base_branch.outputs.base }}';
+            const branch = '${{ steps.check_pr.outputs.branch }}';
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: `PR draft criado: ${pr_url}\n\nQuando a implementacao estiver pronta, marque como pronto para revisao no PR e solicite aprovacao para merge em \`${base}\`.`
+            });
+
