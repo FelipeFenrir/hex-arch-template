@@ -33,7 +33,15 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build
-        # O comando 'build' executa compilação, testes unitários e empacotamento
+      - name: Build orderquestionnaire
+        run: ./gradlew :orderquestionnaire:build
+
+      - name: Build shared
+        run: ./gradlew :shared:build
+
+      - name: Build observability
+        run: ./gradlew :observability:build
+
+      - name: Build security-server
+        run: ./gradlew :security-server:build
 
