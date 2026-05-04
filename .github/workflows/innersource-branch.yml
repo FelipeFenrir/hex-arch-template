@@ -1,0 +1,111 @@
+name: InnerSource - Criar branch apos aprovacao
+
+on:
+  issues:
+    types:
+      - labeled
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  create-branch:
+    name: Criar branch da issue aprovada
+    if: github.event.label.name == 'approved' && contains(join(github.event.issue.labels.*.name, ','), 'inner-source')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: innersource-issue-${{ github.event.issue.number }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Definir base e nome da branch
+        id: naming
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const candidates = ['develop', 'main'];
+            let baseRef = null;
+            for (const candidate of candidates) {
+              try {
+                await github.rest.git.getRef({ owner, repo, ref: `heads/${candidate}` });
+                baseRef = candidate;
+                break;
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+              }
+            }
+
+            if (!baseRef) {
+              core.setFailed('Nenhuma branch base encontrada (esperado: develop ou main).');
+              return;
+            }
+
+            const number = context.payload.issue.number;
+            const title = context.payload.issue.title || 'issue';
+            const slug = title
+              .toLowerCase()
+              .normalize('NFKD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/(^-|-$)/g, '')
+              .slice(0, 40) || 'sem-titulo';
+
+            const branch = `innersource/issue-${number}-${slug}`;
+            core.setOutput('base', baseRef);
+            core.setOutput('branch', branch);
+
+      - name: Criar branch se ainda nao existir
+        id: create_branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const base = '${{ steps.naming.outputs.base }}';
+            const branch = '${{ steps.naming.outputs.branch }}';
+
+            try {
+              await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` });
+              core.setOutput('status', 'already-exists');
+              return;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            const baseRefData = await github.rest.git.getRef({ owner, repo, ref: `heads/${base}` });
+            await github.rest.git.createRef({
+              owner,
+              repo,
+              ref: `refs/heads/${branch}`,
+              sha: baseRefData.data.object.sha
+            });
+
+            core.setOutput('status', 'created');
+
+      - name: Comentar status na issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+            const base = '${{ steps.naming.outputs.base }}';
+            const branch = '${{ steps.naming.outputs.branch }}';
+            const status = '${{ steps.create_branch.outputs.status }}';
+
+            const message = status === 'created'
+              ? `Aprovacao detectada. Branch criada: \`${branch}\` (base: \`${base}\`).\n\nVoce ja pode iniciar a implementacao e abrir PR para \`${base}\`.`
+              : `Aprovacao detectada. A branch \`${branch}\` ja existia (base: \`${base}\`).`;
+
+            await github.rest.issues.createComment({ owner, repo, issue_number, body: message });
+
+
+
