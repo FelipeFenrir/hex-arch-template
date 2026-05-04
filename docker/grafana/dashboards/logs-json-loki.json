@@ -5,27 +5,63 @@
   "tags": ["local", "logs"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "10s",
   "time": {
 	"from": "now-1h",
 	"to": "now"
   },
+  "templating": {
+	"list": [
+	  {
+		"name": "app",
+		"label": "App",
+		"type": "query",
+		"datasource": { "type": "loki", "uid": "loki" },
+		"query": "label_values({job=~\".+\"}, app)",
+		"includeAll": true,
+		"multi": true,
+		"allValue": ".+",
+		"current": { "selected": true, "text": "All", "value": "$__all" }
+	  },
+	  {
+		"name": "mode",
+		"label": "Mode",
+		"type": "query",
+		"datasource": { "type": "loki", "uid": "loki" },
+		"query": "label_values({app=~\"$app\"}, mode)",
+		"includeAll": true,
+		"multi": true,
+		"allValue": ".+",
+		"current": { "selected": true, "text": "All", "value": "$__all" }
+	  },
+	  {
+		"name": "level",
+		"label": "Level",
+		"type": "custom",
+		"query": ".+,TRACE,DEBUG,INFO,WARN,ERROR",
+		"includeAll": false,
+		"multi": false,
+		"current": { "selected": true, "text": ".+", "value": ".+" }
+	  }
+	]
+  },
   "panels": [
 	{
 	  "id": 1,
 	  "type": "logs",
-	  "title": "Container Logs",
+	  "title": "Application Logs (Host + Container)",
 	  "gridPos": { "h": 20, "w": 24, "x": 0, "y": 0 },
 	  "datasource": { "type": "loki", "uid": "loki" },
 	  "targets": [
 		{
 		  "refId": "A",
-		  "expr": "{container=~\".+\"}"
+		  "expr": "{app=~\"$app\",mode=~\"$mode\"} | json | level=~\"$level\""
 		}
 	  ],
 	  "options": {
 		"showLabels": true,
+		"showCommonLabels": true,
 		"showTime": true,
 		"sortOrder": "Descending"
 	  }

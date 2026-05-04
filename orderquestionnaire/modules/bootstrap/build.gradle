@@ -10,12 +10,12 @@ dependencies {
 
     implementation project(':modules:domain')
     implementation project(':modules:application')
-//    implementation project(':modules:adapters:in:api-rest')
-//    implementation project(':modules:adapters:in:api-grpc')
-//    implementation project(':modules:adapters:in:queue-sqs')
     implementation project(':modules:adapters:out:mongo')
     implementation project(':modules:adapters:out:api-distribution')
 //    implementation project(':modules:adapters:out:cloud-aws')
+    implementation project(':modules:adapters:in:api-rest')
+//    implementation project(':modules:adapters:in:api-grpc')
+//    implementation project(':modules:adapters:in:queue-sqs')
 
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -46,8 +46,15 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:mongodb'
     testImplementation 'org.testcontainers:localstack'
+    testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"
+    testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
+    testImplementation "io.cucumber:cucumber-java:${cucumberVersion}"
+    testImplementation "io.cucumber:cucumber-junit-platform-engine:${cucumberVersion}"
+    testImplementation "io.cucumber:cucumber-spring:${cucumberVersion}"
+    testImplementation 'org.junit.platform:junit-platform-suite'
 }
 
 tasks.withType(Test).configureEach {
@@ -61,3 +68,32 @@ jacocoTestReport {
         html.required = true
     }
 }
+
+pitest {
+    pitestVersion = '1.20.3'
+    junit5PluginVersion = '1.2.1'
+
+    // Only target distribution config classes - these are the ones with unit tests.
+    // Pipeline @Configuration classes and transactional facades are wired by Spring
+    // and tested implicitly by integration/e2e tests, not unit mutation tests.
+    targetClasses = [
+            'com.acme.orderquestionnaire.config.adapter.out.distribution.*'
+    ]
+
+    // Only use unit tests for PIT (exclude E2E/integration/architecture).
+    // E2E tests are too slow and unreliable for mutation analysis.
+    targetTests = [
+            'com.acme.orderquestionnaire.unit.*'
+    ]
+
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    failWhenNoMutations = true
+    mutationThreshold = 60
+    coverageThreshold = 65
+    // Workaround for Windows CreateProcess error=206 (command line too long):
+    // useClasspathFile writes the --classPath entries to a file instead of passing
+    // all JAR paths on the command line (which exceeds Windows' 32767 char limit).
+    useClasspathFile = true
+}
+

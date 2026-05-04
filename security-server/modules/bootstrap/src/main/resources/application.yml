@@ -5,6 +5,9 @@ spring:
     mongodb:
       # Sobrescreva via SECURITY_MONGODB_URI quando precisar.
       uri: ${SECURITY_MONGODB_URI:mongodb://localhost:27017/security}
+  threads:
+    virtual:
+      enabled: true
 
   thymeleaf:
     enabled: true
@@ -19,10 +22,34 @@ server:
   error:
     include-message: always
 
+management:
+  endpoint:
+    prometheus:
+      enabled: true
+  endpoints:
+    metrics:
+      enabled: true
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+  resource:
+    attributes: service.name=security-server,service.namespace=acme
+
 logging:
+  file:
+    name: ${SECURITY_SERVER_LOG_FILE:build/logs/security-server.log}
   level:
     root: INFO
     org.springframework.web: INFO
-    org.springframework.security: trace
+    org.springframework.security: INFO
     org.springframework.security.jackson2: INFO
-    org.springframework.security.oauth2.server.authorization: TRACE
+    org.springframework.security.oauth2.server.authorization: INFO

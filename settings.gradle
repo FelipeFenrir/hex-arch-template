@@ -4,12 +4,14 @@ include(
         ':modules:domain:participantcatalog',
         ':modules:domain:personmdm',
         ':modules:domain:productcatalog',
-        ':modules:application:personmdm',
-        ':observability'
+        ':modules:application:personmdm'
 )
 
 includeBuild(
         'shared'
+)
+includeBuild(
+        'observability'
 )
 includeBuild(
         'security-server'

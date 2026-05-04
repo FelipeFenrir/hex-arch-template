@@ -4,8 +4,11 @@ plugins {
 
 group = 'com.acme.orderquestionnaire'
 
+def mongoPitReportDir = layout.buildDirectory.dir("reports/pitest-${new Date().format('yyyyMMdd-HHmmssSSS')}").get().asFile
+
 dependencies {
     implementation 'com.acme:shared'
+    implementation 'com.acme:observability'
     implementation project(':modules:domain')
     implementation project(':modules:application')
 
@@ -40,3 +43,25 @@ jacocoTestCoverageVerification {
 }
 
 check.dependsOn jacocoTestCoverageVerification
+
+pitest {
+    pitestVersion = '1.20.3'
+    junit5PluginVersion = '1.2.1'
+    reportDir = mongoPitReportDir
+
+    targetClasses = [
+            'com.acme.orderquestionnaire.adapters.out.mongo.*',
+            'com.acme.orderquestionnaire.adapters.out.mongo.question.*',
+            'com.acme.orderquestionnaire.adapters.out.mongo.questionnaire.*'
+    ]
+
+    targetTests = [
+            'com.acme.orderquestionnaire.adapters.out.mongo.unit.*'
+    ]
+
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    failWhenNoMutations = true
+    mutationThreshold = 60
+    coverageThreshold = 65
+}

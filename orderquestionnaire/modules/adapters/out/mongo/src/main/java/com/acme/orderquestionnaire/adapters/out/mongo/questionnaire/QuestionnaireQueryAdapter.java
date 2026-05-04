@@ -1,15 +1,20 @@
 package com.acme.orderquestionnaire.adapters.out.mongo.questionnaire;
 
+import com.acme.orderquestionnaire.adapters.out.mongo.question.entity.QuestionEntity;
+import com.acme.orderquestionnaire.adapters.out.mongo.question.mapper.QuestionEntityMapper;
 import com.acme.orderquestionnaire.adapters.out.mongo.questionnaire.entity.QuestionnaireEntity;
+import com.acme.orderquestionnaire.adapters.out.mongo.questionnaire.entity.QuestionnaireQuestionEntity;
 import com.acme.orderquestionnaire.adapters.out.mongo.questionnaire.mapper.QuestionnaireEntityMapper;
+import com.acme.orderquestionnaire.adapters.out.mongo.questionnaire.mapper.QuestionnaireQuestionEntityMapper;
 import com.acme.orderquestionnaire.adapters.out.mongo.questionnaire.repository.QuestionnaireQueryRepository;
 import com.acme.orderquestionnaire.adapters.out.mongo.support.MongoQuerySupport;
-import com.acme.orderquestionnaire.application.audit.dto.view.UserView;
+import com.acme.observability.Loggable;
 import com.acme.orderquestionnaire.application.questionnaire.dto.queries.GetQuestionnaireById;
 import com.acme.orderquestionnaire.application.questionnaire.dto.queries.SearchQuestionnaireByFilter;
-import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionConfigurationView;
 import com.acme.orderquestionnaire.application.questionnaire.dto.view.QuestionnaireView;
 import com.acme.orderquestionnaire.application.questionnaire.port.out.repository.QuestionnaireQueryOutPort;
+import com.acme.orderquestionnaire.domain.question.Question;
+import com.acme.orderquestionnaire.domain.questionnaire.ConfiguredQuestion;
 import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import com.acme.shared.engine.pagination.HybridPageRequest;
 import com.acme.shared.engine.pagination.HybridPageRequestUtils;
@@ -17,7 +22,6 @@ import com.acme.shared.engine.pagination.PageResult;
 import com.acme.shared.engine.pagination.SortDirection;
 import com.acme.shared.engine.pagination.SortSpec;
 import com.acme.shared.stereotypes.adapter.OutputAdapter;
-import com.acme.shared.vo.AuditInfo;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -25,13 +29,17 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @OutputAdapter
+@Loggable
 public class QuestionnaireQueryAdapter implements QuestionnaireQueryOutPort {
 
     private static final int DEFAULT_PAGE = 0;
@@ -49,15 +57,23 @@ public class QuestionnaireQueryAdapter implements QuestionnaireQueryOutPort {
 
     private final QuestionnaireQueryRepository questionnaireQueryRepository;
     private final QuestionnaireEntityMapper questionnaireEntityMapper;
+    private final QuestionnaireQuestionEntityMapper questionnaireQuestionEntityMapper;
+    private final QuestionEntityMapper questionEntityMapper;
     private final MongoTemplate mongoTemplate;
 
     public QuestionnaireQueryAdapter(QuestionnaireQueryRepository questionnaireQueryRepository,
                                      QuestionnaireEntityMapper questionnaireEntityMapper,
+                                     QuestionnaireQuestionEntityMapper questionnaireQuestionEntityMapper,
+                                     QuestionEntityMapper questionEntityMapper,
                                      MongoTemplate mongoTemplate) {
         this.questionnaireQueryRepository = Objects.requireNonNull(questionnaireQueryRepository,
                 "questionnaireQueryRepository must not be null");
         this.questionnaireEntityMapper = Objects.requireNonNull(questionnaireEntityMapper,
                 "questionnaireEntityMapper must not be null");
+        this.questionnaireQuestionEntityMapper = Objects.requireNonNull(questionnaireQuestionEntityMapper,
+                "questionnaireQuestionEntityMapper must not be null");
+        this.questionEntityMapper = Objects.requireNonNull(questionEntityMapper,
+                "questionEntityMapper must not be null");
         this.mongoTemplate = Objects.requireNonNull(mongoTemplate,
                 "mongoTemplate must not be null");
     }
@@ -78,8 +94,8 @@ public class QuestionnaireQueryAdapter implements QuestionnaireQueryOutPort {
         String documentId = questionnaireEntityMapper.toDocumentId(questionnaireId, channelId, journeyId);
 
         return questionnaireQueryRepository.findById(documentId)
-                .map(questionnaireEntityMapper::toDomain)
-                .map(this::toView);
+                .map(this::toDomainAggregate)
+                .map(QuestionnaireView::from);
     }
 
     @Override
@@ -109,10 +125,8 @@ public class QuestionnaireQueryAdapter implements QuestionnaireQueryOutPort {
                 .skip((long) page * size)
                 .limit(size);
 
-        List<QuestionnaireView> content = mongoTemplate.find(query, QuestionnaireEntity.class).stream()
-                .map(questionnaireEntityMapper::toDomain)
-                .map(this::toView)
-                .toList();
+        List<QuestionnaireEntity> entities = mongoTemplate.find(query, QuestionnaireEntity.class);
+        List<QuestionnaireView> content = toViews(entities);
 
         long totalElements = mongoTemplate.count(baseQuery, QuestionnaireEntity.class);
         int totalPages = (int) Math.ceil(totalElements / (double) size);
@@ -138,10 +152,7 @@ public class QuestionnaireQueryAdapter implements QuestionnaireQueryOutPort {
         List<QuestionnaireEntity> contentEntities = hasNext ? fetched.subList(0, size) : fetched;
         String nextCursor = hasNext ? contentEntities.getLast().id() : null;
 
-        List<QuestionnaireView> content = contentEntities.stream()
-                .map(questionnaireEntityMapper::toDomain)
-                .map(this::toView)
-                .toList();
+        List<QuestionnaireView> content = toViews(contentEntities);
 
         List<SortSpec> appliedSort = List.of(new SortSpec("id", SortDirection.ASC));
         return PageResult.forCursor(content, size, nextCursor, hasNext, appliedSort);
@@ -177,23 +188,77 @@ public class QuestionnaireQueryAdapter implements QuestionnaireQueryOutPort {
         return query;
     }
 
-    private QuestionnaireView toView(Questionnaire questionnaire) {
-        AuditInfo auditInfo = questionnaire.auditInfo();
-
-        return new QuestionnaireView(
-                questionnaire.questionnaireId(),
-                questionnaire.description(),
-                questionnaire.status().name(),
-                questionnaire.configuredQuestions().stream().map(QuestionConfigurationView::from).toList(),
-                auditInfo == null ? null : UserView.from(auditInfo.createdBy()),
-                auditInfo == null ? null : auditInfo.createdAt(),
-                auditInfo == null ? null : UserView.from(auditInfo.updatedBy()),
-                auditInfo == null ? null : auditInfo.updatedAt()
-        );
-    }
-
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private List<QuestionnaireView> toViews(List<QuestionnaireEntity> entities) {
+        if (entities == null || entities.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, List<QuestionnaireQuestionEntity>> linksByQuestionnaire = loadLinksByQuestionnaireDocumentId(entities);
+        Map<String, Question> questionsById = loadQuestionsByLinks(linksByQuestionnaire);
+
+        return entities.stream()
+                .map(entity -> toDomainAggregate(entity, linksByQuestionnaire, questionsById))
+                .map(QuestionnaireView::from)
+                .toList();
+    }
+
+    private Questionnaire toDomainAggregate(QuestionnaireEntity entity) {
+        Map<String, List<QuestionnaireQuestionEntity>> linksByQuestionnaire = loadLinksByQuestionnaireDocumentId(List.of(entity));
+        Map<String, Question> questionsById = loadQuestionsByLinks(linksByQuestionnaire);
+        return toDomainAggregate(entity, linksByQuestionnaire, questionsById);
+    }
+
+    private Questionnaire toDomainAggregate(QuestionnaireEntity entity,
+                                            Map<String, List<QuestionnaireQuestionEntity>> linksByQuestionnaire,
+                                            Map<String, Question> questionsById) {
+        List<QuestionnaireQuestionEntity> links = linksByQuestionnaire.getOrDefault(entity.documentId(), List.of());
+        List<ConfiguredQuestion> configuredQuestions = questionnaireQuestionEntityMapper
+                .toConfiguredQuestions(links, questionsById);
+
+        return questionnaireEntityMapper.toDomain(entity, configuredQuestions);
+    }
+
+    private Map<String, List<QuestionnaireQuestionEntity>> loadLinksByQuestionnaireDocumentId(List<QuestionnaireEntity> entities) {
+        List<String> documentIds = entities.stream()
+                .map(QuestionnaireEntity::documentId)
+                .toList();
+
+        Query linksQuery = Query.query(Criteria.where("questionnaire_document_id").in(documentIds));
+        List<QuestionnaireQuestionEntity> links = mongoTemplate.find(linksQuery, QuestionnaireQuestionEntity.class);
+
+        return links.stream().collect(Collectors.groupingBy(
+                QuestionnaireQuestionEntity::questionnaireDocumentId,
+                LinkedHashMap::new,
+                Collectors.toList()
+        ));
+    }
+
+    private Map<String, Question> loadQuestionsByLinks(
+            Map<String, List<QuestionnaireQuestionEntity>> linksByQuestionnaire) {
+        Set<String> questionIds = linksByQuestionnaire.values().stream()
+                .flatMap(List::stream)
+                .map(QuestionnaireQuestionEntity::questionId)
+                .collect(Collectors.toSet());
+
+        if (questionIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Query questionsQuery = Query.query(Criteria.where("_id").in(questionIds));
+        List<QuestionEntity> questionEntities = mongoTemplate.find(questionsQuery, QuestionEntity.class);
+
+        return questionEntities.stream()
+                .map(questionEntityMapper::toDomain)
+                .collect(Collectors.toMap(
+                        Question::id,
+                        question -> question,
+                        (left, right) -> right,
+                        LinkedHashMap::new
+                ));
     }
 }
 

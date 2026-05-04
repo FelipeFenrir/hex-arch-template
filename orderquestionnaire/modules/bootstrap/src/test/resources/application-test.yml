@@ -5,9 +5,11 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/orderquestionnaire_test
+
+  # MongoDB URI is provided at runtime by Testcontainers (@ServiceConnection)
+  threads:
+    virtual:
+      enabled: true
 
 orderquestionnaire:
   adapters:

@@ -11,7 +11,8 @@ import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireFactory;
 import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionnaireTree;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionConditionComposer;
-import com.acme.orderquestionnaire.testutils.mocks.audit.AuditTestData;
+
+import com.acme.orderquestionnaire.domain.unit.testutils.mocks.audit.AuditTestData;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;

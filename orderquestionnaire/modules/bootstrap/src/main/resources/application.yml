@@ -1,30 +1,56 @@
 # modules/bootstrap/src/main/resources/application.yml
-server:
-  port: ${ORDERQUESTIONNAIRE_SERVER_PORT:9005}
-
-management:
-  endpoints.web.exposure.include: health,info,prometheus
-  tracing.sampling.probability: 1.0
-
-logging:
-  level:
-    root: INFO
-    org.springframework: INFO
-
-#
-otel:
-  exporter:
-    otlp:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4317}
-  resource:
-    attributes: service.name=orderquestionnaire,service.namespace=acme
-
 spring:
   application:
     name: orderquestionnaire
   data:
     mongodb:
       uri: ${ORDERQUESTIONNAIRE_MONGODB_URI:mongodb://localhost:27017/orderquestionnaire}
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: ${ORDERQUESTIONNAIRE_SERVER_PORT:9005}
+
+management:
+  endpoint:
+    prometheus:
+      enabled: true
+  endpoints:
+    metrics:
+      enabled: true
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+  resource:
+    attributes: service.name=orderquestionnaire,service.namespace=acme
+
+logging:
+  file:
+    name: ${ORDERQUESTIONNAIRE_LOG_FILE:build/logs/orderquestionnaire.log}
+  level:
+    root: INFO
+    org.springframework: INFO
+
+acme:
+  observability:
+    logging:
+      enabled: ${ORDERQUESTIONNAIRE_OBS_LOG_ENABLED:true}
+      log-arguments: ${ORDERQUESTIONNAIRE_OBS_LOG_ARGUMENTS:true}
+      log-result: ${ORDERQUESTIONNAIRE_OBS_LOG_RESULT:true}
+      max-payload-length: ${ORDERQUESTIONNAIRE_OBS_MAX_PAYLOAD_LENGTH:4000}
 
 orderquestionnaire:
   adapters:

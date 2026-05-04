@@ -11,8 +11,9 @@ public class AuthController {
     @GetMapping("/login")
     public String loginPage(Model model) {
         // Opcional: Adicionar o ID do tenant para debug visual no HTML
-        if (TenantContextHolder.currentTenant() != null) {
-            model.addAttribute("currentTenant", TenantContextHolder.currentTenant());
+        String tenantId = TenantContextHolder.currentTenantOrNull();
+        if (tenantId != null) {
+            model.addAttribute("currentTenant", tenantId);
         }
         return "login";
     }

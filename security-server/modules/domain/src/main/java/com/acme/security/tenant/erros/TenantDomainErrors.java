@@ -11,4 +11,8 @@ public class TenantDomainErrors {
     public static DomainError tenantNotFound() {
         return new DomainError("TENANT_NOT_FOUND", "Tenant not found or inactive.");
     }
+
+    public static DomainError tenantContextMissing() {
+        return new DomainError("TENANT_CONTEXT_MISSING", "Tenant context is required for this request.");
+    }
 }

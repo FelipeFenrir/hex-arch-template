@@ -9,8 +9,11 @@ import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
 
+import com.acme.observability.Loggable;
+
 import java.util.List;
 
+@Loggable
 public class CreateQuestionService
         extends PipelineOrchestrator<CreateQuestionPipelineContext, QuestionCreatedView>
         implements CreateQuestionUseCase {

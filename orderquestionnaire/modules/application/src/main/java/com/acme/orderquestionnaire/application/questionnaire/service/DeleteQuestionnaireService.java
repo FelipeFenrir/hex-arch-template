@@ -10,6 +10,7 @@ import com.acme.shared.pattern.pipeline.PipelineOrchestrator;
 import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
+import com.acme.observability.Loggable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.List;
  * <p>The batch overload {@link #execute(List)} runs the single-delete pipeline per command,
  * collecting per-item failures. A global failure is only returned when the input list is null or empty.
  */
+@Loggable
 public class DeleteQuestionnaireService
         extends PipelineOrchestrator<DeleteQuestionnairePipelineContext, Void>
         implements DeleteQuestionnaireUseCase {

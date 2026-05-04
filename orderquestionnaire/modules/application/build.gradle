@@ -6,6 +6,7 @@ group = 'com.acme.orderquestionnaire'
 
 dependencies {
     implementation 'com.acme:shared'
+    implementation 'com.acme:observability'
     implementation project(':modules:domain')
 
     testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"
@@ -36,3 +37,25 @@ jacocoTestCoverageVerification {
 }
 
 check.dependsOn jacocoTestCoverageVerification
+
+pitest {
+    pitestVersion = '1.20.3'
+    junit5PluginVersion = '1.2.1'
+
+    targetClasses = [
+            'com.acme.orderquestionnaire.application.question.*',
+            'com.acme.orderquestionnaire.application.questionnaire.*'
+    ]
+
+    targetTests = [
+            'com.acme.orderquestionnaire.application.question.*',
+            'com.acme.orderquestionnaire.application.questionnaire.*',
+            'com.acme.orderquestionnaire.application.FunctionalTest*'
+    ]
+
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    failWhenNoMutations = true
+    mutationThreshold = 60
+    coverageThreshold = 65
+}

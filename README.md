@@ -9,7 +9,7 @@ Template/playground de arquitetura hexagonal com foco em boundaries claros entre
 - [`build.gradle`](build.gradle) - build Gradle raiz
 - [`settings.gradle`](settings.gradle) - registro dos subprojetos
 - [`Taskfile.yml`](Taskfile.yml) - tarefas utilitarias
-- [`makefile`](makefile) - atalhos locais
+- [`makefile`](orderquestionnaire/makefile) - atalhos locais
 - [`docker/`](docker/) - stack local (observabilidade, localstack, mongo, message-manager)
 - [`scripts/`](scripts/) - scripts utilitarios (`.sh` e `.bat`)
 - [`runs/`](runs/) - configuracoes de execucao da IDE

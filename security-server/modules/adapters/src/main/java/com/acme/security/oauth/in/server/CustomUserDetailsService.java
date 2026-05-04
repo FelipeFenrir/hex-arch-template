@@ -2,6 +2,7 @@ package com.acme.security.oauth.in.server;
 
 import com.acme.security.user.port.in.usecase.AuthenticateUserUseCase;
 import com.acme.security.user.User;
+import com.acme.security.tenant.erros.TenantDomainErrors;
 import com.acme.shared.TenantContextHolder;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
@@ -26,7 +27,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // Recuperamos o tenant identificado pelo nosso filtro de subdomínio
-        TenantId tenantId = TenantId.fromString(TenantContextHolder.currentTenant());
+        String tenantValue = TenantContextHolder.currentTenantRequired(TenantDomainErrors::tenantContextMissing)
+                .getOrElseThrow(error -> new UsernameNotFoundException(error.message()));
+        TenantId tenantId = TenantId.fromString(tenantValue);
 
         Result<User, DomainError> result = authenticateUserUseCase.loadUserByUsername(username, tenantId);
 
