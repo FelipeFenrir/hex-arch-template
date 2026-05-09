@@ -1,7 +1,51 @@
 version: '3'
+
 tasks:
-  build: { cmds: [ "./gradlew clean build -x test" ] }
-  test: { cmds: [ "./gradlew test" ] }
-  docker:build: { cmds: [ "cd modules/bootstrap", "./gradlew bootJar", "docker build -t acme/hex-arch-template:latest ." ] }
-  up: { cmds: [ "docker compose -f docker/docker-compose.yml up -d" ] }
-  down: { cmds: [ "docker compose -f docker/docker-compose.yml down -v" ] }
+  apps:docker:build:
+    cmds:
+      - task: security-server:docker:build
+      - task: orderquestionnaire:docker:build
+
+  security-server:build:
+    cmds:
+      - .\gradlew.bat :shared:build :observability:build :security-server:build -x test
+
+  security-server:test:
+    cmds:
+      - .\gradlew.bat :security-server:test
+
+  security-server:docker:build:
+    cmds:
+      - .\gradlew.bat :shared:build :observability:build :security-server:modules:bootstrap:bootJar
+      - docker build -f security-server/modules/bootstrap/Dockerfile -t acme/security-server:local security-server/modules/bootstrap
+
+  security-server:up:
+    cmds:
+      - docker compose -f docker/docker-compose.yml --profile app-container up -d security-server
+
+  security-server:down:
+    cmds:
+      - docker compose -f docker/docker-compose.yml --profile app-container stop security-server
+      - docker compose -f docker/docker-compose.yml --profile app-container rm -f security-server
+
+  orderquestionnaire:build:
+    cmds:
+      - .\gradlew.bat :shared:build :observability:build :orderquestionnaire:build -x test
+
+  orderquestionnaire:test:
+    cmds:
+      - .\gradlew.bat :orderquestionnaire:test
+
+  orderquestionnaire:docker:build:
+    cmds:
+      - .\gradlew.bat :shared:build :observability:build :orderquestionnaire:modules:bootstrap:bootJar
+      - docker build -f orderquestionnaire/modules/bootstrap/Dockerfile -t acme/orderquestionnaire:local orderquestionnaire/modules/bootstrap
+
+  orderquestionnaire:up:
+    cmds:
+      - docker compose -f docker/docker-compose.yml --profile app-container up -d orderquestionnaire
+
+  orderquestionnaire:down:
+    cmds:
+      - docker compose -f docker/docker-compose.yml --profile app-container stop orderquestionnaire
+      - docker compose -f docker/docker-compose.yml --profile app-container rm -f orderquestionnaire

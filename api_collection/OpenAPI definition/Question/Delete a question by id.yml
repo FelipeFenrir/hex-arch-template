@@ -1,0 +1,73 @@
+info:
+  name: Delete a question by id
+  type: http
+  seq: 3
+  tags:
+    - Question
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/questions/:id"
+  params:
+    - name: id
+      value: ""
+      type: path
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Question deleted
+    request:
+      url: "{{baseUrl}}/api/v1/questions/:id"
+      method: DELETE
+      params:
+        - name: id
+          value: ""
+          type: path
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: "*/*"
+      body:
+        type: text
+        data: |-
+          {
+            "data": {
+              "id": "",
+              "deleted": false
+            }
+          }
+  - name: 404 Response
+    description: Question not found
+    request:
+      url: "{{baseUrl}}/api/v1/questions/:id"
+      method: DELETE
+      params:
+        - name: id
+          value: ""
+          type: path
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "about:blank",
+            "title": "Resource not found",
+            "status": 404,
+            "code": "DOM-QUESTION_NOT_FOUND",
+            "detail": "question was not found",
+            "instance": "/api/v1/questions/missing"
+          }

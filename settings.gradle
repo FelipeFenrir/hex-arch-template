@@ -1,12 +1,5 @@
 rootProject.name = 'hex-arch-template'
 
-include(
-        ':modules:domain:participantcatalog',
-        ':modules:domain:personmdm',
-        ':modules:domain:productcatalog',
-        ':modules:application:personmdm'
-)
-
 includeBuild(
         'shared'
 )

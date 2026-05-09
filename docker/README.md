@@ -60,14 +60,15 @@ Sao as **aplicacoes reais desenvolvidas pelo time** que podem subir em container
 
 | Servico | Funcao | Porta host | Como ativar |
 |---|---|---:|---|
-| `app` (`security-server`) | Servidor de autenticacao e autorizacao (OAuth2, login, tokens JWT) | `9001` | `--profile app-container` |
+| `security-server` | Servidor de autenticacao e autorizacao (OAuth2, login, tokens JWT) | `9001` | `--profile app-container` |
+| `orderquestionnaire` | API de questionarios/pipeline do dominio de OrderQuestionnaire | `9005` | `--profile app-container` |
 
-**Quando usar o `security-server` em container:**
-- Para validar o fluxo completo de autenticacao sem rodar a aplicacao na IDE.
-- Para testes manuais de ponta a ponta com OAuth2/JWT.
+**Quando usar as apps em container:**
+- Para validar fluxo completo em ambiente local sem iniciar apps na IDE.
+- Para testes manuais de ponta a ponta com stack de observabilidade e infraestrutura local.
 
 **Quando NAO usar:**
-- Durante o desenvolvimento ativo da propria aplicacao — rode-a pela IDE para ter hot-reload, breakpoints e logs diretos.
+- Durante desenvolvimento ativo de codigo da app — rode via IDE para hot-reload, debug e logs diretos.
 
 ## Estrutura da pasta `docker/`
 
@@ -85,7 +86,38 @@ Sao as **aplicacoes reais desenvolvidas pelo time** que podem subir em container
 
 - Docker Desktop em execucao
 - Docker Compose (plugin `docker compose`)
-- Portas livres no host: `27017`, `8081`, `4566`, `8082`, `4317`, `4318`, `9090`, `3200`, `3100`, `3000`
+- `Task` (opcional, para comandos abreviados de build/test/up/down)
+- Portas livres no host: `27017`, `8081`, `4566`, `8082`, `4317`, `4318`, `9090`, `3200`, `3100`, `3000`, `9001`, `9005`
+
+## Automacao com Taskfile
+
+As tasks ficam no arquivo `Taskfile.yml` na raiz do repositorio e estao separadas por aplicacao.
+
+**Security Server**
+
+```powershell
+task security-server:build
+task security-server:test
+task security-server:docker:build
+task security-server:up
+task security-server:down
+```
+
+**OrderQuestionnaire**
+
+```powershell
+task orderquestionnaire:build
+task orderquestionnaire:test
+task orderquestionnaire:docker:build
+task orderquestionnaire:up
+task orderquestionnaire:down
+```
+
+**Build das duas imagens em sequencia**
+
+```powershell
+task apps:docker:build
+```
 
 ## Como subir e parar
 
@@ -139,6 +171,7 @@ docker volume rm docker_grafana_data  # estado do Grafana
 
 **Aplicacoes (somente com `--profile app-container`):**
 - Security Server (OAuth2/auth): `http://localhost:9001`
+- OrderQuestionnaire API: `http://localhost:9005`
 
 ## Fluxo de observabilidade (visao geral)
 
@@ -165,4 +198,3 @@ docker compose -f docker/docker-compose.yml logs -f otel-collector
 ```powershell
 docker compose -f docker/docker-compose.yml logs -f promtail
 ```
-

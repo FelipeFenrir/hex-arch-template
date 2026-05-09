@@ -8,22 +8,26 @@ Ela centraliza:
 - mascaramento de dados sensiveis (`LogSanitizer`)
 - configuracao externa via propriedades (`ObservabilityLoggingProperties`)
 
-## Objetivo
+## Estrutura do modulo
 
-Evitar que cada servico implemente seu proprio aspecto de logs do zero.
-Com essa lib, os servicos reaproveitam uma base comum e configuravel.
+Pacotes principais em `src/main/java/com/acme/observability`:
+
+- `Loggable`: anotacao para marcar pontos de log
+- `LoggingAspect`: aspecto que registra `method.start`, `method.success`, `method.error`
+- `LogSanitizer`: mascara campos sensiveis e trunca payloads grandes
+- `config/ObservabilityAutoConfiguration`: auto-configuracao da biblioteca
+- `config/ObservabilityLoggingProperties`: propriedades do prefixo `acme.observability.logging`
 
 ## Como consumir em outro projeto
 
-1. Adicione a dependencia da biblioteca no modulo que sobe o contexto Spring:
+1. Adicione a dependencia no modulo que sobe o contexto Spring:
 
 ```groovy
 implementation 'com.acme:observability'
 ```
 
 2. Marque classes/metodos com `@Loggable`.
-
-3. Configure as propriedades no `application.yml` (opcional, existem defaults).
+3. Configure propriedades no `application.yml` (opcional; existem defaults).
 
 Exemplo:
 
@@ -42,75 +46,65 @@ acme:
         - cpf
 ```
 
-## Como a auto-configuracao entra no Spring Boot
+## Auto-configuracao no Spring Boot
 
-No Spring Boot 3, bibliotecas podem registrar auto-configuracoes por meio do arquivo:
+No Spring Boot 3, a auto-configuracao e registrada em:
 
 `src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
 
-Neste projeto, o arquivo contem:
+Conteudo atual:
 
 ```text
 com.acme.observability.config.ObservabilityAutoConfiguration
 ```
 
-Isso diz ao Boot: "quando essa biblioteca estiver no classpath, importe essa auto-configuracao".
-
-### Por que isso e importante?
-
-Sem esse arquivo, o projeto consumidor teria que fazer `@Import(...)` manualmente para registrar os beans.
-Com ele, a biblioteca funciona como um "mini starter": plugou a dependencia, a configuracao entra automaticamente (respeitando os `@Conditional...`).
+Com isso, ao adicionar a dependencia, os beans entram automaticamente no contexto (respeitando condicionais).
 
 ## Beans criados automaticamente
 
-A classe `ObservabilityAutoConfiguration` registra:
+`ObservabilityAutoConfiguration` registra:
+
 - `LogSanitizer`
 - `LoggingAspect` (condicional a `acme.observability.logging.enabled=true`)
-
-Assim, o comportamento de logging pode ser ligado/desligado por propriedade, sem alterar codigo.
 
 ## Propriedades suportadas
 
 Definidas em `ObservabilityLoggingProperties` (prefixo `acme.observability.logging`):
 
-- `enabled` (default: `true`): habilita/desabilita o aspecto.
-- `log-arguments` (default: `true`): registra argumentos de entrada.
-- `log-result` (default: `true`): registra retorno do metodo.
-- `max-payload-length` (default: `4000`): trunca payloads grandes para reduzir risco de vazamento e volume.
-- `sensitive-fields`: lista de chaves que devem ser mascaradas.
+- `enabled` (default: `true`)
+- `log-arguments` (default: `true`)
+- `log-result` (default: `true`)
+- `max-payload-length` (default: `4000`)
+- `sensitive-fields`
 
-## Mascaramento de dados sensiveis
+## Fluxo rapido
 
-`LogSanitizer` aplica mascara recursiva em objetos, colecoes e mapas.
-Campos sensiveis sao substituidos por `***` antes da serializacao de log.
-
-Exemplo de chaves comuns:
-- `password`
-- `token`
-- `authorization`
-- `clientSecret`
-- `cpf`
-- `email`
-
-## Fluxo rapido de funcionamento
-
-1. O metodo anotado com `@Loggable` e interceptado por `LoggingAspect`.
-2. O aspecto monta payload estruturado (`method.start`, `method.success`, `method.error`).
+1. Metodo anotado com `@Loggable` e interceptado por `LoggingAspect`.
+2. O aspecto monta payload estruturado de inicio/sucesso/erro.
 3. `LogSanitizer` mascara/trunca dados conforme propriedades.
 4. O appender (`logback-spring.xml`) escreve JSON para console/arquivo.
 
+## Build e testes
+
+Use o wrapper Gradle da raiz do repositorio (`hex-arch-template/`):
+
+```powershell
+.\gradlew.bat :observability:clean :observability:build
+.\gradlew.bat :observability:test
+.\gradlew.bat :observability:jacocoTestReport
+```
+
 ## Dicas para iniciantes
 
-- Se nao aparecer log do aspecto, verifique se:
-  - a dependencia `com.acme:observability` esta no modulo que sobe o Spring
-  - a classe/metodo possui `@Loggable`
-  - `acme.observability.logging.enabled` nao esta `false`
-- Evite logar payload completo em fluxos de autenticacao e dados pessoais.
-- Mantenha `correlationId` e `flowId` no formato final de log para facilitar rastreabilidade.
+- Se nao aparecer log do aspecto, confirme:
+  - dependencia `com.acme:observability` no modulo que sobe Spring
+  - anotacao `@Loggable` na classe/metodo
+  - `acme.observability.logging.enabled` diferente de `false`
+- Em fluxos sensiveis, evite logar payload bruto completo.
+- Mantenha `correlationId` e `flowId` no formato final de log.
 
 ## Exemplo de `logback-spring.xml`
 
-Para padronizar logs JSON com `correlationId` e `flowId`, um projeto consumidor pode usar:
 
 ```xml
 <configuration>
