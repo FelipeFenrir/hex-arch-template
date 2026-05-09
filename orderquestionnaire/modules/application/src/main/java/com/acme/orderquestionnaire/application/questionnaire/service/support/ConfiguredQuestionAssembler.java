@@ -21,7 +21,7 @@ public final class ConfiguredQuestionAssembler {
     public static Result<ConfiguredQuestion, List<DomainError>> build(
             Question question,
             ConfiguredQuestionParam param) {
-        if (param == null || param.answerConfig() == null) {
+        if (param == null || param.answerConfiguration() == null) {
             return QuestionErrors.INVALID_COMMAND.asFailure();
         }
 
@@ -31,7 +31,7 @@ public final class ConfiguredQuestionAssembler {
                     ConfiguredQuestionFactory.ConfiguredQuestionBuilder configuredBuilder = builder
                             .withOrder(param.order())
                             .withCondition(rootCondition);
-                    return switch (param.answerConfig()) {
+                    return switch (param.answerConfiguration()) {
                         case AnswerConfigParam.Text text -> configuredBuilder.asText(
                                 new ConfiguredQuestionFactory.TextConfig(text.regexPattern(), text.customErrorMessage())
                         );

@@ -19,21 +19,21 @@ class NumericConditionTest {
     @Test
     @DisplayName("When operator is greater than and answer is higher then should satisfy")
     void shouldSatisfyGreaterThan() {
-        NumericCondition condition = new NumericCondition("q1", 5, ">");
-        assertTrue(condition.isSatisfy(Map.of("q1", 6)));
-        assertFalse(condition.isSatisfy(Map.of("q1", 3)));
+        NumericCondition condition = new NumericCondition("q_one", 5, ">");
+        assertTrue(condition.isSatisfy(Map.of("q_one", 6)));
+        assertFalse(condition.isSatisfy(Map.of("q_one", 3)));
     }
 
     @Test
     @DisplayName("When operator is invalid then should throw")
     void shouldThrowForInvalidOperator() {
-        assertThrows(IllegalArgumentException.class, () -> new NumericCondition("q1", 5, "<>") );
+        assertThrows(IllegalArgumentException.class, () -> new NumericCondition("q_one", 5, "<>") );
     }
 
     @Test
     @DisplayName("When exporting tree node then type should be numeric")
     void shouldExportTreeNode() {
-        NumericCondition condition = new NumericCondition("q1", 5, "==");
+        NumericCondition condition = new NumericCondition("q_one", 5, "==");
         assertEquals("NUMERIC", condition.toTreeNode().type());
     }
 }

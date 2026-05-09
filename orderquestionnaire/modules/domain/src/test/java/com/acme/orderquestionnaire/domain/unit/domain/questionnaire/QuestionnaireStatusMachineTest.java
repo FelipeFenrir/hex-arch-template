@@ -52,7 +52,7 @@ class QuestionnaireStatusMachineTest {
     @DisplayName("should transition from draft to active when questionnaire is activation-ready")
     void shouldTransitionDraftToActiveWhenReady() {
         ConfiguredQuestion configured = ConfiguredQuestion.createNew(
-                question("q1"),
+                question("q_one"),
                 AnswerConfigurationFactory.createTextStrategy(),
                 1);
         Questionnaire questionnaire = questionnaire(ParameterizationStatus.DRAFT, List.of(configured));

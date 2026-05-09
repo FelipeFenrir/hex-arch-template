@@ -9,6 +9,9 @@ public record AuditUserResponse(
         String email
 ) {
     public static AuditUserResponse from(UserView auditUserView) {
+        if (auditUserView == null) {
+            return null;
+        }
         return new AuditUserResponse(
                 auditUserView.id(),
                 auditUserView.referenceCode(),

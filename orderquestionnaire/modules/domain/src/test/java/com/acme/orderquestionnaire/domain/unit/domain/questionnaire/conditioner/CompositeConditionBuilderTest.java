@@ -22,19 +22,19 @@ class CompositeConditionBuilderTest {
     @DisplayName("When building with two conditions then builder should return composed condition")
     void shouldBuildCompositeCondition() {
         QuestionCondition condition = CompositeConditionBuilder
-                .and(new EqualCondition("q1", "yes"))
-                .add(new NumericCondition("q2", 5, ">="))
+                .and(new EqualCondition("q_one", "yes"))
+                .add(new NumericCondition("q_two", 5, ">="))
                 .build();
 
-        assertTrue(condition.isSatisfy(Map.of("q1", "yes", "q2", 10)));
+        assertTrue(condition.isSatisfy(Map.of("q_one", "yes", "q_two", 10)));
     }
 
     @Test
     @DisplayName("When checking builder metadata then should keep operator and size")
     void shouldExposeBuilderMetadata() {
         CompositeConditionBuilder builder = CompositeConditionBuilder
-                .or(new EqualCondition("q1", "yes"))
-                .add(new EqualCondition("q2", "no"));
+                .or(new EqualCondition("q_one", "yes"))
+                .add(new EqualCondition("q_two", "no"));
 
         assertEquals(2, builder.size());
         assertFalse(builder.isAndOperator());

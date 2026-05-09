@@ -93,6 +93,7 @@ services:
     command: ["-config.file=/etc/tempo/config.yml"]
     volumes:
       - ./tempo/config.yml:/etc/tempo/config.yml
+      - tempo_data:/var/tempo
     ports: [ "3200:3200" ]
 
   # ---------------------------------------------------------
@@ -104,6 +105,7 @@ services:
     command: -config.file=/etc/loki/config.yml
     volumes:
       - ./loki/config.yml:/etc/loki/config.yml
+      - loki_data:/loki
     ports: [ "3100:3100" ]
 
   # ---------------------------------------------------------
@@ -132,6 +134,7 @@ services:
     volumes:
       - ./grafana/provisioning/:/etc/grafana/provisioning/
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+      - grafana_data:/var/lib/grafana
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -190,19 +193,19 @@ services:
   # Ative com: docker compose --profile app-container up -d
   # Default continua sendo rodar via IDE/Gradle (host).
   # ---------------------------------------------------------
-  app:
+  security-server:
     profiles: ["app-container"]
     build:
       context: ../security-server/modules/bootstrap
       dockerfile: Dockerfile
     container_name: security-server
     environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      - SECURITY_MONGODB_URI=mongodb://mongo:27017/security
-      - SECURITY_SERVER_PORT=9001
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT_DOCKER:-http://otel-collector:4317}
+      - SECURITY_MONGODB_URI=${SECURITY_MONGODB_URI_DOCKER:-mongodb://mongo:27017/security}
+      - SECURITY_SERVER_PORT=${SECURITY_SERVER_PORT:-9001}
     depends_on: [ mongo, otel-collector, promtail ]
     ports:
-      - "9001:9001"
+      - "${SECURITY_SERVER_PORT:-9001}:${SECURITY_SERVER_PORT:-9001}"
     logging:
       driver: "json-file"
       options:
@@ -210,5 +213,51 @@ services:
         max-file: "5"
         mode: non-blocking
 
+  orderquestionnaire:
+    profiles: ["app-container"]
+    build:
+      context: ../orderquestionnaire/modules/bootstrap
+      dockerfile: Dockerfile
+    container_name: orderquestionnaire
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT_DOCKER:-http://otel-collector:4317}
+      - ORDERQUESTIONNAIRE_MONGODB_URI=${ORDERQUESTIONNAIRE_MONGODB_URI_DOCKER:-mongodb://mongo:27017/orderquestionnaire}
+      - ORDERQUESTIONNAIRE_SERVER_PORT=${ORDERQUESTIONNAIRE_SERVER_PORT:-9005}
+    depends_on: [ mongo, otel-collector, promtail ]
+    ports:
+      - "${ORDERQUESTIONNAIRE_SERVER_PORT:-9005}:${ORDERQUESTIONNAIRE_SERVER_PORT:-9005}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        mode: non-blocking
+
+
+
 volumes:
+  # ------------------------------------------------------------------
+  # Volumes de dados locais — podem ser deletados após uma sessão
+  # de trabalho sem perda de configuração (configs ficam em bind mounts).
+  #
+  # Para remover todos de uma vez:
+  #   docker compose -f docker/docker-compose.yml down -v
+  #
+  # Para remover individualmente:
+  #   docker volume rm docker_mongo_data
+  #   docker volume rm docker_loki_data
+  #   docker volume rm docker_tempo_data
+  #   docker volume rm docker_grafana_data
+  # ------------------------------------------------------------------
+
+  # Dados do MongoDB (questionnaires, security, etc.)
   mongo_data:
+
+  # Logs indexados pelo Loki
+  loki_data:
+
+  # Traces armazenados pelo Tempo
+  tempo_data:
+
+  # Estado interno do Grafana (preferencias, sessoes, alertas locais)
+  grafana_data:

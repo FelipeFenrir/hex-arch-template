@@ -1,0 +1,61 @@
+info:
+  name: Delete a questionnaire by composite key
+  type: http
+  seq: 3
+  tags:
+    - Questionnaire
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/questionnaires/:id"
+  params:
+    - name: id
+      value: ""
+      type: path
+    - name: channelId
+      value: ""
+      type: query
+    - name: journeyId
+      value: ""
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Questionnaire deleted
+    request:
+      url: "{{baseUrl}}/api/v1/questionnaires/:id"
+      method: DELETE
+      params:
+        - name: id
+          value: ""
+          type: path
+        - name: channelId
+          value: ""
+          type: query
+        - name: journeyId
+          value: ""
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: "*/*"
+      body:
+        type: text
+        data: |-
+          {
+            "data": {
+              "id": "",
+              "channelId": "",
+              "journeyId": "",
+              "deleted": false
+            }
+          }

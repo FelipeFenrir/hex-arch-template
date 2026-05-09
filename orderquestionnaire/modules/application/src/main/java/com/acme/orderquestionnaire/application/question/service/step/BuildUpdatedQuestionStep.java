@@ -21,10 +21,10 @@ public class BuildUpdatedQuestionStep implements Step<UpdateQuestionPipelineCont
         var transition = context.transitionData();
 
         return QuestionFactory.rehydrate(
-                        context.id(),
+                        context.questionId(),
                         command.label(),
                         transition.targetState(),
-                        command.salesItemReferenceCode(),
+                        command.salesItemCode(),
                         transition.auditInfo()
                 )
                 .flatMap(builder -> builder.build())

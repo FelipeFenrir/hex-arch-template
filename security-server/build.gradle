@@ -56,6 +56,10 @@ subprojects {
     apply plugin: 'io.spring.dependency-management'
     apply plugin: 'jacoco'
 
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs += ['-parameters']
+    }
+
     test {
         useJUnitPlatform()
         finalizedBy jacocoTestReport

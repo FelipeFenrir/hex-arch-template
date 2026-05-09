@@ -12,9 +12,11 @@ import com.acme.shared.engine.pagination.PageMode;
 import com.acme.shared.engine.pagination.SortDirection;
 import com.acme.shared.engine.pagination.SortSpec;
 import com.acme.shared.stereotypes.test.UnitTest;
+import org.bson.Document;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @UnitTest
@@ -101,14 +104,19 @@ class QuestionQueryAdapterTest {
         var q1 = MongoTestDataFactory.newQuestion("question_query_cursor_1");
         var q2 = MongoTestDataFactory.newQuestion("question_query_cursor_2");
         var q3 = MongoTestDataFactory.newQuestion("question_query_cursor_3");
+        var anchor = MongoTestDataFactory.newQuestion("question_query_cursor_0");
 
         var e1 = new QuestionEntity(q1.id(), q1.label(), q1.status(), q1.salesItemReferenceCode(), null);
         var e2 = new QuestionEntity(q2.id(), q2.label(), q2.status(), q2.salesItemReferenceCode(), null);
         var e3 = new QuestionEntity(q3.id(), q3.label(), q3.status(), q3.salesItemReferenceCode(), null);
+        var anchorEntity = new QuestionEntity(anchor.id(), anchor.label(), anchor.status(), anchor.salesItemReferenceCode(), null);
 
         when(mongoTemplate.find(any(Query.class), eq(QuestionEntity.class))).thenReturn(List.of(e1, e2, e3));
+        when(questionQueryRepository.findById(anchor.id())).thenReturn(Optional.of(anchorEntity));
         when(questionEntityMapper.toDomain(e1)).thenReturn(q1);
         when(questionEntityMapper.toDomain(e2)).thenReturn(q2);
+
+        ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
 
         var criteria = new SearchQuestionByFilter(
                 null,
@@ -116,16 +124,26 @@ class QuestionQueryAdapterTest {
                 null,
                 null,
                 null,
-                HybridPageRequest.ofCursor("question_query_cursor_0", 2, List.of())
+                HybridPageRequest.ofCursor(anchor.id(), 2, List.of(new SortSpec("label", SortDirection.DESC)))
         );
 
         var page = adapter.findAll(criteria);
+
+        verify(mongoTemplate).find(queryCaptor.capture(), eq(QuestionEntity.class));
+        Document sortObject = queryCaptor.getValue().getSortObject();
+        Document queryObject = queryCaptor.getValue().getQueryObject();
 
         assertEquals(PageMode.CURSOR, page.mode());
         assertEquals(2, page.content().size());
         assertTrue(page.hasNext());
         assertEquals("question_query_cursor_2", page.nextCursor());
-        assertEquals("id", page.appliedSort().getFirst().field());
+        assertEquals("label", page.appliedSort().getFirst().field());
+        assertEquals(SortDirection.DESC, page.appliedSort().getFirst().direction());
+        assertEquals("id", page.appliedSort().get(1).field());
+        assertEquals(-1, sortObject.get("label"));
+        assertEquals(1, sortObject.get("id"));
+        assertTrue(queryObject.toJson().contains("$or"));
+        assertTrue(queryObject.toJson().contains(anchor.label()));
     }
 }
 

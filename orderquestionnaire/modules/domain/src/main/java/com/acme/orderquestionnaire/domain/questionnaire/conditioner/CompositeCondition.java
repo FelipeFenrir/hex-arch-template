@@ -1,7 +1,9 @@
 package com.acme.orderquestionnaire.domain.questionnaire.conditioner;
 
 import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionConditionTreeNode;
+import com.acme.shared.vo.QuestionId;
 
+import java.beans.ConstructorProperties;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
@@ -13,6 +15,7 @@ public class CompositeCondition implements QuestionCondition {
     private final List<QuestionCondition> conditions = new ArrayList<>();
     private final boolean isAnd;
 
+    @ConstructorProperties({"isAnd"})
     public CompositeCondition(boolean isAnd) {
         this.isAnd = isAnd;
     }
@@ -43,8 +46,8 @@ public class CompositeCondition implements QuestionCondition {
     }
 
     @Override
-    public Set<String> referencedQuestionIds() {
-        Set<String> ids = new LinkedHashSet<>();
+    public Set<QuestionId> referencedQuestionIds() {
+        Set<QuestionId> ids = new LinkedHashSet<>();
         for (QuestionCondition condition : conditions) {
             ids.addAll(condition.referencedQuestionIds());
         }

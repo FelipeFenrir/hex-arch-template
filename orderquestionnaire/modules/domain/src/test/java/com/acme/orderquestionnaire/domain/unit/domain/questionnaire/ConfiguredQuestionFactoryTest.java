@@ -48,7 +48,7 @@ class ConfiguredQuestionFactoryTest {
     @DisplayName("When creating a number question with condition, it should apply the condition")
     void shouldCreateNumberQuestionWithCondition() {
         var condition = QuestionConditionComposer.condition(
-                new com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition("q1",
+                new com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition("q_one",
                         5, ">")
         ).build();
 
@@ -106,7 +106,7 @@ class ConfiguredQuestionFactoryTest {
     @DisplayName("When question has condition and is satisfied, isVisible should return true")
     void shouldReturnTrueWhenConditionSatisfied() {
         var condition = QuestionConditionComposer.condition(
-                new com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition("q1",
+                new com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition("q_one",
                         5, ">")
         ).build();
 
@@ -117,7 +117,7 @@ class ConfiguredQuestionFactoryTest {
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
         Map<String, Object> answers = new HashMap<>();
-        answers.put("q1", 6);
+        answers.put("q_one", 6);
         assertTrue(configuredQuestion.isVisible(answers));
     }
 

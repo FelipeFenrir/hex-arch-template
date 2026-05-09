@@ -6,6 +6,7 @@ import com.acme.orderquestionnaire.application.question.service.context.CreateQu
 import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
+import com.acme.shared.vo.QuestionId;
 
 import java.util.List;
 import java.util.Objects;
@@ -26,9 +27,9 @@ public class CheckNoDuplicateStep implements Step<CreateQuestionPipelineContext>
 
     @Override
     public Result<Void, List<DomainError>> execute(CreateQuestionPipelineContext context) {
-        String id = context.command().id();
-        return questionCommandOutPort.existsById(id)
-                ? QuestionErrors.QUESTION_ALREADY_EXISTS.asFailure(id)
+        QuestionId questionId = context.command().questionId();
+        return questionCommandOutPort.existsById(questionId.value())
+                ? QuestionErrors.QUESTION_ALREADY_EXISTS.asFailure(questionId.value())
                 : Result.success(null);
     }
 }

@@ -11,7 +11,7 @@ public final class HybridPageRequestUtils {
 
     public static boolean isCursorMode(HybridPageRequest request) {
         Objects.requireNonNull(request, "request must not be null");
-        return request.cursor() != null && !request.cursor().isBlank();
+        return request.mode() == PageMode.CURSOR;
     }
 
     public static HybridPageRequest resolveOrDefault(HybridPageRequest request,

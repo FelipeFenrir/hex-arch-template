@@ -8,7 +8,9 @@ import com.acme.orderquestionnaire.domain.questionnaire.Questionnaire;
 import com.acme.orderquestionnaire.domain.questionnaire.QuestionnaireFactory;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.vo.AuditInfo;
+import com.acme.shared.vo.AuditReferenceCode;
 import com.acme.shared.vo.AuditUser;
+import com.acme.shared.vo.EmailAddress;
 import com.acme.shared.vo.Id;
 
 import java.time.LocalDateTime;
@@ -24,18 +26,18 @@ public final class MongoTestDataFactory {
     public static AuditUser createdByUser() {
         return new OrderQuestionnaireAuditUser(
                 Id.withId("11111111-1111-1111-1111-111111111111"),
-                "creator_ref",
+                AuditReferenceCode.of("creator_ref"),
                 "Creator User",
-                "creator@acme.com"
+                EmailAddress.of("creator@acme.com")
         );
     }
 
     public static AuditUser updatedByUser() {
         return new OrderQuestionnaireAuditUser(
                 Id.withId("22222222-2222-2222-2222-222222222222"),
-                "updater_ref",
+                AuditReferenceCode.of("updater_ref"),
                 "Updater User",
-                "updater@acme.com"
+                EmailAddress.of("updater@acme.com")
         );
     }
 

@@ -2,6 +2,7 @@ package com.acme.orderquestionnaire.application.question.service.context;
 
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.shared.pattern.pipeline.PipelineContext;
+import com.acme.shared.vo.QuestionId;
 
 import java.util.List;
 
@@ -31,6 +32,10 @@ public class DeleteQuestionPipelineContext extends PipelineContext {
 
     public String id() {
         return id;
+    }
+
+    public QuestionId questionId() {
+        return QuestionId.of(id);
     }
 
     // ── Question (fetched for deletion) ───────────────────────────────────

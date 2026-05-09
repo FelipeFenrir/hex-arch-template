@@ -39,11 +39,11 @@ class QuestionFactoryTest {
     @DisplayName("When rehydrating a question, should keep provided status")
     void shouldRehydrateQuestion() {
         Question question = QuestionFactory
-                .rehydrate("q2", "Question 2", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit())
+                .rehydrate("q_two", "Question 2", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit())
                 .flatMap(QuestionFactory.RehydratedQuestionBuilder::build)
                 .getOrElseThrow(error -> new IllegalStateException("Expected success but got failure: " + error));
 
-        assertEquals("q2", question.id());
+        assertEquals("q_two", question.id());
         assertEquals("Question 2", question.label());
         assertEquals("SALE", question.salesItemReferenceCode());
         assertSame(ParameterizationStatus.ACTIVE, question.status());

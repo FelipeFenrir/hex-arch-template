@@ -8,6 +8,8 @@ import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
 import com.acme.shared.pattern.result.validation.DomainRuleRunner;
 import com.acme.shared.vo.AuditInfo;
+import com.acme.shared.vo.QuestionId;
+import com.acme.shared.vo.SalesItemReferenceCode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,6 +71,19 @@ public final class QuestionFactory {
                 : Result.failure(errors);
     }
 
+    public static Result<NewQuestionBuilder, List<DomainError>> createNew(
+            QuestionId id,
+            String label,
+            SalesItemReferenceCode salesItemReferenceCode,
+            AuditInfo auditInfo) {
+        return createNew(
+                id == null ? null : id.value(),
+                label,
+                salesItemReferenceCode == null ? null : salesItemReferenceCode.value(),
+                auditInfo
+        );
+    }
+
     public static Result<RehydratedQuestionBuilder, List<DomainError>> rehydrate(
             String id,
             String label,
@@ -85,6 +100,21 @@ public final class QuestionFactory {
                         .withSalesItemReferenceCode(salesItemReferenceCode)
                         .withAuditInfo(auditInfo))
                 : Result.failure(errors);
+    }
+
+    public static Result<RehydratedQuestionBuilder, List<DomainError>> rehydrate(
+            QuestionId id,
+            String label,
+            ParameterizationStatus status,
+            SalesItemReferenceCode salesItemReferenceCode,
+            AuditInfo auditInfo) {
+        return rehydrate(
+                id == null ? null : id.value(),
+                label,
+                status,
+                salesItemReferenceCode == null ? null : salesItemReferenceCode.value(),
+                auditInfo
+        );
     }
 
     public static NewQuestionBuilder createNewBuilder() {
@@ -136,6 +166,11 @@ public final class QuestionFactory {
             return this;
         }
 
+        public NewQuestionBuilder withId(QuestionId id) {
+            this.id = id == null ? null : id.value();
+            return this;
+        }
+
         public NewQuestionBuilder withLabel(String label) {
             this.label = label;
             return this;
@@ -143,6 +178,11 @@ public final class QuestionFactory {
 
         public NewQuestionBuilder withSalesItemReferenceCode(String salesItemReferenceCode) {
             this.salesItemReferenceCode = salesItemReferenceCode;
+            return this;
+        }
+
+        public NewQuestionBuilder withSalesItemReferenceCode(SalesItemReferenceCode salesItemReferenceCode) {
+            this.salesItemReferenceCode = salesItemReferenceCode == null ? null : salesItemReferenceCode.value();
             return this;
         }
 
@@ -156,7 +196,7 @@ public final class QuestionFactory {
             if (!errors.isEmpty()) {
                 return Result.failure(List.copyOf(errors));
             }
-            return Result.success(Question.createNew(id, label, salesItemReferenceCode, auditInfo));
+            return Result.success(Question.createNew(QuestionId.of(id), label, SalesItemReferenceCode.of(salesItemReferenceCode), auditInfo));
         }
     }
 
@@ -176,6 +216,11 @@ public final class QuestionFactory {
             return this;
         }
 
+        public RehydratedQuestionBuilder withId(QuestionId id) {
+            this.id = id == null ? null : id.value();
+            return this;
+        }
+
         public RehydratedQuestionBuilder withLabel(String label) {
             this.label = label;
             return this;
@@ -191,6 +236,11 @@ public final class QuestionFactory {
             return this;
         }
 
+        public RehydratedQuestionBuilder withSalesItemReferenceCode(SalesItemReferenceCode salesItemReferenceCode) {
+            this.salesItemReferenceCode = salesItemReferenceCode == null ? null : salesItemReferenceCode.value();
+            return this;
+        }
+
         public RehydratedQuestionBuilder withAuditInfo(AuditInfo auditInfo) {
             this.auditInfo = auditInfo;
             return this;
@@ -201,7 +251,7 @@ public final class QuestionFactory {
             if (!errors.isEmpty()) {
                 return Result.failure(List.copyOf(errors));
             }
-            return Result.success(Question.rehydrate(id, label, status, salesItemReferenceCode, auditInfo));
+            return Result.success(Question.rehydrate(QuestionId.of(id), label, status, SalesItemReferenceCode.of(salesItemReferenceCode), auditInfo));
         }
     }
 }

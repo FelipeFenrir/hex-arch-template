@@ -5,6 +5,7 @@ import com.acme.orderquestionnaire.adapters.out.mongo.question.QuestionQueryAdap
 import com.acme.orderquestionnaire.adapters.out.mongo.unit.support.MongoTestDataFactory;
 import com.acme.orderquestionnaire.application.question.dto.queries.GetQuestionById;
 import com.acme.orderquestionnaire.application.question.dto.queries.SearchQuestionByFilter;
+import com.acme.orderquestionnaire.domain.question.QuestionFactory;
 import com.acme.shared.engine.pagination.HybridPageRequest;
 import com.acme.shared.engine.pagination.PageMode;
 import com.acme.shared.engine.pagination.SortDirection;
@@ -17,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @IntegrationTest
@@ -88,5 +91,52 @@ class QuestionQueryAdapterMongoIT extends AbstractQuestionQueryMongoIT {
         assertEquals("question_query_cursor_2_it", page.content().getFirst().id());
         assertTrue(page.hasNext());
         assertEquals("question_query_cursor_2_it", page.nextCursor());
+    }
+
+    @Test
+    void shouldHonorRequestedSortWhenUsingCursorMode() {
+        questionCommandRepository.save(questionEntityMapper.toEntity(newQuestion("question_sort_cursor_3_it", "Gamma", "sales_item_code_3")));
+        questionCommandRepository.save(questionEntityMapper.toEntity(newQuestion("question_sort_cursor_1_it", "Alpha", "sales_item_code_1")));
+        questionCommandRepository.save(questionEntityMapper.toEntity(newQuestion("question_sort_cursor_2_it", "Beta", "sales_item_code_2")));
+
+        var firstPageCriteria = new SearchQuestionByFilter(
+                null,
+                null,
+                null,
+                null,
+                null,
+                HybridPageRequest.ofCursorStart(2, List.of(new SortSpec("label", SortDirection.ASC)))
+        );
+
+        var firstPage = questionQueryAdapter.findAll(firstPageCriteria);
+
+        assertEquals(PageMode.CURSOR, firstPage.mode());
+        assertEquals(List.of("question_sort_cursor_1_it", "question_sort_cursor_2_it"),
+                firstPage.content().stream().map(com.acme.orderquestionnaire.application.question.dto.view.QuestionView::id).toList());
+        assertTrue(firstPage.hasNext());
+        assertEquals("question_sort_cursor_2_it", firstPage.nextCursor());
+        assertEquals("label", firstPage.appliedSort().getFirst().field());
+
+        var secondPageCriteria = new SearchQuestionByFilter(
+                null,
+                null,
+                null,
+                null,
+                null,
+                HybridPageRequest.ofCursor(firstPage.nextCursor(), 2, List.of(new SortSpec("label", SortDirection.ASC)))
+        );
+
+        var secondPage = questionQueryAdapter.findAll(secondPageCriteria);
+
+        assertEquals(List.of("question_sort_cursor_3_it"),
+                secondPage.content().stream().map(com.acme.orderquestionnaire.application.question.dto.view.QuestionView::id).toList());
+        assertFalse(secondPage.hasNext());
+        assertNull(secondPage.nextCursor());
+    }
+
+    private com.acme.orderquestionnaire.domain.question.Question newQuestion(String id, String label, String salesItemReferenceCode) {
+        return QuestionFactory.createNew(id, label, salesItemReferenceCode, MongoTestDataFactory.createdAuditInfo())
+                .flatMap(QuestionFactory.NewQuestionBuilder::build)
+                .getOrElseThrow(errors -> new IllegalStateException("Invalid fixture question: " + errors));
     }
 }

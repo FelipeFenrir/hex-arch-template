@@ -7,6 +7,7 @@ import com.acme.shared.pattern.pipeline.PipelineContext;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.vo.AuditInfo;
 import com.acme.shared.vo.AuditUser;
+import com.acme.shared.vo.QuestionId;
 
 public class UpdateQuestionPipelineContext extends PipelineContext {
 
@@ -20,6 +21,10 @@ public class UpdateQuestionPipelineContext extends PipelineContext {
 
     public String id() {
         return id;
+    }
+
+    public QuestionId questionId() {
+        return QuestionId.of(id);
     }
 
     public UpdateQuestionCommand command() {

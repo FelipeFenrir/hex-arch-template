@@ -1,0 +1,124 @@
+info:
+  name: Update a question
+  type: http
+  seq: 2
+  tags:
+    - Question
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/questions/:id"
+  params:
+    - name: id
+      value: ""
+      type: path
+  body:
+    type: json
+    data: |-
+      {
+        "label": "",
+        "salesItemReferenceCode": "",
+        "status": "DRAFT",
+        "updatedBy": {
+          "id": "",
+          "referenceCode": "",
+          "name": "",
+          "email": ""
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Question updated
+    request:
+      url: "{{baseUrl}}/api/v1/questions/:id"
+      method: PUT
+      params:
+        - name: id
+          value: ""
+          type: path
+      body:
+        type: json
+        data: |-
+          {
+            "label": "",
+            "salesItemReferenceCode": "",
+            "status": "DRAFT",
+            "updatedBy": {
+              "id": "",
+              "referenceCode": "",
+              "name": "",
+              "email": ""
+            }
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: "*/*"
+      body:
+        type: text
+        data: |-
+          {
+            "data": {
+              "id": "",
+              "label": "",
+              "status": "",
+              "salesItemReferenceCode": "",
+              "updatedBy": {
+                "id": "",
+                "referenceCode": "",
+                "name": "",
+                "email": ""
+              },
+              "updatedAt": ""
+            }
+          }
+  - name: 409 Response
+    description: Business conflict
+    request:
+      url: "{{baseUrl}}/api/v1/questions/:id"
+      method: PUT
+      params:
+        - name: id
+          value: ""
+          type: path
+      body:
+        type: json
+        data: |-
+          {
+            "label": "",
+            "salesItemReferenceCode": "",
+            "status": "DRAFT",
+            "updatedBy": {
+              "id": "",
+              "referenceCode": "",
+              "name": "",
+              "email": ""
+            }
+          }
+    response:
+      status: 409
+      statusText: Conflict
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "about:blank",
+            "title": "Business rule violation",
+            "status": 409,
+            "code": "DOM-INVALID_STATUS_TRANSITION",
+            "detail": "Cannot transition from 'DRAFT' to 'DRAFT'",
+            "instance": "/api/v1/questions/q1"
+          }
