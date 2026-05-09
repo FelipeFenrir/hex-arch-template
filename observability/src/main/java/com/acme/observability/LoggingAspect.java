@@ -6,6 +6,10 @@ import com.acme.shared.pattern.result.Result;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.slf4j.MDC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +20,10 @@ import java.util.Map;
 @Aspect
 public class LoggingAspect {
     private static final Logger log = LoggerFactory.getLogger(LoggingAspect.class);
+    private static final String DOMAIN_RESULT_EXCEPTION = "DomainResultException";
+    private static final String VALIDATION_PREFIX = "VAL-";
+    private static final String DOMAIN_PREFIX = "DOM-";
+    private static final String SYSTEM_PREFIX = "SYS-";
 
     private final ObjectMapper mapper;
     private final LogSanitizer sanitizer;
@@ -53,10 +61,10 @@ public class LoggingAspect {
             }
 
             String successMessage = write(successPayload);
-            if (result instanceof Result<?, ?> outcome && outcome.isFailure()) {
-                log.warn(successMessage);
-            } else {
-                log.info(successMessage);
+            switch (resolveSuccessLevel(result)) {
+                case WARN -> log.warn(successMessage);
+                case ERROR -> log.error(successMessage);
+                default -> log.info(successMessage);
             }
             return result;
         } catch (Throwable throwable) {
@@ -65,9 +73,65 @@ public class LoggingAspect {
             errorPayload.put("error", throwable.getClass().getName());
             errorPayload.put("message", throwable.getMessage());
 
-            log.error(write(errorPayload));
+            String errorMessage = write(errorPayload);
+            if (isExpectedWarningException(throwable)) {
+                log.warn(errorMessage);
+            } else {
+                log.error(errorMessage);
+            }
             throw throwable;
         }
+    }
+
+    private LogLevel resolveSuccessLevel(Object result) {
+        if (result instanceof Result<?, ?> outcome && outcome.isFailure()) {
+            return LogLevel.WARN;
+        }
+
+        if (result instanceof ResponseEntity<?> responseEntity) {
+            LogLevel problemDetailLevel = resolveProblemDetailLevel(responseEntity.getBody());
+            if (problemDetailLevel != null) {
+                return problemDetailLevel;
+            }
+
+            int status = responseEntity.getStatusCode().value();
+            if (status >= 500) {
+                return LogLevel.ERROR;
+            }
+            if (status >= 400) {
+                return LogLevel.WARN;
+            }
+        }
+
+        return LogLevel.INFO;
+    }
+
+    private LogLevel resolveProblemDetailLevel(Object body) {
+        if (!(body instanceof ProblemDetail problemDetail)) {
+            return null;
+        }
+
+        Object codeValue = problemDetail.getProperties() == null ? null : problemDetail.getProperties().get("code");
+        if (!(codeValue instanceof String code) || code.isBlank()) {
+            return null;
+        }
+
+        if (code.startsWith(VALIDATION_PREFIX) || code.startsWith(DOMAIN_PREFIX)) {
+            return LogLevel.WARN;
+        }
+
+        if (code.startsWith(SYSTEM_PREFIX)) {
+            return LogLevel.ERROR;
+        }
+
+        return null;
+    }
+
+    private boolean isExpectedWarningException(Throwable throwable) {
+        return throwable instanceof IllegalArgumentException
+                || throwable instanceof MethodArgumentNotValidException
+                || throwable instanceof HttpMessageNotReadableException
+                || DOMAIN_RESULT_EXCEPTION.equals(throwable.getClass().getSimpleName());
     }
 
     private Map<String, Object> basePayload(String event, String className, String methodName) {
@@ -86,5 +150,11 @@ public class LoggingAspect {
         } catch (Exception e) {
             return "{\"log\":\"serialization_error\"}";
         }
+    }
+
+    private enum LogLevel {
+        INFO,
+        WARN,
+        ERROR
     }
 }

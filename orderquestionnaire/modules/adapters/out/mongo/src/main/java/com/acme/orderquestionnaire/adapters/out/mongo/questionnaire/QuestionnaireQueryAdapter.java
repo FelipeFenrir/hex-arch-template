@@ -85,8 +85,8 @@ public class QuestionnaireQueryAdapter implements QuestionnaireQueryOutPort {
         }
 
         String questionnaireId = id.questionnaireId().id();
-        String channelId = id.questionnaireId().channelDistributionId();
-        String journeyId = id.questionnaireId().journeyDistributionId();
+        String channelId = id.questionnaireId().getChannelDistributionIdValue();
+        String journeyId = id.questionnaireId().getJourneyDistributionIdValue();
         if (isBlank(questionnaireId) || isBlank(channelId) || isBlank(journeyId)) {
             return Optional.empty();
         }
@@ -138,13 +138,15 @@ public class QuestionnaireQueryAdapter implements QuestionnaireQueryOutPort {
 
     private PageResult<QuestionnaireView> findAllByCursor(HybridPageRequest pageRequest, Query baseQuery) {
         int size = pageRequest.size();
+        List<SortSpec> appliedSort = resolveCursorSort(pageRequest.sort());
+        Sort springSort = MongoQuerySupport.toSpringSort(appliedSort, SORT_FIELD_MAPPINGS, DEFAULT_SORT);
 
         Query query = Query.of(baseQuery)
-                .with(Sort.by(Sort.Order.asc("id")))
+                .with(springSort)
                 .limit(size + 1);
 
         if (pageRequest.cursor() != null && !pageRequest.cursor().isBlank()) {
-            query.addCriteria(Criteria.where("id").gt(pageRequest.cursor()));
+            query.addCriteria(buildCursorCriteria(pageRequest.cursor(), appliedSort));
         }
 
         List<QuestionnaireEntity> fetched = mongoTemplate.find(query, QuestionnaireEntity.class);
@@ -154,8 +156,91 @@ public class QuestionnaireQueryAdapter implements QuestionnaireQueryOutPort {
 
         List<QuestionnaireView> content = toViews(contentEntities);
 
-        List<SortSpec> appliedSort = List.of(new SortSpec("id", SortDirection.ASC));
         return PageResult.forCursor(content, size, nextCursor, hasNext, appliedSort);
+    }
+
+    private List<SortSpec> resolveCursorSort(List<SortSpec> requestedSort) {
+        List<SortSpec> baseSort = requestedSort == null || requestedSort.isEmpty()
+                ? List.of(DEFAULT_SORT)
+                : requestedSort.stream()
+                .map(this::normalizeSortSpec)
+                .toList();
+
+        List<SortSpec> effectiveSort = new ArrayList<>();
+        for (SortSpec sortSpec : baseSort) {
+            boolean alreadyPresent = effectiveSort.stream().anyMatch(existing -> existing.field().equals(sortSpec.field()));
+            if (!alreadyPresent) {
+                effectiveSort.add(sortSpec);
+            }
+        }
+
+        boolean hasIdSort = effectiveSort.stream().anyMatch(spec -> spec.field().equals(DEFAULT_SORT.field()));
+        if (!hasIdSort) {
+            effectiveSort.add(DEFAULT_SORT);
+        }
+
+        return List.copyOf(effectiveSort);
+    }
+
+    private SortSpec normalizeSortSpec(SortSpec sortSpec) {
+        String field = SORT_FIELD_MAPPINGS.containsKey(sortSpec.field()) ? sortSpec.field() : DEFAULT_SORT.field();
+        return new SortSpec(field, sortSpec.direction());
+    }
+
+    private Criteria buildCursorCriteria(String cursor, List<SortSpec> appliedSort) {
+        QuestionnaireEntity anchor = mongoTemplate.findOne(
+                Query.query(Criteria.where("id").is(cursor)).limit(1),
+                QuestionnaireEntity.class
+        );
+
+        if (anchor == null) {
+            throw new IllegalArgumentException("cursor must reference an existing questionnaire");
+        }
+
+        List<Criteria> cursorBranches = new ArrayList<>();
+        for (int index = 0; index < appliedSort.size(); index++) {
+            List<Criteria> branchCriteria = new ArrayList<>();
+            for (int previousIndex = 0; previousIndex < index; previousIndex++) {
+                SortSpec previousSort = appliedSort.get(previousIndex);
+                branchCriteria.add(Criteria.where(resolveMongoField(previousSort))
+                        .is(extractSortValue(anchor, previousSort.field())));
+            }
+
+            SortSpec currentSort = appliedSort.get(index);
+            branchCriteria.add(buildComparisonCriteria(currentSort, extractSortValue(anchor, currentSort.field())));
+
+            cursorBranches.add(branchCriteria.size() == 1
+                    ? branchCriteria.getFirst()
+                    : new Criteria().andOperator(branchCriteria.toArray(new Criteria[0])));
+        }
+
+        return cursorBranches.size() == 1
+                ? cursorBranches.getFirst()
+                : new Criteria().orOperator(cursorBranches.toArray(new Criteria[0]));
+    }
+
+    private Criteria buildComparisonCriteria(SortSpec sortSpec, Object anchorValue) {
+        Criteria criteria = Criteria.where(resolveMongoField(sortSpec));
+        return sortSpec.direction() == SortDirection.DESC
+                ? criteria.lt(anchorValue)
+                : criteria.gt(anchorValue);
+    }
+
+    private String resolveMongoField(SortSpec sortSpec) {
+        return SORT_FIELD_MAPPINGS.getOrDefault(sortSpec.field(), SORT_FIELD_MAPPINGS.get(DEFAULT_SORT.field()));
+    }
+
+    private Object extractSortValue(QuestionnaireEntity anchor, String sortField) {
+        return switch (sortField) {
+            case "channelDistributionId" -> anchor.channelDistributionId();
+            case "journeyDistributionId" -> anchor.journeyDistributionId();
+            case "description" -> anchor.description();
+            case "status" -> anchor.status();
+            case "createdAt" -> anchor.auditInfo() == null ? null : anchor.auditInfo().createdAt();
+            case "updatedAt" -> anchor.auditInfo() == null ? null : anchor.auditInfo().updatedAt();
+            case "id" -> anchor.id();
+            default -> anchor.id();
+        };
     }
 
     private Query buildBaseQuery(SearchQuestionnaireByFilter criteria) {

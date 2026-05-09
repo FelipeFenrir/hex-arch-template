@@ -6,6 +6,7 @@ import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerConfigurati
 import com.acme.orderquestionnaire.domain.questionnaire.tree.AnswerConfigurationTreeNode;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
+import com.acme.shared.vo.RegexPattern;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -24,8 +25,35 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = false)
 @Builder(setterPrefix = "with", access = AccessLevel.PACKAGE)
 public class AnswerTextStrategy implements AnswerConfiguration {
-    private String regexPattern;
+    private String regexPatternValue;    // Stored as String for builder compatibility
     private String customErrorMessage;
+
+    // Compatibility accessors for existing callers/tests expecting get/setRegexPattern.
+    public String getRegexPattern() {
+        return regexPatternValue;
+    }
+
+    public void setRegexPattern(String regexPattern) {
+        this.regexPatternValue = regexPattern;
+    }
+
+    /**
+     * Backward compatibility accessor: returns the regex pattern as a String value.
+     */
+    public String regexPattern() {
+        return regexPatternValue;
+    }
+
+    /**
+     * Returns the regex pattern as a Value Object.
+     * Use this when working within the domain.
+     */
+    public RegexPattern asRegexPattern() {
+        if (regexPatternValue == null || regexPatternValue.isBlank()) {
+            return null;
+        }
+        return RegexPattern.of(regexPatternValue);
+    }
 
     @Override
     public Result<Void, List<DomainError>> validate(Object answer) {
@@ -36,7 +64,7 @@ public class AnswerTextStrategy implements AnswerConfiguration {
             return Result.failure(errors);
         }
 
-        if (regexPattern != null && !text.matches(regexPattern)) {
+        if (regexPatternValue != null && !text.matches(regexPatternValue)) {
             String message = customErrorMessage != null ? customErrorMessage : "Answer does not match the required format.";
             errors.add(QuestionDomainErrors.patternMismatch(message));
         }
@@ -50,7 +78,7 @@ public class AnswerTextStrategy implements AnswerConfiguration {
     @Override
     public AnswerConfigurationTreeNode toTreeNode() {
         Map<String, Object> attributes = new LinkedHashMap<>();
-        attributes.put("regexPattern", regexPattern);
+        attributes.put("regexPattern", regexPatternValue);
         attributes.put("customErrorMessage", customErrorMessage);
         return new AnswerConfigurationTreeNode(getConfigurationType(), attributes);
     }

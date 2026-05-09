@@ -42,7 +42,7 @@ class QuestionnaireActivationRulesTest {
     @DisplayName("should be ready to activate when configured question has answer configuration and valid order")
     void shouldBeReadyWithValidConfiguredQuestion() {
         ConfiguredQuestion configuredQuestion = ConfiguredQuestion.createNew(
-                Question.rehydrate("q1", "Q1", ParameterizationStatus.ACTIVE, "SKU", audit()),
+                Question.rehydrate("q_one", "Q1", ParameterizationStatus.ACTIVE, "SKU", audit()),
                 AnswerConfigurationFactory.createTextStrategy(),
                 0);
 

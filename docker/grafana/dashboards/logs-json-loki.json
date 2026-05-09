@@ -56,13 +56,14 @@
 	  "targets": [
 		{
 		  "refId": "A",
-		  "expr": "{app=~\"$app\",mode=~\"$mode\"} | json | level=~\"$level\""
+		  "expr": "{app=~\"$app\",mode=~\"$mode\"} | json | line_format \"{{.message}}\" | level=~\"$level\""
 		}
 	  ],
 	  "options": {
 		"showLabels": true,
 		"showCommonLabels": true,
 		"showTime": true,
+        "prettifyLogMessage": true,
 		"sortOrder": "Descending"
 	  }
 	}

@@ -93,6 +93,7 @@ services:
     command: ["-config.file=/etc/tempo/config.yml"]
     volumes:
       - ./tempo/config.yml:/etc/tempo/config.yml
+      - tempo_data:/var/tempo
     ports: [ "3200:3200" ]
 
   # ---------------------------------------------------------
@@ -104,6 +105,7 @@ services:
     command: -config.file=/etc/loki/config.yml
     volumes:
       - ./loki/config.yml:/etc/loki/config.yml
+      - loki_data:/loki
     ports: [ "3100:3100" ]
 
   # ---------------------------------------------------------
@@ -132,6 +134,7 @@ services:
     volumes:
       - ./grafana/provisioning/:/etc/grafana/provisioning/
       - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+      - grafana_data:/var/lib/grafana
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -211,4 +214,28 @@ services:
         mode: non-blocking
 
 volumes:
+  # ------------------------------------------------------------------
+  # Volumes de dados locais — podem ser deletados após uma sessão
+  # de trabalho sem perda de configuração (configs ficam em bind mounts).
+  #
+  # Para remover todos de uma vez:
+  #   docker compose -f docker/docker-compose.yml down -v
+  #
+  # Para remover individualmente:
+  #   docker volume rm docker_mongo_data
+  #   docker volume rm docker_loki_data
+  #   docker volume rm docker_tempo_data
+  #   docker volume rm docker_grafana_data
+  # ------------------------------------------------------------------
+
+  # Dados do MongoDB (questionnaires, security, etc.)
   mongo_data:
+
+  # Logs indexados pelo Loki
+  loki_data:
+
+  # Traces armazenados pelo Tempo
+  tempo_data:
+
+  # Estado interno do Grafana (preferencias, sessoes, alertas locais)
+  grafana_data:

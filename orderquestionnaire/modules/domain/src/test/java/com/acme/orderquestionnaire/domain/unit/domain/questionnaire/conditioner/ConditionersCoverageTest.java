@@ -31,7 +31,7 @@ class ConditionersCoverageTest {
     void shouldEvaluateNumericConditionAcrossAllOperators() {
         Map<String, Object> answers = Map.of("score", 10, "other", "x");
 
-        assertTrue(new NumericCondition("score", 5, NumericCondition.ComparisonOperator.GREATER_THAN).isSatisfy(answers));
+        assertTrue(new NumericCondition("score", 5, ">" ).isSatisfy(answers));
         assertTrue(new NumericCondition("score", 10, ">=").isSatisfy(answers));
         assertTrue(new NumericCondition("score", 12, "<").isSatisfy(answers));
         assertTrue(new NumericCondition("score", 10, "<=").isSatisfy(answers));
@@ -91,5 +91,4 @@ class ConditionersCoverageTest {
         assertNotNull(alwaysSatisfied.toTreeNode());
     }
 }
-
 

@@ -21,30 +21,30 @@ class CompositeConditionTest {
     @DisplayName("When operator is AND then all conditions should be true")
     void shouldApplyAnd() {
         CompositeCondition condition = new CompositeCondition(true);
-        condition.addCondition(new EqualCondition("q1", "yes"));
-        condition.addCondition(new NumericCondition("q2", 5, ">="));
+        condition.addCondition(new EqualCondition("q_one", "yes"));
+        condition.addCondition(new NumericCondition("q_two", 5, ">="));
 
-        assertTrue(condition.isSatisfy(Map.of("q1", "yes", "q2", 9)));
-        assertFalse(condition.isSatisfy(Map.of("q1", "yes", "q2", 1)));
+        assertTrue(condition.isSatisfy(Map.of("q_one", "yes", "q_two", 9)));
+        assertFalse(condition.isSatisfy(Map.of("q_one", "yes", "q_two", 1)));
     }
 
     @Test
     @DisplayName("When operator is OR then any condition true should satisfy")
     void shouldApplyOr() {
         CompositeCondition condition = new CompositeCondition(false);
-        condition.addCondition(new EqualCondition("q1", "yes"));
-        condition.addCondition(new NumericCondition("q2", 5, ">="));
+        condition.addCondition(new EqualCondition("q_one", "yes"));
+        condition.addCondition(new NumericCondition("q_two", 5, ">="));
 
-        assertTrue(condition.isSatisfy(Map.of("q1", "no", "q2", 9)));
-        assertFalse(condition.isSatisfy(Map.of("q1", "no", "q2", 1)));
+        assertTrue(condition.isSatisfy(Map.of("q_one", "no", "q_two", 9)));
+        assertFalse(condition.isSatisfy(Map.of("q_one", "no", "q_two", 1)));
     }
 
     @Test
     @DisplayName("When exporting tree node then should contain children")
     void shouldExportTreeNode() {
         CompositeCondition condition = new CompositeCondition(true);
-        condition.addCondition(new EqualCondition("q1", "yes"));
-        condition.addCondition(new NumericCondition("q2", 5, ">="));
+        condition.addCondition(new EqualCondition("q_one", "yes"));
+        condition.addCondition(new NumericCondition("q_two", 5, ">="));
 
         var node = condition.toTreeNode();
         assertEquals("COMPOSITE", node.type());

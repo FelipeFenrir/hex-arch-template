@@ -61,14 +61,14 @@ var dbOrderQuestionnaire = db.getSiblingDB("orderquestionnaire");
 var now = new Date();
 var auditInfo = {
     created_by: {
-        id: "usr-seed",
+        id: "019dff07-5f02-70d4-8680-f8dc34fd5fb9",
         reference_code: "seed_user",
         name: "Seed User",
         email: "seed.user@acme.com"
     },
     created_at: now,
     updated_by: {
-        id: "usr-seed",
+        id: "019dff07-5f02-70d4-8680-f8dc34fd5fb9",
         reference_code: "seed_user",
         name: "Seed User",
         email: "seed.user@acme.com"

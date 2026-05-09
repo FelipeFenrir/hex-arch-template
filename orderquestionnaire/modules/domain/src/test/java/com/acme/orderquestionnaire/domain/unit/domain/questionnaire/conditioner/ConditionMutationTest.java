@@ -39,8 +39,8 @@ class ConditionMutationTest {
     @Test
     @DisplayName("composite and and or operators keep expected truth table")
     void shouldRespectCompositeTruthTable() {
-        var gtFive = new NumericCondition("q1", 5, ">");
-        var ltTen = new NumericCondition("q1", 10, "<");
+        var gtFive = new NumericCondition("q_one", 5, ">");
+        var ltTen = new NumericCondition("q_one", 10, "<");
 
         var andComposite = new CompositeCondition(true);
         andComposite.addCondition(gtFive);
@@ -50,12 +50,12 @@ class ConditionMutationTest {
         orComposite.addCondition(gtFive);
         orComposite.addCondition(ltTen);
 
-        assertTrue(andComposite.isSatisfy(Map.of("q1", 8)));
-        assertFalse(andComposite.isSatisfy(Map.of("q1", 4)));
+        assertTrue(andComposite.isSatisfy(Map.of("q_one", 8)));
+        assertFalse(andComposite.isSatisfy(Map.of("q_one", 4)));
 
-        assertTrue(orComposite.isSatisfy(Map.of("q1", 4)));
-        assertTrue(orComposite.isSatisfy(Map.of("q1", 12)));
-        assertFalse(orComposite.isSatisfy(Map.of("q1", "not-a-number")));
+        assertTrue(orComposite.isSatisfy(Map.of("q_one", 4)));
+        assertTrue(orComposite.isSatisfy(Map.of("q_one", 12)));
+        assertFalse(orComposite.isSatisfy(Map.of("q_one", "not-a-number")));
     }
 }
 

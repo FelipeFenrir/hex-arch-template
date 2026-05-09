@@ -26,7 +26,7 @@ public class FetchExistingQuestionStep implements Step<UpdateQuestionPipelineCon
 
     @Override
     public Result<Void, List<DomainError>> execute(UpdateQuestionPipelineContext context) {
-        return questionCommandOutPort.findQuestionById(context.id())
+        return questionCommandOutPort.findQuestionById(context.questionId().value())
                 .<Result<Void, List<DomainError>>>map(question -> {
                     context.existingQuestion(question);
                     return Result.success(null);

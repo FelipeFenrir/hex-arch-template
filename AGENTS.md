@@ -20,8 +20,11 @@
 - Domain factories return builders wrapped in `Result` and accumulate errors (see `QuestionFactory`, `QuestionnaireFactory`).
 - Header names are standardized in `shared/src/main/java/com/acme/shared/constants/HeaderConstants.java`.
 - Tenant context is thread-local via `TenantContextHolder`; callers must set and clear it at request boundaries.
-- For detailed shared conventions, use `shared/README.md` and `shared/docs/*.md` (`ResultPattern.md`, `RuleEngine.md`, `Stereotypes.md`, `TenantHeaders.md`).
-- Agent guidance files currently discovered by convention glob are root `AGENTS.md` and `README.md`, `purefilter/README.md`, `modules/domain/**/README.md`, `orderquestionnaire/modules/**/README.md`, `shared/README.md`, `security-server/**/README.md`, `docker/aws-manager/README.md`, `docker/stackport/CLAUDE.md`, and `docker/stackport/**/README.md`; no `.github/copilot-instructions.md` / `.cursor` / `.windsurf` / `.clinerules` instruction sets are present.
+- OrderQuestionnaire application services are pipeline-based: use cases typically extend `PipelineOrchestrator`, work with `*Step` + `*PipelineContext`, and are assembled in bootstrap configs such as `orderquestionnaire/modules/bootstrap/src/main/java/com/acme/orderquestionnaire/config/pipeline/CreateQuestionnaireUseCaseConfig.java`.
+- Pipeline step enablement/order is configuration-driven in `orderquestionnaire/modules/bootstrap/src/main/resources/application.yml` under `question.pipeline.*` and `questionnaire.pipeline.*`.
+- ArchUnit tests actively enforce naming and boundary conventions in `orderquestionnaire/modules/application/src/test/java/com/acme/orderquestionnaire/application/architecture/HexagonalArchitectureModuleTest.java` and `orderquestionnaire/modules/domain/src/test/java/com/acme/orderquestionnaire/domain/architecture/HexagonalArchitectureModuleTest.java`.
+- For detailed shared conventions, use `shared/README.md` and `shared/docs/*.md` (`ResultPattern.md`, `RuleEngine.md`, `Stereotypes.md`, `TenantHeaders.md`, `Pagination.md`, `StateMachine.md`, `Pipeline.md`, `ValueObjectsEnums.md`).
+- Agent guidance files currently discovered by convention glob are root `AGENTS.md` and `README.md`, `shared/README.md`, `purefilter/README.md`, `modules/domain/*/README.md`, `orderquestionnaire/modules/**/README.md`, `security-server/README.md` plus `security-server/modules/**/README.md`, and `docker/aws-manager/README.md`; no `.github/copilot-instructions.md` / `.cursor` / `.windsurf` / `.clinerules` instruction sets are present.
 
 ## Developer Workflow
 - Unit tests: `./gradlew clean test` (Windows: `.\gradlew.bat clean test`).
@@ -39,6 +42,7 @@
 ## Integration/Runtime Notes
 - Observability stack in compose: OTEL Collector, Prometheus, Tempo, Loki, Promtail, Grafana.
 - Compose also starts `mongo-express` (port `8081`) and `stackport` UI/API (host port `5000`) for local queue/topic inspection against MiniStack.
+- Compose also starts `wiremock` (host port `8082`); `orderquestionnaire/modules/bootstrap/src/main/resources/application.yml` points channel/journey distribution API base URLs there by default.
 - Boot config exposes actuator `health,info,prometheus` and OTLP endpoint via `OTEL_EXPORTER_OTLP_ENDPOINT` (`application.yml`).
 - Logs are JSON via `orderquestionnaire/modules/bootstrap/src/main/resources/logback-spring.xml` + `modules/observability/LoggingAspect.java` (`@Loggable`).
 - Local AWS emulation uses MiniStack (`sqs,sns` via port `4566`); `docker/aws-manager` is present but its service is commented out in compose.
@@ -48,10 +52,12 @@
 - `orderquestionnaire/modules/adapters/in/api-grpc`, `orderquestionnaire/modules/adapters/in/queue-sqs`, and `orderquestionnaire/modules/adapters/out/cloud-aws` are scaffold-oriented directories (`README.md`/`docs`/`src`) and currently do not have their own `build.gradle`.
 - `orderquestionnaire/modules/adapters/in/api-rest` is currently included in `orderquestionnaire/settings.gradle` (`:modules:adapters:in:api-rest`) and has its own `build.gradle`.
 - Some docs/configs still reference legacy paths (`modules/adapters/in/*`, `modules/shared`, `modules/security`) while active Gradle modules use `orderquestionnaire/modules/adapters/*`, composite build `shared`, and composite build `security-server`.
+- `Taskfile.yml` has working `build`/`test`/`up`/`down` shortcuts, but `docker:build` still points to legacy root `modules/bootstrap`; prefer service-specific bootstrap directories when building images.
 - `scripts/*.sh` and `scripts/*.bat` exist but are empty; prefer `Taskfile.yml`, `makefile`, or direct Gradle/Docker commands.
 - `runs/security-server[integration test].run.xml` and `makefile` target integration tasks (`integrationTest`), and `runs/security-server[integration coverage].run.xml` calls `:modules:bootstrap:jacocoIntegrationTestReport`; these tasks are not explicitly declared in current Gradle scripts.
 - `runs/Run Message Manager.run.xml` points to `docker/message-manager`; current compose/runtime assets are `docker/stackport` (active) and `docker/aws-manager` (present but commented in compose).
 - Root `clean test` currently fails with a circular task dependency at `:modules:application:personmdm`; for orderquestionnaire changes, use focused composite tasks (for example `:orderquestionnaire:modules:domain:test`).
+- `purefilter` is a standalone Gradle build in the workspace (`purefilter/settings.gradle`) but is not included from root `settings.gradle`; root Gradle tasks do not cover it.
 - `docker/docker-compose.yml` provides an optional `app` container under profile `app-container`; default local flow still runs apps from IDE/Gradle unless that profile is explicitly enabled.
 - If adding production behavior, verify whether module is active or intentionally stubbed before wiring dependencies.
 

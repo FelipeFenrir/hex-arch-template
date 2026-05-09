@@ -4,6 +4,7 @@ import com.acme.orderquestionnaire.domain.question.enumerator.AnswerType;
 import com.acme.orderquestionnaire.domain.question.errors.QuestionDomainErrors;
 import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerConfiguration;
 import com.acme.orderquestionnaire.domain.questionnaire.tree.AnswerConfigurationTreeNode;
+import com.acme.orderquestionnaire.domain.questionnaire.vo.NumericRange;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
 import lombok.AccessLevel;
@@ -30,6 +31,14 @@ public class AnswerNumberStrategy implements AnswerConfiguration {
     private boolean allowedDecimal;
     private boolean allowedNegative;
     private String customErrorMessage;
+
+    /**
+     * Returns the numeric constraints as a Value Object.
+     * Use this when working within the domain.
+     */
+    public NumericRange asNumericRange() {
+        return NumericRange.of(min, max, step);
+    }
 
     @Override
     public Result<Void, List<DomainError>> validate(Object answer) {

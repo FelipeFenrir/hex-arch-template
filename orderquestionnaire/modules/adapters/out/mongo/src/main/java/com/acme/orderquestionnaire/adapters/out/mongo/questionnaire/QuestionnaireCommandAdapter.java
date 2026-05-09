@@ -123,7 +123,11 @@ public class QuestionnaireCommandAdapter implements QuestionnaireCommandOutPort 
     }
 
     private String toDocumentId(QuestionnaireId id) {
-        return questionnaireEntityMapper.toDocumentId(id.id(), id.channelDistributionId(), id.journeyDistributionId());
+        return questionnaireEntityMapper.toDocumentId(
+                id.id(),
+                id.getChannelDistributionIdValue(),
+                id.getJourneyDistributionIdValue()
+        );
     }
 
     private void persistQuestions(Questionnaire questionnaire) {

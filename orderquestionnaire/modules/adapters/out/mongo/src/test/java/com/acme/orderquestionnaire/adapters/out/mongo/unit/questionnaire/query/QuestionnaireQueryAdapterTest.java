@@ -16,9 +16,11 @@ import com.acme.shared.engine.pagination.PageMode;
 import com.acme.shared.engine.pagination.SortDirection;
 import com.acme.shared.engine.pagination.SortSpec;
 import com.acme.shared.stereotypes.test.UnitTest;
+import org.bson.Document;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @UnitTest
@@ -89,9 +92,9 @@ class QuestionnaireQueryAdapterTest {
     }
 
     @Test
-    @DisplayName("should return empty when id is invalid")
-    void shouldReturnEmptyWhenIdIsInvalid() {
-        var found = adapter.findById(new GetQuestionnaireById(QuestionnaireId.of(" ", "channel_1", "journey_1")));
+    @DisplayName("should return empty when questionnaire id is missing")
+    void shouldReturnEmptyWhenIdIsMissing() {
+        var found = adapter.findById(new GetQuestionnaireById(null));
         assertTrue(found.isEmpty());
     }
 
@@ -142,6 +145,7 @@ class QuestionnaireQueryAdapterTest {
         var q1 = MongoTestDataFactory.newQuestionnaire("qn_query_cursor_1", "channel_1", "journey_1");
         var q2 = MongoTestDataFactory.newQuestionnaire("qn_query_cursor_2", "channel_1", "journey_1");
         var q3 = MongoTestDataFactory.newQuestionnaire("qn_query_cursor_3", "channel_1", "journey_1");
+        var anchor = MongoTestDataFactory.newQuestionnaire("qn_query_cursor_0", "channel_1", "journey_1");
 
         var e1 = new QuestionnaireEntity("qn_query_cursor_1|channel_1|journey_1", q1.id(), q1.channelDistributionId(),
                 q1.journeyDistributionId(), q1.description(), q1.status(), null, 0);
@@ -149,12 +153,17 @@ class QuestionnaireQueryAdapterTest {
                 q2.journeyDistributionId(), q2.description(), q2.status(), null, 0);
         var e3 = new QuestionnaireEntity("qn_query_cursor_3|channel_1|journey_1", q3.id(), q3.channelDistributionId(),
                 q3.journeyDistributionId(), q3.description(), q3.status(), null, 0);
+        var anchorEntity = new QuestionnaireEntity("qn_query_cursor_0|channel_1|journey_1", anchor.id(),
+                anchor.channelDistributionId(), anchor.journeyDistributionId(), anchor.description(), anchor.status(), null, 0);
 
         when(mongoTemplate.find(any(Query.class), eq(QuestionnaireEntity.class))).thenReturn(List.of(e1, e2, e3));
         when(mongoTemplate.find(any(Query.class), eq(QuestionnaireQuestionEntity.class))).thenReturn(List.of());
+        when(mongoTemplate.findOne(any(Query.class), eq(QuestionnaireEntity.class))).thenReturn(anchorEntity);
         when(questionnaireQuestionEntityMapper.toConfiguredQuestions(eq(List.of()), any(Map.class))).thenReturn(List.of());
         when(questionnaireEntityMapper.toDomain(eq(e1), any(List.class))).thenReturn(q1);
         when(questionnaireEntityMapper.toDomain(eq(e2), any(List.class))).thenReturn(q2);
+
+        ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
 
         var criteria = new SearchQuestionnaireByFilter(
                 null,
@@ -168,11 +177,18 @@ class QuestionnaireQueryAdapterTest {
 
         var page = adapter.findAll(criteria);
 
+        verify(mongoTemplate).find(queryCaptor.capture(), eq(QuestionnaireEntity.class));
+        Document sortObject = queryCaptor.getValue().getSortObject();
+        Document queryObject = queryCaptor.getValue().getQueryObject();
+
         assertEquals(PageMode.CURSOR, page.mode());
         assertEquals(2, page.content().size());
         assertTrue(page.hasNext());
         assertEquals("qn_query_cursor_2", page.nextCursor());
         assertEquals("id", page.appliedSort().getFirst().field());
+        assertEquals(1, sortObject.get("id"));
+        assertTrue(queryObject.toJson().contains("$or") || queryObject.toJson().contains("$gt"));
+        assertTrue(queryObject.toJson().contains(anchor.id()));
     }
 }
 

@@ -54,7 +54,7 @@ class QuestionnaireStatusMachineMutationTest {
     @Test
     @DisplayName("activation guard must allow questionnaire with valid configured question")
     void activationGuardMustAllowWithConfiguredQuestion() {
-        Question q1 = Question.rehydrate("q1", "Q1", ParameterizationStatus.ACTIVE, "SKU", audit());
+        Question q1 = Question.rehydrate("q_one", "Q1", ParameterizationStatus.ACTIVE, "SKU", audit());
         ConfiguredQuestion configuredQuestion = ConfiguredQuestion.createNew(
                 q1,
                 AnswerConfigurationFactory.createTextStrategy(),

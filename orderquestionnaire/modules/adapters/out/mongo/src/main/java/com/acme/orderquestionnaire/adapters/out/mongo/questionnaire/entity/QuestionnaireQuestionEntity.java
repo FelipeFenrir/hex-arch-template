@@ -1,11 +1,12 @@
 package com.acme.orderquestionnaire.adapters.out.mongo.questionnaire.entity;
 
 import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerConfiguration;
-import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionCondition;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
+
+import java.util.Map;
 
 @Document(collection = "questionnaire_questions")
 public record QuestionnaireQuestionEntity(
@@ -36,7 +37,7 @@ public record QuestionnaireQuestionEntity(
         AnswerConfiguration answerConfiguration,
 
         @Field("root_condition")
-        QuestionCondition rootCondition,
+        Map<String, Object> rootCondition,
 
         @Field("order")
         Integer order

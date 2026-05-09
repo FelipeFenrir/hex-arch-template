@@ -131,24 +131,24 @@ class QuestionnaireFactoryTest {
     @DisplayName("When composing conditions fluently with AND/OR, it should handle mixed operators")
     void shouldComposeConditionsWithMixedOperators() {
         var condition = QuestionConditionComposer
-                .condition(new NumericCondition("q1", 5, ">"))
-                .and(new NumericCondition("q1", 10, "<="))
-                .or(new NumericCondition("q2", 3, "=="))
+                .condition(new NumericCondition("q_one", 5, ">"))
+                .and(new NumericCondition("q_one", 10, "<="))
+                .or(new NumericCondition("q_two", 3, "=="))
                 .build();
 
         assertNotNull(condition);
 
         Map<String, Object> answers = new HashMap<>();
-        answers.put("q1", 8);
-        answers.put("q2", 99);
+        answers.put("q_one", 8);
+        answers.put("q_two", 99);
         assertTrue(condition.isSatisfy(answers));
 
-        answers.put("q1", 12);
-        answers.put("q2", 3);
+        answers.put("q_one", 12);
+        answers.put("q_two", 3);
         assertTrue(condition.isSatisfy(answers));
 
-        answers.put("q1", 12);
-        answers.put("q2", 99);
+        answers.put("q_one", 12);
+        answers.put("q_two", 99);
         assertFalse(condition.isSatisfy(answers));
     }
 

@@ -13,7 +13,12 @@ public record UserView(
         if (auditUser == null) {
             return null;
         }
-        return new UserView(auditUser.id().stringfyId(), auditUser.referenceCode(), auditUser.name(), auditUser.email());
+        return new UserView(
+                auditUser.id().stringfyId(),
+                auditUser.referenceCode(),
+                auditUser.name(),
+                auditUser.email()
+        );
     }
 }
 

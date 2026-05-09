@@ -18,15 +18,15 @@ class VisibilityConditionTest {
     @Test
     @DisplayName("When answer equals expected value then should satisfy")
     void shouldSatisfy() {
-        VisibilityCondition condition = new VisibilityCondition("q1", "yes");
-        assertTrue(condition.isSatisfy(Map.of("q1", "yes")));
-        assertFalse(condition.isSatisfy(Map.of("q1", "no")));
+        VisibilityCondition condition = new VisibilityCondition("q_one", "yes");
+        assertTrue(condition.isSatisfy(Map.of("q_one", "yes")));
+        assertFalse(condition.isSatisfy(Map.of("q_one", "no")));
     }
 
     @Test
     @DisplayName("When exporting tree node then type should be visibility")
     void shouldExportTreeNode() {
-        VisibilityCondition condition = new VisibilityCondition("q1", "yes");
+        VisibilityCondition condition = new VisibilityCondition("q_one", "yes");
         assertEquals("VISIBILITY", condition.toTreeNode().type());
     }
 }

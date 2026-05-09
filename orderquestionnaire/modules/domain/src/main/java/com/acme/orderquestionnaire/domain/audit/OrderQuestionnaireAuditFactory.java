@@ -7,6 +7,8 @@ import com.acme.shared.pattern.result.validation.DomainRuleRunner;
 import com.acme.shared.vo.AuditInfo;
 import com.acme.shared.vo.AuditUser;
 import com.acme.shared.vo.Id;
+import com.acme.shared.vo.AuditReferenceCode;
+import com.acme.shared.vo.EmailAddress;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -31,7 +33,12 @@ public final class OrderQuestionnaireAuditFactory {
         return validateUser(id, name,
                 AuditInfoValidationRules.questionnaireUserIdRules(),
                 AuditInfoValidationRules.questionnaireUserNameRules())
-                .map(__ -> new OrderQuestionnaireAuditUser(id, referenceCode, name, email));
+                .map(__ -> new OrderQuestionnaireAuditUser(
+                        id,
+                        AuditReferenceCode.of(referenceCode),
+                        name,
+                        toOptionalEmailAddress(email)
+                ));
     }
 
     public static Result<AuditUser, List<DomainError>> userForQuestion(
@@ -43,7 +50,12 @@ public final class OrderQuestionnaireAuditFactory {
         return validateUser(id, name,
                 AuditInfoValidationRules.questionUserIdRules(),
                 AuditInfoValidationRules.questionUserNameRules())
-                .map(__ -> new OrderQuestionnaireAuditUser(id, referenceCode, name, email));
+                .map(__ -> new OrderQuestionnaireAuditUser(
+                        id,
+                        AuditReferenceCode.of(referenceCode),
+                        name,
+                        toOptionalEmailAddress(email)
+                ));
     }
 
     public static Result<AuditInfo, List<DomainError>> createNew(
@@ -112,7 +124,12 @@ public final class OrderQuestionnaireAuditFactory {
             errors.addAll(userValidation.errorOrElseThrow(() -> new IllegalStateException("Expected failure result")));
         }
         return errors.isEmpty()
-                ? Result.success(new OrderQuestionnaireAuditUser(id, referenceCode, name, email))
+                ? Result.success(new OrderQuestionnaireAuditUser(
+                        id,
+                        AuditReferenceCode.of(referenceCode),
+                        name,
+                        toOptionalEmailAddress(email)
+                ))
                 : Result.failure(errors);
     }
 
@@ -134,7 +151,12 @@ public final class OrderQuestionnaireAuditFactory {
             errors.addAll(userValidation.errorOrElseThrow(() -> new IllegalStateException("Expected failure result")));
         }
         return errors.isEmpty()
-                ? Result.success(new OrderQuestionnaireAuditUser(id, referenceCode, name, email))
+                ? Result.success(new OrderQuestionnaireAuditUser(
+                        id,
+                        AuditReferenceCode.of(referenceCode),
+                        name,
+                        toOptionalEmailAddress(email)
+                ))
                 : Result.failure(errors);
     }
 
@@ -155,8 +177,24 @@ public final class OrderQuestionnaireAuditFactory {
         if (!errors.isEmpty()) {
             return Result.failure(errors);
         }
-        AuditUser createdBy = new OrderQuestionnaireAuditUser(id, referenceCode, name, email);
+        AuditUser createdBy = new OrderQuestionnaireAuditUser(
+                id,
+                AuditReferenceCode.of(referenceCode),
+                name,
+                toOptionalEmailAddress(email)
+        );
         return Result.success(new OrderQuestionnaireAuditInfo(createdBy, createdAt, null, null));
+    }
+
+    private static EmailAddress toOptionalEmailAddress(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        try {
+            return EmailAddress.of(email);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     private static Result<Void, List<DomainError>> validateUser(

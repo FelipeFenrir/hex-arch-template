@@ -56,7 +56,7 @@ class QuestionFactoryMutationTest {
     @DisplayName("rehydrate keeps provided status on success")
     void shouldKeepProvidedStatusOnRehydrate() {
         var question = unwrapQuestion(unwrapRehydratedBuilder(
-                QuestionFactory.rehydrate("q-2", "Question 2", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit())
+                QuestionFactory.rehydrate("q_two", "Question 2", ParameterizationStatus.ACTIVE, "SALE", AuditTestData.createdAudit())
         ).build());
         assertEquals(ParameterizationStatus.ACTIVE, question.status());
     }

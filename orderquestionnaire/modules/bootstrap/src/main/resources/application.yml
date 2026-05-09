@@ -54,6 +54,35 @@ acme:
 
 orderquestionnaire:
   adapters:
+    in:
+      api-rest:
+        cors:
+          question:
+            search:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTION_SEARCH_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            create:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTION_CREATE_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            update:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTION_UPDATE_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            delete-by-id:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTION_DELETE_BY_ID_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            delete-batch:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTION_DELETE_BATCH_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            get-by-id:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTION_GET_BY_ID_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+          questionnaire:
+            search:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTIONNAIRE_SEARCH_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            create:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTIONNAIRE_CREATE_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            update:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTIONNAIRE_UPDATE_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            delete-by-id:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTIONNAIRE_DELETE_BY_ID_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            delete-batch:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTIONNAIRE_DELETE_BATCH_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
+            get-by-id:
+              allowed-origin-pattern: ${ORDERQUESTIONNAIRE_CORS_QUESTIONNAIRE_GET_BY_ID_ALLOWED_ORIGIN_PATTERN:http://localhost:*}
     out:
       channel-distribution:
         provider: ${ORDERQUESTIONNAIRE_CHANNEL_DISTRIBUTION_PROVIDER:MONGO}

@@ -7,6 +7,7 @@ import com.acme.orderquestionnaire.domain.questionnaire.tree.AnswerConfiguration
 import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionConditionTreeNode;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
+import com.acme.shared.vo.QuestionId;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -80,7 +81,9 @@ public final class ViolationViewExtractor {
             attrs.putAll(treeNode.attributes());
 
             // Collect inactive referenced questions and their statuses
-            Set<String> referencedIds = cq.rootCondition().referencedQuestionIds();
+            Set<String> referencedIds = cq.rootCondition().referencedQuestionIds().stream()
+                    .map(QuestionId::value)
+                    .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
             Map<String, String> inactiveStatuses = referencedIds.stream()
                     .filter(id -> {
                         ConfiguredQuestion ref = configuredByQuestionId.get(id);
