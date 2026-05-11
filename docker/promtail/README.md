@@ -12,6 +12,16 @@ Agente de coleta de logs para envio ao Loki.
 - Logs do `security-server` rodando no host
 - Logs do `orderquestionnaire` rodando no host
 
+## Pipeline normalizado
+
+O pipeline atual faz parse do JSON de log para:
+
+- reaproveitar o campo `timestamp` da aplicacao como timestamp do Loki
+- promover apenas `level` como label
+- manter `correlationId` e `flowId` fora de labels para evitar alta cardinalidade
+
+Os filtros por `correlationId` e `flowId` sao aplicados no Grafana via query, nao por indexacao no Loki.
+
 ## Volumes montados no compose
 
 - `/var/lib/docker/containers` (read-only)

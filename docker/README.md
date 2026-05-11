@@ -181,6 +181,16 @@ docker volume rm docker_grafana_data  # estado do Grafana
 4. `promtail` envia logs para `loki`.
 5. `grafana` consulta `prometheus`, `loki` e `tempo` com datasources pre-provisionados.
 
+## Logs no Grafana
+
+O dashboard de logs provisionado em `docker/grafana/dashboards/logs-json-loki.json` foi ajustado para melhorar a leitura de logs JSON das aplicacoes.
+
+- o filtro de data/hora usa o `timestamp` original do log da aplicacao
+- a exibicao prioriza o conteudo do campo `message`/`formattedMessage`
+- filtros por `correlationId` e `flowId` sao feitos na query do Loki, sem transformar esses campos em labels
+
+Essa abordagem suporta simultaneamente logs do `security-server` e do `orderquestionnaire` sem aumentar a cardinalidade de indices no Loki.
+
 ## Dicas rapidas de troubleshooting
 
 ```powershell

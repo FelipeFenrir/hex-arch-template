@@ -21,6 +21,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
 
     implementation "org.bouncycastle:bcprov-jdk18on:${bcprovJdk18onVersion}"
+    implementation "net.logstash.logback:logstash-logback-encoder:${logstashEncoderVersion}"
 
     // Apenas regras de negócio puras, sem dependências de frameworks
     compileOnly "org.projectlombok:lombok:${lombokVersion}"

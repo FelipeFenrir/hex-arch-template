@@ -9,10 +9,18 @@ Ponto central de entrada de telemetria (OTLP) no ambiente local.
 ## Pipeline configurado
 
 - Receiver OTLP via gRPC e HTTP
-- Processor `batch`
+- Processors:
+  - `memory_limiter` (protege o collector contra pressao de memoria)
+  - `resource/local` (enriquece telemetria com metadados comuns)
+  - `batch` (agrupar envios para melhor eficiencia)
 - Exporters:
   - traces -> `tempo` (OTLP HTTP)
   - metrics -> endpoint Prometheus interno (`:9464`)
+
+## Metadados adicionados pelo collector
+
+- `deployment.environment.name=local` (upsert)
+- `service.namespace=acme` (insert se ausente no sinal original)
 
 ## Uso no compose
 

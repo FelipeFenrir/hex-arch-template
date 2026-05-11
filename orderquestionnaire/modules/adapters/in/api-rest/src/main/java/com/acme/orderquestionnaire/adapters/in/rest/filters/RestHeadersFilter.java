@@ -1,5 +1,6 @@
 package com.acme.orderquestionnaire.adapters.in.rest.filters;
 
+import com.acme.observability.TraceContextPropagator;
 import com.acme.shared.constants.HeaderConstants;
 import com.acme.shared.observability.CorrelationContext;
 import jakarta.servlet.FilterChain;
@@ -39,11 +40,15 @@ public class RestHeadersFilter extends HttpFilter {
             res.setHeader(HeaderConstants.FLOW_HEADER, flowId);
         }
 
+        TraceContextPropagator.populateBaggageFromContext();
+        TraceContextPropagator.extractTraceContextToMdc();
+
         try {
             CorrelationContext.populate(correlationId, flowId);
             chain.doFilter(req, res);
         } finally {
             CorrelationContext.clear();
+            TraceContextPropagator.clearTraceContext();
         }
     }
 

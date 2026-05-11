@@ -5,7 +5,7 @@
   "tags": ["local", "logs"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 5,
   "refresh": "10s",
   "time": {
 	"from": "now-1h",
@@ -43,6 +43,34 @@
 		"includeAll": false,
 		"multi": false,
 		"current": { "selected": true, "text": ".+", "value": ".+" }
+	  },
+	  {
+		"name": "correlationId",
+		"label": "Correlation ID (regex/text)",
+		"type": "textbox",
+		"query": ".*",
+		"current": { "selected": false, "text": ".*", "value": ".*" }
+	  },
+	  {
+		"name": "flowId",
+		"label": "Flow ID (regex/text)",
+		"type": "textbox",
+		"query": ".*",
+		"current": { "selected": false, "text": ".*", "value": ".*" }
+	  },
+	  {
+		"name": "traceId",
+		"label": "Trace ID (regex/text)",
+		"type": "textbox",
+		"query": ".*",
+		"current": { "selected": false, "text": ".*", "value": ".*" }
+	  },
+	  {
+		"name": "spanId",
+		"label": "Span ID (regex/text)",
+		"type": "textbox",
+		"query": ".*",
+		"current": { "selected": false, "text": ".*", "value": ".*" }
 	  }
 	]
   },
@@ -56,7 +84,7 @@
 	  "targets": [
 		{
 		  "refId": "A",
-		  "expr": "{app=~\"$app\",mode=~\"$mode\"} | json | line_format \"{{.message}}\" | level=~\"$level\""
+		  "expr": "{app=~\"$app\",mode=~\"$mode\",level=~\"$level\"} |~ \"$correlationId\" |~ \"$flowId\" |~ \"$traceId\" |~ \"$spanId\" | json | line_format \"{{ if .message }}{{ .message }}{{ else if .formattedMessage }}{{ .formattedMessage }}{{ else }}{{ __line__ }}{{ end }}\""
 		}
 	  ],
 	  "options": {

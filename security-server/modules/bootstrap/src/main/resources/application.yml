@@ -40,7 +40,7 @@ management:
 otel:
   exporter:
     otlp:
-      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://host.docker.internal:4317}
   resource:
     attributes: service.name=security-server,service.namespace=acme
 

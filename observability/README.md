@@ -14,6 +14,7 @@ Pacotes principais em `src/main/java/com/acme/observability`:
 
 - `Loggable`: anotacao para marcar pontos de log
 - `LoggingAspect`: aspecto que registra `method.start`, `method.success`, `method.error`
+- `TraceContextPropagator`: extrai `traceId` e `spanId` do contexto OpenTelemetry para MDC
 - `LogSanitizer`: mascara campos sensiveis e trunca payloads grandes
 - `config/ObservabilityAutoConfiguration`: auto-configuracao da biblioteca
 - `config/ObservabilityLoggingProperties`: propriedades do prefixo `acme.observability.logging`
@@ -103,6 +104,18 @@ Use o wrapper Gradle da raiz do repositorio (`hex-arch-template/`):
 - Em fluxos sensiveis, evite logar payload bruto completo.
 - Mantenha `correlationId` e `flowId` no formato final de log.
 
+## Distributed Tracing (OpenTelemetry + W3C)
+
+Para implementar distributed tracing em uma nova aplicacao, siga o padrão descrito em:
+
+📖 **[`docs/DistributedTracing.md`](docs/DistributedTracing.md)**
+
+Resumo:
+1. Logback estruturado com `traceId` e `spanId`
+2. Servlet filter que popula `CorrelationContext` e `TraceContextPropagator`
+3. OpenTelemetry propagacao automatica via W3C headers
+4. Visualizacao em Grafana: traces, logs correlacionados, service map
+
 ## Exemplo de `logback-spring.xml`
 
 
@@ -120,7 +133,7 @@ Use o wrapper Gradle da raiz do repositorio (`hex-arch-template/`):
                     <timeZone>UTC</timeZone>
                 </timestamp>
                 <pattern>
-                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}"}</pattern>
+                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}","traceId":"%mdc{traceId:-unknown}","spanId":"%mdc{spanId:-unknown}"}</pattern>
                 </pattern>
                 <message/>
                 <mdc>
@@ -149,7 +162,7 @@ Use o wrapper Gradle da raiz do repositorio (`hex-arch-template/`):
                     <timeZone>UTC</timeZone>
                 </timestamp>
                 <pattern>
-                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}"}</pattern>
+                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}","traceId":"%mdc{traceId:-unknown}","spanId":"%mdc{spanId:-unknown}"}</pattern>
                 </pattern>
                 <message/>
                 <mdc>
@@ -170,4 +183,4 @@ Use o wrapper Gradle da raiz do repositorio (`hex-arch-template/`):
 </configuration>
 ```
 
-Observacao: `correlationId` e `flowId` continuam presentes no log (campos de topo via `<pattern>`). O bloco `<mdc>` com `excludeMdcKeyName` evita apenas duplicacao dessas duas chaves dentro do objeto `mdc`.
+Observacao: `correlationId`, `flowId`, `traceId` e `spanId` continuam presentes no log (campos de topo via `<pattern>`). O bloco `<mdc>` com `excludeMdcKeyName` evita apenas duplicacao dessas duas chaves dentro do objeto `mdc`.
