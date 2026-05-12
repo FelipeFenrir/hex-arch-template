@@ -47,6 +47,16 @@
 - Logs are JSON via `orderquestionnaire/modules/bootstrap/src/main/resources/logback-spring.xml` + `modules/observability/LoggingAspect.java` (`@Loggable`).
 - Local AWS emulation uses MiniStack (`sqs,sns` via port `4566`); `docker/aws-manager` is present but its service is commented out in compose.
 
+## Security Server Notes
+- `security-server` pode ser usado de duas formas: como build independente dentro da pasta `security-server/` e como build incluido no composite root via `includeBuild('security-server')`.
+- A execucao local principal do modulo segue a configuracao de bootstrap em `security-server/modules/bootstrap` e a run configuration `runs/security-server[standalone execution].run.xml` aponta para `:modules:bootstrap:bootRun` dentro da raiz `security-server`.
+- O arquivo `security-server/modules/bootstrap/src/main/resources/application.yml` e a base de configuracao local do app (porta, Mongo, Thymeleaf, actuator e OTLP).
+- Para fluxos OAuth/OIDC em navegador com `oidcdebugger`, o `state` precisa atravessar login/consentimento sem ser alterado manualmente; o parametro `continue` pode aparecer no fluxo do Authorization Server e nao deve ser adicionado na mao.
+- Em `Authorization Code`, o `redirect_uri` precisa bater com o valor cadastrado no cliente e o fluxo passa por login + consentimento antes do redirect final.
+- Em `client_credentials`, o foco e o endpoint de token e as credenciais do cliente; nao ha tela de consentimento, e `redirect_uri` normalmente nao faz parte do fluxo.
+- Para testes com Bruno, trate `Authorization Code` como fluxo orientado a navegador e `client_credentials` como fluxo direto de API; use o primeiro para validar login/consentimento e o segundo para validar emissao de token e escopos.
+- Se surgir `invalid_request` relacionado a `state` ou a retorno para `/error`, valide primeiro a combinacao entre `client_id`, `redirect_uri`, `scope`, `state` e a URL final gerada pelo Authorization Server.
+
 ## Known Repository State (important before changing code)
 - Several adapters/features are scaffolded or commented out (examples: `PersonController`, `RestHeadersFilter`, gRPC interceptor, mongo config).
 - `orderquestionnaire/modules/adapters/in/api-grpc`, `orderquestionnaire/modules/adapters/in/queue-sqs`, and `orderquestionnaire/modules/adapters/out/cloud-aws` are scaffold-oriented directories (`README.md`/`docs`/`src`) and currently do not have their own `build.gradle`.
@@ -55,7 +65,7 @@
 - `Taskfile.yml` has working `build`/`test`/`up`/`down` shortcuts, but `docker:build` still points to legacy root `modules/bootstrap`; prefer service-specific bootstrap directories when building images.
 - `scripts/*.sh` and `scripts/*.bat` exist but are empty; prefer `Taskfile.yml`, `makefile`, or direct Gradle/Docker commands.
 - `runs/security-server[integration test].run.xml` and `makefile` target integration tasks (`integrationTest`), and `runs/security-server[integration coverage].run.xml` calls `:modules:bootstrap:jacocoIntegrationTestReport`; these tasks are not explicitly declared in current Gradle scripts.
-- `runs/Run Message Manager.run.xml` points to `docker/message-manager`; current compose/runtime assets are `docker/stackport` (active) and `docker/aws-manager` (present but commented in compose).
+- `runs/Run Message Manager.run.xml` is deprecated and still points to removed `docker/message-manager`; current compose/runtime assets are `docker/stackport` (active) and `docker/aws-manager` (present but commented in compose).
 - Root `clean test` currently fails with a circular task dependency at `:modules:application:personmdm`; for orderquestionnaire changes, use focused composite tasks (for example `:orderquestionnaire:modules:domain:test`).
 - `purefilter` is a standalone Gradle build in the workspace (`purefilter/settings.gradle`) but is not included from root `settings.gradle`; root Gradle tasks do not cover it.
 - `docker/docker-compose.yml` provides an optional `app` container under profile `app-container`; default local flow still runs apps from IDE/Gradle unless that profile is explicitly enabled.

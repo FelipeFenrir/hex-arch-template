@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
 
+import json
+
 from ..clients import build_sqs_client
 from ..services import filter_messages, list_available_queues
 
@@ -16,6 +18,117 @@ def monitor_queues():
         return jsonify({"queues": list_available_queues()})
     except Exception as exc:
         return jsonify({"queues": [], "error": str(exc)}), 500
+
+
+@sqs_api_blueprint.route("/api/sqs/queues", methods=["GET"])
+def sqs_list_queues_api():
+    try:
+        return jsonify({"queues": list_available_queues()})
+    except Exception as exc:
+        return jsonify({"queues": [], "error": str(exc)}), 500
+
+
+@sqs_api_blueprint.route("/api/sqs/queues", methods=["POST"])
+def sqs_create_queue_api():
+    body = request.json or {}
+    queue_name = str(body.get("queueName") or "").strip()
+    is_fifo = bool(body.get("isFifo"))
+    content_based_dedup = bool(body.get("contentBasedDeduplication"))
+
+    if not queue_name:
+        return jsonify({"status": "invalid", "error": "queueName is required"}), 400
+
+    if is_fifo and not queue_name.endswith(".fifo"):
+        return jsonify({"status": "invalid", "error": "FIFO queue name must end with .fifo"}), 400
+
+    attributes = {}
+    if is_fifo:
+        attributes["FifoQueue"] = "true"
+        if content_based_dedup:
+            attributes["ContentBasedDeduplication"] = "true"
+
+    try:
+        sqs = build_sqs_client()
+        response = sqs.create_queue(QueueName=queue_name, Attributes=attributes) if attributes else sqs.create_queue(QueueName=queue_name)
+        return jsonify({"status": "created", "queueName": queue_name, "queueUrl": response.get("QueueUrl", "-")})
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
+
+@sqs_api_blueprint.route("/api/sqs/queues/<queue_name>", methods=["GET"])
+def sqs_queue_detail_api(queue_name: str):
+    try:
+        sqs = build_sqs_client()
+        queue_url = sqs.get_queue_url(QueueName=queue_name)["QueueUrl"]
+        attrs = sqs.get_queue_attributes(
+            QueueUrl=queue_url,
+            AttributeNames=[
+                "All",
+            ],
+        ).get("Attributes", {})
+        return jsonify({"queueName": queue_name, "queueUrl": queue_url, "attributes": attrs})
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
+
+@sqs_api_blueprint.route("/api/sqs/queues/<queue_name>", methods=["DELETE"])
+def sqs_delete_queue_api(queue_name: str):
+    try:
+        sqs = build_sqs_client()
+        queue_url = sqs.get_queue_url(QueueName=queue_name)["QueueUrl"]
+        sqs.delete_queue(QueueUrl=queue_url)
+        return jsonify({"status": "deleted", "queueName": queue_name})
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
+
+@sqs_api_blueprint.route("/api/sqs/queues/<queue_name>/messages", methods=["GET"])
+def sqs_receive_messages_api(queue_name: str):
+    max_messages = int(request.args.get("maxMessages", 10))
+    max_messages = max(1, min(max_messages, 10))
+
+    try:
+        sqs = build_sqs_client()
+        queue_url = sqs.get_queue_url(QueueName=queue_name)["QueueUrl"]
+        response = sqs.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=max_messages,
+            AttributeNames=["All"],
+            MessageAttributeNames=["All"],
+            VisibilityTimeout=1,
+            WaitTimeSeconds=1,
+        )
+        return jsonify({"messages": response.get("Messages", [])})
+    except Exception as exc:
+        return jsonify({"messages": [], "error": str(exc)}), 500
+
+
+@sqs_api_blueprint.route("/api/sqs/queues/<queue_name>/messages", methods=["POST"])
+def sqs_send_message_api(queue_name: str):
+    body = request.json or {}
+    payload = body.get("body") or {}
+    headers = body.get("headers") or {}
+
+    if not isinstance(payload, dict):
+        return jsonify({"status": "invalid", "error": "body must be a JSON object"}), 400
+    if not isinstance(headers, dict):
+        return jsonify({"status": "invalid", "error": "headers must be a JSON object"}), 400
+
+    message_attributes = {
+        key: {"StringValue": str(value), "DataType": "String"} for key, value in headers.items()
+    }
+
+    try:
+        sqs = build_sqs_client()
+        queue_url = sqs.get_queue_url(QueueName=queue_name)["QueueUrl"]
+        response = sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody=json.dumps(payload),
+            MessageAttributes=message_attributes,
+        )
+        return jsonify({"status": "sent", "messageId": response.get("MessageId", "-")})
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
 
 
 @sqs_api_blueprint.route("/monitor/available-queues", methods=["GET"])

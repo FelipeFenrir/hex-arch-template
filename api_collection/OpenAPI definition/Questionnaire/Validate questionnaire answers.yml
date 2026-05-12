@@ -1,0 +1,226 @@
+info:
+  name: Validate questionnaire answers
+  type: http
+  seq: 3
+  tags:
+    - Questionnaire
+
+http:
+  method: POST
+  url: "{{baseUrl}}/api/v1/questionnaires/validate-answers"
+  body:
+    type: json
+    data: |-
+      {
+        "questionnaireId": "questionnaire_checkout",
+        "channelDistributionId": "mobile_acmeapp",
+        "journeyDistributionId": "journey_vendaavulsaacme",
+        "answers": {
+          "q_name": "felipe",
+          "q_consent": "sim",
+          "q_age": 18,
+          "q_cor_carro": "red"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Valid (all answers correct)
+    description: Questionnaire answers validated successfully
+    request:
+      url: "{{baseUrl}}/api/v1/questionnaires/validate-answers"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "questionnaireId": "q_satisfaction",
+            "channelDistributionId": "app_mobile",
+            "journeyDistributionId": "journey_feedback",
+            "answers": {
+              "q_satisfaction_level": 8,
+              "q_recommend": "yes"
+            }
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: "*/*"
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "questionnaireId": "q_satisfaction",
+              "channelDistributionId": "app_mobile",
+              "journeyDistributionId": "journey_feedback",
+              "valid": true,
+              "violationsByQuestionId": {}
+            }
+          }
+  - name: 200 Invalid (answer out of range)
+    description: Questionnaire answers validation failed with violations
+    request:
+      url: "{{baseUrl}}/api/v1/questionnaires/validate-answers"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "questionnaireId": "q_satisfaction",
+            "channelDistributionId": "app_mobile",
+            "journeyDistributionId": "journey_feedback",
+            "answers": {
+              "q_satisfaction_level": 15,
+              "q_recommend": "maybe"
+            }
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: "*/*"
+      body:
+        type: json
+        data: |-
+          {
+            "data": {
+              "questionnaireId": "q_satisfaction",
+              "channelDistributionId": "app_mobile",
+              "journeyDistributionId": "journey_feedback",
+              "valid": false,
+              "violationsByQuestionId": {
+                "q_satisfaction_level": {
+                  "questionId": "q_satisfaction_level",
+                  "questionLabel": "How satisfied are you?",
+                  "order": 1,
+                  "providedAnswer": 15,
+                  "violations": [
+                    {
+                      "code": "ANSWER_OUT_OF_RANGE",
+                      "message": "Value must be between 0 and 10",
+                      "source": "ANSWER_CONFIGURATION",
+                      "ruleType": "NUMBER_RANGE",
+                      "ruleAttributes": {
+                        "min": 0,
+                        "max": 10,
+                        "inclusiveMin": true,
+                        "inclusiveMax": true,
+                        "providedValue": 15
+                      },
+                      "rulePath": "answerConfiguration"
+                    }
+                  ]
+                },
+                "q_recommend": {
+                  "questionId": "q_recommend",
+                  "questionLabel": "Would you recommend us?",
+                  "order": 2,
+                  "providedAnswer": "maybe",
+                  "violations": [
+                    {
+                      "code": "ANSWER_OPTION_INVALID",
+                      "message": "Option selected is invalid",
+                      "source": "ANSWER_CONFIGURATION",
+                      "ruleType": "OPTION_LIST_INVALID",
+                      "ruleAttributes": {
+                        "providedValue": "maybe",
+                        "validOptions": ["yes", "no"],
+                        "optionCount": 2
+                      },
+                      "rulePath": "answerConfiguration.options[0]"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+  - name: 400 Bad Request (invalid payload)
+    description: Request body is malformed or missing required fields
+    request:
+      url: "{{baseUrl}}/api/v1/questionnaires/validate-answers"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "questionnaireId": "",
+            "answers": {}
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "about:blank",
+            "title": "Validation error",
+            "status": 400,
+            "code": "VAL-001",
+            "detail": "One or more fields are invalid.",
+            "instance": "/api/v1/questionnaires/validate-answers",
+            "errors": [
+              {
+                "field": "questionnaireId",
+                "message": "must not be blank"
+              },
+              {
+                "field": "channelDistributionId",
+                "message": "must not be blank"
+              },
+              {
+                "field": "journeyDistributionId",
+                "message": "must not be blank"
+              }
+            ]
+          }
+  - name: 404 Not Found (questionnaire does not exist)
+    description: Questionnaire not found for the given composite key
+    request:
+      url: "{{baseUrl}}/api/v1/questionnaires/validate-answers"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "questionnaireId": "nonexistent",
+            "channelDistributionId": "app_mobile",
+            "journeyDistributionId": "journey_unknown",
+            "answers": {}
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/problem+json
+      body:
+        type: json
+        data: |-
+          {
+            "type": "about:blank",
+            "title": "Resource not found",
+            "status": 404,
+            "code": "DOM-013",
+            "detail": "questionnaire 'nonexistent' was not found",
+            "instance": "/api/v1/questionnaires/validate-answers",
+            "errors": [
+              {
+                "code": "DOM-013",
+                "message": "questionnaire 'nonexistent' was not found"
+              }
+            ]
+          }

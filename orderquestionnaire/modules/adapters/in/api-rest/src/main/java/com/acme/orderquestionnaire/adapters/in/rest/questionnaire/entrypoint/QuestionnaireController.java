@@ -11,9 +11,11 @@ import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.Delete
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.QuestionnaireCompositeKeyRequest;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.SearchQuestionnaireRequest;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.UpdateQuestionnaireRequest;
+import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.ValidateQuestionnaireAnswersRequest;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.response.DeleteQuestionnaireResponse;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.response.DeleteQuestionnairesResponse;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.response.QuestionnaireResponse;
+import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.response.ValidateQuestionnaireAnswersResponse;
 import com.acme.orderquestionnaire.application.common.QueryHandler;
 import com.acme.orderquestionnaire.application.questionnaire.dto.command.DeleteQuestionnaireCommand;
 import com.acme.orderquestionnaire.application.questionnaire.dto.queries.GetQuestionnaireById;
@@ -23,6 +25,7 @@ import com.acme.orderquestionnaire.application.questionnaire.error.Questionnaire
 import com.acme.orderquestionnaire.application.questionnaire.port.in.usecase.CreateQuestionnaireUseCase;
 import com.acme.orderquestionnaire.application.questionnaire.port.in.usecase.DeleteQuestionnaireUseCase;
 import com.acme.orderquestionnaire.application.questionnaire.port.in.usecase.UpdateQuestionnaireUseCase;
+import com.acme.orderquestionnaire.application.questionnaire.port.in.usecase.ValidateQuestionnaireAnswersUseCase;
 import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionnaireId;
 import com.acme.shared.constants.HeaderConstants;
 import com.acme.shared.engine.pagination.PageMode;
@@ -62,6 +65,7 @@ public class QuestionnaireController implements QuestionnaireApi {
     private final CreateQuestionnaireUseCase createQuestionnaireUseCase;
     private final UpdateQuestionnaireUseCase updateQuestionnaireUseCase;
     private final DeleteQuestionnaireUseCase deleteQuestionnaireUseCase;
+    private final ValidateQuestionnaireAnswersUseCase validateQuestionnaireAnswersUseCase;
     private final QueryHandler<GetQuestionnaireById, Optional<QuestionnaireView>> getQuestionnaireByIdQueryHandler;
     private final QueryHandler<SearchQuestionnaireByFilter, PageResult<QuestionnaireView>> searchQuestionnaireByFilterQueryHandler;
 
@@ -69,6 +73,7 @@ public class QuestionnaireController implements QuestionnaireApi {
             CreateQuestionnaireUseCase createQuestionnaireUseCase,
             UpdateQuestionnaireUseCase updateQuestionnaireUseCase,
             DeleteQuestionnaireUseCase deleteQuestionnaireUseCase,
+            ValidateQuestionnaireAnswersUseCase validateQuestionnaireAnswersUseCase,
             @Qualifier("getQuestionnaireByIdQueryHandler")
             QueryHandler<GetQuestionnaireById, Optional<QuestionnaireView>> getQuestionnaireByIdQueryHandler,
             @Qualifier("searchQuestionnaireByFilterQueryHandler")
@@ -80,6 +85,8 @@ public class QuestionnaireController implements QuestionnaireApi {
                 "updateQuestionnaireUseCase must not be null");
         this.deleteQuestionnaireUseCase = Objects.requireNonNull(deleteQuestionnaireUseCase,
                 "deleteQuestionnaireUseCase must not be null");
+        this.validateQuestionnaireAnswersUseCase = Objects.requireNonNull(validateQuestionnaireAnswersUseCase,
+                "validateQuestionnaireAnswersUseCase must not be null");
         this.getQuestionnaireByIdQueryHandler = Objects.requireNonNull(getQuestionnaireByIdQueryHandler,
                 "getQuestionnaireByIdQueryHandler must not be null");
         this.searchQuestionnaireByFilterQueryHandler = Objects.requireNonNull(searchQuestionnaireByFilterQueryHandler,
@@ -175,6 +182,22 @@ public class QuestionnaireController implements QuestionnaireApi {
         }
 
         return ResponseEntity.ok(ApiDataResponse.of(QuestionnaireResponse.from(found.get())));
+    }
+
+    @Override
+    @CrossOrigin(
+            originPatterns = CREATE_ALLOWED_ORIGIN_PATTERN,
+            allowedHeaders = "*",
+            exposedHeaders = {HeaderConstants.CORRELATION_HEADER, HeaderConstants.FLOW_HEADER},
+            methods = RequestMethod.POST,
+            maxAge = 3600
+    )
+    public ResponseEntity<ApiDataResponse<ValidateQuestionnaireAnswersResponse>> validateAnswers(
+            @Valid @RequestBody ValidateQuestionnaireAnswersRequest request) {
+        return validateQuestionnaireAnswersUseCase.execute(request.toCommand()).fold(
+                success -> ResponseEntity.ok(ApiDataResponse.of(ValidateQuestionnaireAnswersResponse.from(success))),
+                this::asDomainFailure
+        );
     }
 
     @Override

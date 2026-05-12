@@ -7,9 +7,11 @@ import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.Delete
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.QuestionnaireCompositeKeyRequest;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.SearchQuestionnaireRequest;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.UpdateQuestionnaireRequest;
+import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.request.ValidateQuestionnaireAnswersRequest;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.response.DeleteQuestionnaireResponse;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.response.DeleteQuestionnairesResponse;
 import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.response.QuestionnaireResponse;
+import com.acme.orderquestionnaire.adapters.in.rest.questionnaire.response.ValidateQuestionnaireAnswersResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -90,6 +92,23 @@ public interface QuestionnaireApi {
     ResponseEntity<ApiDataResponse<QuestionnaireResponse>> getById(
             @PathVariable("id") String id,
             @Valid @ModelAttribute QuestionnaireCompositeKeyRequest key
+    );
+
+    @Operation(summary = "Validate questionnaire answers")
+    @ApiResponse(responseCode = "200", description = "Validation completed (returns valid=true or valid=false with violations)")
+    @ApiResponse(
+            responseCode = "400",
+            description = "Validation error in request payload",
+            content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "Questionnaire not found",
+            content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+    )
+    @PostMapping("/validate-answers")
+    ResponseEntity<ApiDataResponse<ValidateQuestionnaireAnswersResponse>> validateAnswers(
+            @Valid @RequestBody ValidateQuestionnaireAnswersRequest request
     );
 
     @Operation(summary = "Search questionnaires with page or cursor pagination")

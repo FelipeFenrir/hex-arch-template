@@ -9,7 +9,7 @@
     </envs>
     <option name="SDK_HOME" value="" />
     <option name="SDK_NAME" value="Python 3.13 (hex-arch-template)" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/docker/message-manager" />
+    <option name="WORKING_DIRECTORY" value="D:\Projetos\hex-arch-template\docker\aws-manager" />
     <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
@@ -24,7 +24,7 @@
       </ENTRIES>
     </EXTENSION>
     <option name="RUN_TOOL" value="" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/docker/message-manager/app.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/docker/aws-manager/app.py" />
     <option name="PARAMETERS" value="" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
