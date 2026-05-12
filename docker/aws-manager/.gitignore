@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# Node / UI (ui/)
+node_modules/
+ui/node_modules/
+ui/dist/
+ui/.vite/
+*.tsbuildinfo
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.coveragerc
+
+# Mypy / type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# IDE / editors
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local env / secrets
+*.env
+.env.*
+!.env.example
+
+# Docker
+*.pid
+
+
