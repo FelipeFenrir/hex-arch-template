@@ -38,9 +38,10 @@ services:
       LS_LOG: info
     ports:
       - "4566:4566"
-    volumes:
-      # Mount a local shell script to be executed once the container starts
-      - ./ministack/init-resources.sh:/etc/ministack/init/ready.d/init-resources.sh
+#    volumes:
+#      # Mount a local shell script to be executed once the container starts
+#      - ./ministack/init-resources.sh:/etc/ministack/init/ready.d/init-resources.sh
+    # Resourcer inicialization is now handled via terraform (with script apply-local.sh) to ensure idempotency and better control over resource state.
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4566/_ministack/health')" ]
       interval: 5s

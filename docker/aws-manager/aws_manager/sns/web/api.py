@@ -3,7 +3,13 @@ import json
 from flask import Blueprint, jsonify, request
 
 from ..clients import build_sns_client
-from ..services import get_topic_arn_by_name, list_available_topics, list_topic_subscriptions
+from ..services import (
+    get_topic_arn_by_name,
+    get_topic_runtime_summary,
+    list_available_topics,
+    list_topic_subscriptions,
+    update_topic_runtime_attributes,
+)
 from ...sqs.services import ensure_sqs_policy_for_sns_subscription, get_queue_info_by_name
 
 sns_api_blueprint = Blueprint("sns_api", __name__)
@@ -58,14 +64,55 @@ def sns_create_topic_api():
 
 @sns_api_blueprint.route("/api/sns/topics/<topic_name>", methods=["DELETE"])
 def sns_delete_topic_api(topic_name: str):
-    topic_arn = get_topic_arn_by_name(topic_name)
-    if not topic_arn:
-        return jsonify({"status": "error", "error": f"Topico '{topic_name}' nao encontrado"}), 404
+    force = str(request.args.get("force") or "false").strip().lower() in {"1", "true", "yes", "y"}
 
     try:
+        summary = get_topic_runtime_summary(topic_name)
+        if not summary:
+            return jsonify({"status": "error", "error": f"Topico '{topic_name}' nao encontrado"}), 404
+
+        if bool(summary.get("hasActiveSubscriptions")) and not force:
+            return (
+                jsonify(
+                    {
+                        "status": "blocked",
+                        "error": "Topico possui subscriptions ativas. Confirme a exclusao forcada.",
+                        "requiresConfirmation": True,
+                        "topic": summary,
+                    }
+                ),
+                409,
+            )
+
+        topic_arn = str(summary.get("arn"))
         sns = build_sns_client(topic_arn)
         sns.delete_topic(TopicArn=topic_arn)
         return jsonify({"status": "deleted", "topicName": topic_name})
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
+
+@sns_api_blueprint.route("/api/sns/topics/<topic_name>/summary", methods=["GET"])
+def sns_topic_summary_api(topic_name: str):
+    try:
+        summary = get_topic_runtime_summary(topic_name)
+        if not summary:
+            return jsonify({"status": "error", "error": f"Topico '{topic_name}' nao encontrado"}), 404
+        return jsonify(summary)
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
+
+@sns_api_blueprint.route("/api/sns/topics/<topic_name>", methods=["PUT"])
+def sns_update_topic_api(topic_name: str):
+    body = request.json or {}
+    display_name = body.get("displayName")
+
+    try:
+        summary = update_topic_runtime_attributes(topic_name, display_name=display_name)
+        if not summary:
+            return jsonify({"status": "error", "error": f"Topico '{topic_name}' nao encontrado"}), 404
+        return jsonify({"status": "updated", "topic": summary})
     except Exception as exc:
         return jsonify({"status": "error", "error": str(exc)}), 500
 

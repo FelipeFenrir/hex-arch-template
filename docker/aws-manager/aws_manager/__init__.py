@@ -6,6 +6,7 @@ from .web.api import api_blueprint
 from .sqs.web.api import sqs_api_blueprint
 from .sns.web.api import sns_api_blueprint
 from .s3.web.api import s3_api_blueprint
+from .dynamodb.web.api import dynamodb_api_blueprint
 
 
 def create_app() -> Flask:
@@ -14,6 +15,7 @@ def create_app() -> Flask:
     app.register_blueprint(sqs_api_blueprint)
     app.register_blueprint(sns_api_blueprint)
     app.register_blueprint(s3_api_blueprint)
+    app.register_blueprint(dynamodb_api_blueprint)
 
     dist_dir = Path(__file__).resolve().parent.parent / "ui" / "dist"
 
@@ -28,7 +30,7 @@ def create_app() -> Flask:
 
     @app.get("/<path:path>")
     def spa_assets(path: str):
-        if path.startswith("api/") or path.startswith("s3/") or path.startswith("sns/") or path.startswith("monitor/"):
+        if path.startswith("api/") or path.startswith("s3/") or path.startswith("sns/") or path.startswith("monitor/") or path.startswith("dynamodb/"):
             return abort(404)
 
         if not dist_dir.exists():

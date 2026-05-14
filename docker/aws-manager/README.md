@@ -2,7 +2,7 @@
 
 Interface web para gerenciar recursos AWS no **MiniStack** (LocalStack).
 
-Combina leitura genérica de serviços (inspirada no StackPort) com CRUD real de S3, SQS e SNS.
+Combina leitura genérica de serviços (inspirada no StackPort) com CRUD real de S3, SQS, SNS e DynamoDB.
 
 ---
 
@@ -37,6 +37,10 @@ aws-manager/
 │   │   ├── clients.py     # build_sqs_client()
 │   │   ├── services.py    # list_available_queues, send_message, …
 │   │   └── web/api.py     # Blueprint: /api/sqs/queues (CRUD)
+│   ├── dynamodb/
+│   │   ├── clients.py     # build_dynamodb_client(), build_dynamodb_resource()
+│   │   ├── services.py    # create_table, update_table_settings, table items CRUD
+│   │   └── web/api.py     # Blueprint: /api/dynamodb/tables (CRUD + items)
 │   └── sns/
 │       ├── clients.py     # build_sns_client()
 │       ├── services.py    # list_available_topics, publish, subscribe, …
@@ -56,8 +60,7 @@ aws-manager/
 │   │       └── export.ts        # Export JSON/CSV com download automático
 │   └── dist/              # Build Vite (gerado; servido pelo Flask)
 ├── scripts/               # Utilitários locais (não fazem parte do build/CI)
-│   ├── create_test_resources.py   # Cria buckets/queues/topics de exemplo no MiniStack
-│   └── verify_resources.py        # Confirma que os recursos estão acessíveis
+│   └── verify_resources.py        # Confirma que os recursos provisionados via Terraform estão acessíveis
 ├── smoke_test.py          # Suite de smoke tests (mocks, sem infra real)
 ├── requirements.txt
 ├── Dockerfile             # Multi-stage: Node (Vite build) → Python slim
@@ -118,12 +121,11 @@ Usam mocks; não necessitam MiniStack rodando.
 ## Scripts de desenvolvimento
 
 ```bash
-# Criar recursos de teste no MiniStack
-py -3 scripts/create_test_resources.py
-
 # Verificar se recursos aparecem via backend
 py -3 scripts/verify_resources.py
 ```
+
+> A criacao de recursos no MiniStack e feita via Terraform em `docker/ministack/terraform`.
 
 ---
 
@@ -134,10 +136,12 @@ py -3 scripts/verify_resources.py
 | Dashboard              | Cards por serviço com contadores, status e favoritos           |
 | Resource Browser       | Listagem genérica (todos os 35+ serviços do SERVICE_REGISTRY)  |
 | Detail Drawer          | Clique em um recurso para abrir drawer lateral com JSON        |
+| Sidebar retratil       | Menu lateral pode ser recolhido para ampliar area de conteudo  |
 | Export JSON / CSV      | Botão por tipo de recurso; download automático                 |
 | Atalhos de teclado     | `/` buscar · `j`/`k` navegar · `Enter` detalhar · `Esc` fechar |
 | S3 CRUD                | Criar, atualizar versioning, deletar buckets                   |
-| SQS CRUD               | Criar filas, enviar mensagens, assinar SNS                     |
-| SNS CRUD               | Criar tópicos, publicar mensagens                              |
+| SQS CRUD               | Criar filas, editar atributos, enviar mensagens e deletar com confirmacao de seguranca |
+| SNS CRUD               | Criar topicos, editar display name, publicar e deletar com confirmacao de seguranca |
+| DynamoDB CRUD          | Criar/editar/deletar tabelas e gerenciar itens por JSON        |
 | MiniStack Health Chip  | Status em tempo real no topbar                                 |
 | Favoritos + Grid/List  | Persistidos em `localStorage`                                  |

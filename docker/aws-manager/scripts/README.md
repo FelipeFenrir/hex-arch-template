@@ -2,18 +2,7 @@
 
 Utilitários locais para desenvolvimento e testes manuais contra o MiniStack.
 
-## create_test_resources.py
-
-Cria recursos de exemplo no MiniStack para validar a UI do AWS Manager.
-
-```bash
-py -3 scripts/create_test_resources.py
-```
-
-Cria:
-- S3: `test-bucket-1`, `test-bucket-2`, `logs-archive`
-- SQS: `task-queue`, `notifications`, `dlq-messages`
-- SNS: `order-events`, `alerts`, `notifications`
+> A criacao de recursos AWS locais agora e responsabilidade do Terraform em `docker/ministack/terraform`.
 
 ## verify_resources.py
 

@@ -12,6 +12,20 @@ class FakeSqs:
     def get_queue_url(self, QueueName):
         return {"QueueUrl": f"http://ministack:4566/000000000000/{QueueName}"}
 
+    def get_queue_attributes(self, QueueUrl, AttributeNames=None):
+        return {
+            "Attributes": {
+                "QueueArn": "arn:aws:sqs:us-east-1:000000000000:teste",
+                "VisibilityTimeout": "30",
+                "MessageRetentionPeriod": "345600",
+                "ApproximateNumberOfMessages": "2",
+                "ApproximateNumberOfMessagesNotVisible": "1",
+            }
+        }
+
+    def set_queue_attributes(self, QueueUrl, Attributes):
+        return {}
+
     def send_message_batch(self, QueueUrl, Entries):
         assert QueueUrl.endswith("teste")
         assert len(Entries) == 2
@@ -37,6 +51,12 @@ class FakeSns:
         assert Protocol == "sqs"
         assert Endpoint
         return {"SubscriptionArn": "arn:aws:sns:us-east-1:000000000000:eventos-teste:sub-1"}
+
+    def get_topic_attributes(self, TopicArn):
+        return {"Attributes": {"DisplayName": "Orders"}}
+
+    def set_topic_attributes(self, TopicArn, AttributeName, AttributeValue):
+        return {}
 
 
 class FakeUrlOpenResponse:
@@ -173,7 +193,8 @@ def run():
         assert response.status_code == 200
         assert response.get_json() == {"queues": [{"name": "teste", "url": "u1"}]}
 
-    with patch("aws_manager.sqs.web.api.build_sqs_client", return_value=FakeSqs()):
+    with patch("aws_manager.sqs.web.api.build_sqs_client", return_value=FakeSqs()), \
+            patch("aws_manager.sqs.services.build_sqs_client", return_value=FakeSqs()):
         response = client.post("/api/sqs/queues", json={"queueName": "teste"})
         assert response.status_code == 200
         assert response.get_json()["status"] == "created"
@@ -181,6 +202,14 @@ def run():
         response = client.post("/api/sqs/queues/teste/messages", json={"body": {"id": 1}, "headers": {}})
         assert response.status_code == 200
         assert response.get_json()["status"] == "sent"
+
+        response = client.get("/api/sqs/queues/teste/summary")
+        assert response.status_code == 200
+        assert response.get_json()["hasActiveMessages"] is True
+
+        response = client.put("/api/sqs/queues/teste", json={"visibilityTimeout": 45})
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "updated"
 
     # SNS JSON APIs
     with patch("aws_manager.sns.web.api.list_available_topics", return_value=[{"name": "eventos-teste", "arn": "a1"}]):
@@ -197,6 +226,30 @@ def run():
         response = client.post("/api/sns/topics", json={"topicName": "eventos-teste"})
         assert response.status_code == 200
         assert response.get_json()["status"] == "created"
+
+        with patch("aws_manager.sns.web.api.get_topic_runtime_summary", return_value={
+            "name": "eventos-teste",
+            "arn": "arn:aws:sns:us-east-1:000000000000:eventos-teste",
+            "displayName": "Orders",
+            "isFifo": False,
+            "subscriptionsCount": 0,
+            "hasActiveSubscriptions": False,
+        }):
+            response = client.get("/api/sns/topics/eventos-teste/summary")
+            assert response.status_code == 200
+            assert response.get_json()["displayName"] == "Orders"
+
+            with patch("aws_manager.sns.web.api.update_topic_runtime_attributes", return_value={
+                "name": "eventos-teste",
+                "arn": "arn:aws:sns:us-east-1:000000000000:eventos-teste",
+                "displayName": "Orders 2",
+                "isFifo": False,
+                "subscriptionsCount": 0,
+                "hasActiveSubscriptions": False,
+            }):
+                response = client.put("/api/sns/topics/eventos-teste", json={"displayName": "Orders 2"})
+            assert response.status_code == 200
+            assert response.get_json()["status"] == "updated"
 
     # S3 JSON APIs
     with patch("aws_manager.s3.web.api.list_available_buckets", return_value=[{"name": "dados-dev", "createdAt": ""}]):
@@ -265,6 +318,64 @@ def run():
         response = client.delete("/api/s3/buckets", json={"bucketName": "dados-dev", "forceDelete": False})
         assert response.status_code == 409
         assert response.get_json()["status"] == "blocked"
+
+    # DynamoDB JSON APIs
+    with patch("aws_manager.dynamodb.web.api.list_available_tables", return_value=[{"name": "orders", "status": "ACTIVE", "itemCount": 3, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}]):
+        response = client.get("/api/dynamodb/tables")
+        assert response.status_code == 200
+        assert response.get_json()["tables"][0]["name"] == "orders"
+
+    with patch("aws_manager.dynamodb.web.api.create_table", return_value={"name": "orders", "status": "CREATING", "itemCount": 0, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}):
+        response = client.post(
+            "/api/dynamodb/tables",
+            json={"tableName": "orders", "hashKey": "id", "billingMode": "PAY_PER_REQUEST"},
+        )
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "created"
+
+    with patch("aws_manager.dynamodb.web.api.get_table_summary", return_value={"name": "orders", "status": "ACTIVE", "itemCount": 3, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}):
+        response = client.get("/api/dynamodb/tables/orders/summary")
+        assert response.status_code == 200
+        assert response.get_json()["name"] == "orders"
+
+    with patch("aws_manager.dynamodb.web.api.update_table_settings", return_value={"name": "orders", "status": "UPDATING", "itemCount": 3, "billingMode": "PROVISIONED", "hashKey": "id", "readCapacity": 5, "writeCapacity": 5}):
+        response = client.put(
+            "/api/dynamodb/tables/orders",
+            json={"billingMode": "PROVISIONED", "readCapacity": 5, "writeCapacity": 5},
+        )
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "updated"
+
+    with patch("aws_manager.dynamodb.web.api.get_table_summary", return_value={"name": "orders", "status": "ACTIVE", "itemCount": 3, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}):
+        response = client.delete("/api/dynamodb/tables/orders")
+        assert response.status_code == 409
+        assert response.get_json()["status"] == "blocked"
+
+    with patch("aws_manager.dynamodb.web.api.get_table_summary", return_value={"name": "orders", "status": "ACTIVE", "itemCount": 0, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}), \
+            patch("aws_manager.dynamodb.web.api.delete_table"):
+        response = client.delete("/api/dynamodb/tables/orders")
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "deleted"
+
+    with patch("aws_manager.dynamodb.web.api.scan_table_items", return_value=[{"id": "1", "status": "open"}]):
+        response = client.get("/api/dynamodb/tables/orders/items?limit=10")
+        assert response.status_code == 200
+        assert response.get_json()["items"][0]["id"] == "1"
+
+    with patch("aws_manager.dynamodb.web.api.query_table_items_by_key", return_value=[{"id": "1", "status": "open"}]):
+        response = client.post("/api/dynamodb/tables/orders/items/query", json={"key": {"id": "1"}, "limit": 10})
+        assert response.status_code == 200
+        assert response.get_json()["items"][0]["id"] == "1"
+
+    with patch("aws_manager.dynamodb.web.api.put_table_item"):
+        response = client.post("/api/dynamodb/tables/orders/items", json={"item": {"id": "1", "status": "open"}})
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "upserted"
+
+    with patch("aws_manager.dynamodb.web.api.delete_table_item"):
+        response = client.delete("/api/dynamodb/tables/orders/items", json={"key": {"id": "1"}})
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "deleted"
 
     # MiniStack health API
     health_payload = '{"services": {"sqs": {"status": "running"}, "sns": {"status": "running"}, "s3": {"status": "running"}}}'

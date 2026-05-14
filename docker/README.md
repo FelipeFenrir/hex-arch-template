@@ -74,6 +74,7 @@ Sao as **aplicacoes reais desenvolvidas pelo time** que podem subir em container
 
 - [`docker/mongo/README.md`](mongo/README.md)
 - [`docker/ministack/README.md`](ministack/README.md)
+- [`docker/ministack/terraform/README.md`](ministack/terraform/README.md)
 - [`docker/wiremock/README.md`](wiremock/README.md)
 - [`docker/otel-collector/README.md`](otel-collector/README.md)
 - [`docker/prometheus/README.md`](prometheus/README.md)
@@ -127,6 +128,13 @@ No diretorio raiz do repositorio:
 
 ```powershell
 docker compose -f docker/docker-compose.yml up -d
+```
+
+**Provisionar recursos AWS locais do MiniStack (Terraform, fonte unica):**
+
+```powershell
+Set-Location "D:\Projetos\hex-arch-template\docker\ministack\terraform"
+.\apply-local.ps1
 ```
 
 **Subir tambem o `security-server` em container** (quando precisar do fluxo OAuth2/login completo sem IDE):

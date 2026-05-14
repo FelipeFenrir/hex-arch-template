@@ -3,7 +3,12 @@ from flask import Blueprint, jsonify, request
 import json
 
 from ..clients import build_sqs_client
-from ..services import filter_messages, list_available_queues
+from ..services import (
+    filter_messages,
+    get_queue_runtime_summary,
+    list_available_queues,
+    update_queue_runtime_attributes,
+)
 
 sqs_api_blueprint = Blueprint("sqs_api", __name__)
 
@@ -71,11 +76,63 @@ def sqs_queue_detail_api(queue_name: str):
         return jsonify({"status": "error", "error": str(exc)}), 500
 
 
+@sqs_api_blueprint.route("/api/sqs/queues/<queue_name>/summary", methods=["GET"])
+def sqs_queue_summary_api(queue_name: str):
+    try:
+        summary = get_queue_runtime_summary(queue_name)
+        if not summary:
+            return jsonify({"status": "error", "error": f"Fila '{queue_name}' nao encontrada"}), 404
+        return jsonify(summary)
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
+
+@sqs_api_blueprint.route("/api/sqs/queues/<queue_name>", methods=["PUT"])
+def sqs_update_queue_api(queue_name: str):
+    body = request.json or {}
+    visibility_timeout = body.get("visibilityTimeout")
+    message_retention_period = body.get("messageRetentionPeriod")
+
+    if visibility_timeout is None and message_retention_period is None:
+        return jsonify({"status": "invalid", "error": "Informe ao menos um atributo para atualizar"}), 400
+
+    try:
+        summary = update_queue_runtime_attributes(
+            queue_name,
+            visibility_timeout=visibility_timeout,
+            message_retention_period=message_retention_period,
+        )
+        if not summary:
+            return jsonify({"status": "error", "error": f"Fila '{queue_name}' nao encontrada"}), 404
+        return jsonify({"status": "updated", "queue": summary})
+    except Exception as exc:
+        return jsonify({"status": "error", "error": str(exc)}), 500
+
+
 @sqs_api_blueprint.route("/api/sqs/queues/<queue_name>", methods=["DELETE"])
 def sqs_delete_queue_api(queue_name: str):
+    force = str(request.args.get("force") or "false").strip().lower() in {"1", "true", "yes", "y"}
+
     try:
+        summary = get_queue_runtime_summary(queue_name)
+        if not summary:
+            return jsonify({"status": "error", "error": f"Fila '{queue_name}' nao encontrada"}), 404
+
+        if bool(summary.get("hasActiveMessages")) and not force:
+            return (
+                jsonify(
+                    {
+                        "status": "blocked",
+                        "error": "Fila possui mensagens ativas. Confirme a exclusao forcada.",
+                        "requiresConfirmation": True,
+                        "queue": summary,
+                    }
+                ),
+                409,
+            )
+
         sqs = build_sqs_client()
-        queue_url = sqs.get_queue_url(QueueName=queue_name)["QueueUrl"]
+        queue_url = str(summary.get("url"))
         sqs.delete_queue(QueueUrl=queue_url)
         return jsonify({"status": "deleted", "queueName": queue_name})
     except Exception as exc:
