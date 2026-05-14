@@ -11,7 +11,7 @@
                     <timeZone>UTC</timeZone>
                 </timestamp>
                 <pattern>
-                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}"}</pattern>
+                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}","traceId":"%mdc{traceId:-unknown}","spanId":"%mdc{spanId:-unknown}"}</pattern>
                 </pattern>
                 <message/>
                 <mdc>
@@ -40,7 +40,7 @@
                     <timeZone>UTC</timeZone>
                 </timestamp>
                 <pattern>
-                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}"}</pattern>
+                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}","traceId":"%mdc{traceId:-unknown}","spanId":"%mdc{spanId:-unknown}"}</pattern>
                 </pattern>
                 <message/>
                 <mdc>

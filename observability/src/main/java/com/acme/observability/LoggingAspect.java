@@ -45,6 +45,8 @@ public class LoggingAspect {
         String className = pjp.getSignature().getDeclaringTypeName();
         String methodName = pjp.getSignature().getName();
 
+        TraceContextPropagator.extractTraceContextToMdc();
+
         Map<String, Object> startPayload = basePayload("method.start", className, methodName);
         if (properties.isLogArguments()) {
             startPayload.put("args", sanitizer.sanitize(pjp.getArgs()));

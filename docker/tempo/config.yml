@@ -13,6 +13,29 @@ ingester:
   trace_idle_period: 10s
   max_block_duration: 5m
 
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: docker
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+  processor:
+    service_graphs: {}
+    span_metrics:
+      dimensions:
+        - service.name
+        - span.name
+        - span.kind
+        - status.code
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]
+
 compactor:
   compaction:
     block_retention: 1h

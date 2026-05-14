@@ -25,6 +25,7 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
     implementation "io.micrometer:micrometer-tracing-bridge-otel:${micrometerTracing}"
+    runtimeOnly "io.opentelemetry:opentelemetry-exporter-otlp"
     implementation "io.micrometer:micrometer-registry-prometheus"
     implementation "ch.qos.logback:logback-classic:${logBackVersion}"
     implementation "net.logstash.logback:logstash-logback-encoder:${logstashEncoderVersion}"

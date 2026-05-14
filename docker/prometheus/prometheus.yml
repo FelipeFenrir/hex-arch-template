@@ -28,6 +28,22 @@ scrape_configs:
       - targets: ["security-server:9001"]
 
   # ---------------------------------------------------------
+  # OrderQuestionnaire (rodando no host - default IDE/Gradle)
+  # ---------------------------------------------------------
+  - job_name: orderquestionnaire-host
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:9005"]
+
+  # ---------------------------------------------------------
+  # OrderQuestionnaire (rodando em container "orderquestionnaire")
+  # ---------------------------------------------------------
+  - job_name: orderquestionnaire-container
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["orderquestionnaire:9005"]
+
+  # ---------------------------------------------------------
   # OpenTelemetry Collector (metrics pipeline)
   # ---------------------------------------------------------
   - job_name: otel-collector

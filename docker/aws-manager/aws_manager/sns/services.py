@@ -38,3 +38,35 @@ def list_topic_subscriptions(topic_arn: str) -> list[dict[str, str]]:
 
     return subscriptions
 
+
+def get_topic_runtime_summary(topic_name: str) -> dict[str, str | int | bool] | None:
+    topic_arn = get_topic_arn_by_name(topic_name)
+    if not topic_arn:
+        return None
+
+    sns = build_sns_client(topic_arn)
+    attrs = sns.get_topic_attributes(TopicArn=topic_arn).get("Attributes", {})
+    subscriptions = list_topic_subscriptions(topic_arn)
+
+    return {
+        "name": topic_name,
+        "arn": topic_arn,
+        "displayName": attrs.get("DisplayName", ""),
+        "isFifo": topic_name.endswith(".fifo") or attrs.get("FifoTopic") == "true",
+        "subscriptionsCount": len(subscriptions),
+        "hasActiveSubscriptions": len(subscriptions) > 0,
+    }
+
+
+def update_topic_runtime_attributes(topic_name: str, display_name: str | None = None) -> dict[str, str | int | bool] | None:
+    topic_arn = get_topic_arn_by_name(topic_name)
+    if not topic_arn:
+        return None
+
+    sns = build_sns_client(topic_arn)
+    if display_name is not None:
+        sns.set_topic_attributes(TopicArn=topic_arn, AttributeName="DisplayName", AttributeValue=str(display_name).strip())
+
+    return get_topic_runtime_summary(topic_name)
+
+

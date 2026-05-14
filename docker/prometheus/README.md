@@ -11,6 +11,8 @@ Coleta e armazena metricas do ambiente local.
 - `prometheus:9090` (auto monitoramento)
 - `host.docker.internal:9001/actuator/prometheus` (security-server no host)
 - `security-server:9001/actuator/prometheus` (security-server em container opcional)
+- `host.docker.internal:9005/actuator/prometheus` (orderquestionnaire no host)
+- `orderquestionnaire:9005/actuator/prometheus` (orderquestionnaire em container opcional)
 - `otel-collector:9464`
 - `loki:3100`
 - `tempo:3200`

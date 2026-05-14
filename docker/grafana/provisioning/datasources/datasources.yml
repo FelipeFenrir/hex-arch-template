@@ -15,6 +15,13 @@ datasources:
     access: proxy
     url: http://loki:3100
     editable: true
+    jsonData:
+      derivedFields:
+        - name: traceId
+          matcherRegex: '"traceId":"([a-f0-9]{32})"'
+          datasourceUid: tempo
+          url: '$${__value.raw}'
+          urlDisplayLabel: View Trace
 
   - name: Tempo
     uid: tempo
@@ -27,3 +34,9 @@ datasources:
         datasourceUid: prometheus
       tracesToLogsV2:
         datasourceUid: loki
+        filterByTraceID: true
+        filterBySpanID: true
+        spanStartTimeShift: "-10m"
+        spanEndTimeShift: "10m"
+        customQuery: true
+        query: '{app=~".+"} | json | traceId="${__trace.traceId}"'
