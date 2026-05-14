@@ -1,6 +1,7 @@
 package com.acme.orderquestionnaire.domain.questionnaire;
 
 import com.acme.orderquestionnaire.domain.questionnaire.errors.QuestionnaireDomainErrors;
+import com.acme.orderquestionnaire.domain.questionnaire.vo.QuestionOrder;
 import com.acme.orderquestionnaire.domain.question.Question;
 import com.acme.orderquestionnaire.domain.questionnaire.answer.AnswerConfiguration;
 import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionCondition;
@@ -9,6 +10,7 @@ import com.acme.orderquestionnaire.domain.questionnaire.tree.QuestionTreeNode;
 import com.acme.shared.enumerator.ParameterizationStatus;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
+import com.acme.shared.vo.QuestionId;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -23,13 +25,13 @@ import java.util.stream.Collectors;
 public class ConfiguredQuestion {
     private final Question question;
     private final AnswerConfiguration answerConfiguration;
-    private int order;
+    private QuestionOrder order;
     private QuestionCondition rootCondition;
 
     private ConfiguredQuestion(Question question, AnswerConfiguration answerConfiguration, int order) {
         this.question = question;
         this.answerConfiguration = answerConfiguration;
-        this.order = order;
+        this.order = QuestionOrder.of(order);
     }
 
     public static ConfiguredQuestion createNew(Question question,
@@ -61,6 +63,7 @@ public class ConfiguredQuestion {
         // 2. Condition references inactive questions
         if (rootCondition != null && !questionStatuses.isEmpty()) {
             Set<String> inactiveRefs = rootCondition.referencedQuestionIds().stream()
+                    .map(QuestionId::value)
                     .filter(id -> {
                         ParameterizationStatus refStatus = questionStatuses.get(id);
                         return refStatus != null && refStatus != ParameterizationStatus.ACTIVE;
@@ -98,12 +101,12 @@ public class ConfiguredQuestion {
 
     public ConfiguredQuestionTreeNode toTreeNode() {
         return new ConfiguredQuestionTreeNode(
-                order,
+                order.value(),
                 new QuestionTreeNode(
                         question.id(),
                         question.label(),
                         question.status().name(),
-                        question.salesItemReferenceCode()
+                        question.salesItemCode().value()
                 ),
                 answerConfiguration.toTreeNode(),
                 rootCondition == null ? null : rootCondition.toTreeNode()
@@ -111,7 +114,7 @@ public class ConfiguredQuestion {
     }
 
     private QuestionValidationFailure buildFailure(List<DomainError> errors) {
-        return new QuestionValidationFailure(question.id(), question.label(), order, errors);
+        return new QuestionValidationFailure(question.id(), question.label(), order.value(), errors);
     }
 
     public Question question() {
@@ -120,12 +123,25 @@ public class ConfiguredQuestion {
     public AnswerConfiguration answerConfiguration() {
         return answerConfiguration;
     }
+
+    /**
+     * Returns the order as an int value for backward compatibility at boundaries.
+     */
     public int order() {
+        return order.value();
+    }
+
+    /**
+     * Returns the order as a Value Object. Use this when working within the domain.
+     */
+    public QuestionOrder questionOrder() {
         return order;
     }
+
     public void order(int order) {
-        this.order = order;
+        this.order = QuestionOrder.of(order);
     }
+
     public void rootCondition(QuestionCondition rootCondition) {
         this.rootCondition = rootCondition;
     }

@@ -12,12 +12,16 @@ dependencies {
     implementation project(':modules:adapters')
 
     implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "io.micrometer:micrometer-registry-prometheus"
     implementation "org.springframework.boot:spring-boot-starter-thymeleaf"
     implementation "org.springframework.boot:spring-boot-starter-security"
     //implementation "org.springframework.boot:spring-boot-starter-oauth2-resource-server"
     implementation "org.springframework.boot:spring-boot-starter-oauth2-authorization-server"
-    implementation "org.bouncycastle:bcprov-jdk18on:${bcprovJdk18onVersion}"
     implementation "org.springframework.boot:spring-boot-starter-data-mongodb"
+
+    implementation "org.bouncycastle:bcprov-jdk18on:${bcprovJdk18onVersion}"
+    implementation "net.logstash.logback:logstash-logback-encoder:${logstashEncoderVersion}"
 
     // Apenas regras de negócio puras, sem dependências de frameworks
     compileOnly "org.projectlombok:lombok:${lombokVersion}"

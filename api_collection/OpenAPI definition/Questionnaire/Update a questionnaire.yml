@@ -1,0 +1,154 @@
+info:
+  name: Update a questionnaire
+  type: http
+  seq: 2
+  tags:
+    - Questionnaire
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/v1/questionnaires/:id"
+  params:
+    - name: id
+      value: ""
+      type: path
+    - name: channelId
+      value: ""
+      type: query
+    - name: journeyId
+      value: ""
+      type: query
+  body:
+    type: json
+    data: |-
+      {
+        "description": "",
+        "status": "DRAFT",
+        "questionsToUpsert": [
+          {
+            "questionId": "",
+            "param": {
+              "order": 0,
+              "answerConfig": {
+                "type": "",
+                "attributes": {}
+              },
+              "rootCondition": {
+                "type": "",
+                "attributes": {},
+                "children": []
+              }
+            }
+          }
+        ],
+        "questionIdsToRemove": [],
+        "updatedBy": {
+          "id": "",
+          "referenceCode": "",
+          "name": "",
+          "email": ""
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Questionnaire updated
+    request:
+      url: "{{baseUrl}}/api/v1/questionnaires/:id"
+      method: PUT
+      params:
+        - name: id
+          value: ""
+          type: path
+        - name: channelId
+          value: ""
+          type: query
+        - name: journeyId
+          value: ""
+          type: query
+      body:
+        type: json
+        data: |-
+          {
+            "description": "",
+            "status": "DRAFT",
+            "questionsToUpsert": [
+              {
+                "questionId": "",
+                "param": {
+                  "order": 0,
+                  "answerConfig": {
+                    "type": "",
+                    "attributes": {}
+                  },
+                  "rootCondition": {
+                    "type": "",
+                    "attributes": {},
+                    "children": []
+                  }
+                }
+              }
+            ],
+            "questionIdsToRemove": [],
+            "updatedBy": {
+              "id": "",
+              "referenceCode": "",
+              "name": "",
+              "email": ""
+            }
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: "*/*"
+      body:
+        type: text
+        data: |-
+          {
+            "data": {
+              "id": "",
+              "channelDistributionId": "",
+              "journeyDistributionId": "",
+              "description": "",
+              "status": "",
+              "configuredQuestions": [
+                {
+                  "questionId": "",
+                  "order": 0,
+                  "answerConfiguration": {
+                    "type": "",
+                    "attributes": {}
+                  },
+                  "rootCondition": {
+                    "type": "",
+                    "attributes": {},
+                    "children": []
+                  },
+                  "dependsOnQuestionIds": []
+                }
+              ],
+              "createdBy": {
+                "id": "",
+                "referenceCode": "",
+                "name": "",
+                "email": ""
+              },
+              "createdAt": "",
+              "updatedBy": {
+                "id": "",
+                "referenceCode": "",
+                "name": "",
+                "email": ""
+              },
+              "updatedAt": ""
+            }
+          }

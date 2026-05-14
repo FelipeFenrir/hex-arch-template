@@ -1,0 +1,241 @@
+info:
+  name: Search questionnaires with page or cursor pagination
+  type: http
+  seq: 4
+  tags:
+    - Questionnaire
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/v1/questionnaires?size=10&mode=CURSOR"
+  params:
+    - name: ids
+      value: "[]"
+      type: query
+      disabled: true
+    - name: channelIds
+      value: "[]"
+      type: query
+      disabled: true
+    - name: journeyIds
+      value: "[]"
+      type: query
+      disabled: true
+    - name: descriptionContains
+      value: ""
+      type: query
+      disabled: true
+    - name: status
+      value: DRAFT
+      type: query
+      disabled: true
+    - name: status
+      value: ACTIVE
+      type: query
+      disabled: true
+    - name: status
+      value: INACTIVE
+      type: query
+      disabled: true
+    - name: mode
+      value: PAGE
+      type: query
+      disabled: true
+    - name: mode
+      value: CURSOR
+      type: query
+      disabled: true
+    - name: page
+      value: ""
+      type: query
+      disabled: true
+    - name: size
+      value: "10"
+      type: query
+    - name: cursor
+      value: ""
+      type: query
+      disabled: true
+    - name: sort
+      value: "[]"
+      type: query
+      disabled: true
+    - name: mode
+      value: PAGE
+      type: query
+      description: Pagination mode. Use PAGE or CURSOR. Defaults to PAGE when omitted.
+      disabled: true
+    - name: mode
+      value: CURSOR
+      type: query
+      description: Pagination mode. Use PAGE or CURSOR. Defaults to PAGE when omitted.
+    - name: page
+      value: ""
+      type: query
+      description: Page index (0-based). Use only when mode=PAGE.
+      disabled: true
+    - name: size
+      value: ""
+      type: query
+      description: Page size for both PAGE and CURSOR modes.
+      disabled: true
+    - name: cursor
+      value: ""
+      type: query
+      description: Cursor token. Optional for first CURSOR request; required for next pages.
+      disabled: true
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Search result
+    request:
+      url: "{{baseUrl}}/api/v1/questionnaires"
+      method: GET
+      params:
+        - name: ids
+          value: "[]"
+          type: query
+          disabled: true
+        - name: channelIds
+          value: "[]"
+          type: query
+          disabled: true
+        - name: journeyIds
+          value: "[]"
+          type: query
+          disabled: true
+        - name: descriptionContains
+          value: ""
+          type: query
+          disabled: true
+        - name: status
+          value: DRAFT
+          type: query
+          disabled: true
+        - name: status
+          value: ACTIVE
+          type: query
+          disabled: true
+        - name: status
+          value: INACTIVE
+          type: query
+          disabled: true
+        - name: mode
+          value: PAGE
+          type: query
+          disabled: true
+        - name: mode
+          value: CURSOR
+          type: query
+          disabled: true
+        - name: page
+          value: ""
+          type: query
+          disabled: true
+        - name: size
+          value: ""
+          type: query
+          disabled: true
+        - name: cursor
+          value: ""
+          type: query
+          disabled: true
+        - name: sort
+          value: "[]"
+          type: query
+          disabled: true
+        - name: mode
+          value: PAGE
+          type: query
+          description: Pagination mode. Use PAGE or CURSOR. Defaults to PAGE when omitted.
+          disabled: true
+        - name: mode
+          value: CURSOR
+          type: query
+          description: Pagination mode. Use PAGE or CURSOR. Defaults to PAGE when omitted.
+          disabled: true
+        - name: page
+          value: ""
+          type: query
+          description: Page index (0-based). Use only when mode=PAGE.
+          disabled: true
+        - name: size
+          value: ""
+          type: query
+          description: Page size for both PAGE and CURSOR modes.
+          disabled: true
+        - name: cursor
+          value: ""
+          type: query
+          description: Cursor token. Optional for first CURSOR request; required for next pages.
+          disabled: true
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: "*/*"
+      body:
+        type: text
+        data: |-
+          {
+            "data": [
+              {
+                "id": "",
+                "channelDistributionId": "",
+                "journeyDistributionId": "",
+                "description": "",
+                "status": "",
+                "configuredQuestions": [
+                  {
+                    "questionId": "",
+                    "order": 0,
+                    "answerConfiguration": {
+                      "type": "",
+                      "attributes": {}
+                    },
+                    "rootCondition": {
+                      "type": "",
+                      "attributes": {},
+                      "children": []
+                    },
+                    "dependsOnQuestionIds": []
+                  }
+                ],
+                "createdBy": {
+                  "id": "",
+                  "referenceCode": "",
+                  "name": "",
+                  "email": ""
+                },
+                "createdAt": "",
+                "updatedBy": {
+                  "id": "",
+                  "referenceCode": "",
+                  "name": "",
+                  "email": ""
+                },
+                "updatedAt": ""
+              }
+            ],
+            "meta": {
+              "mode": "",
+              "page": 0,
+              "size": 0,
+              "totalItems": 0,
+              "totalPages": 0,
+              "hasNext": false,
+              "nextCursor": ""
+            },
+            "links": {
+              "next": "",
+              "previous": ""
+            }
+          }

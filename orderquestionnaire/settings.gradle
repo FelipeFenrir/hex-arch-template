@@ -4,6 +4,7 @@ include ':modules:domain'
 include ':modules:application'
 include ':modules:adapters:out:mongo'
 include ':modules:adapters:out:api-distribution'
+include ':modules:adapters:in:api-rest'
 include ':modules:bootstrap'
 
 // Define caminhos físicos (opcional, mas recomendado)
@@ -11,7 +12,11 @@ project(':modules:domain').projectDir = file('modules/domain')
 project(':modules:application').projectDir = file('modules/application')
 project(':modules:adapters:out:mongo').projectDir = file('modules/adapters/out/mongo')
 project(':modules:adapters:out:api-distribution').projectDir = file('modules/adapters/out/api-distribution')
+project(':modules:adapters:in:api-rest').projectDir = file('modules/adapters/in/api-rest')
 project(':modules:bootstrap').projectDir = file('modules/bootstrap')
 
 includeBuild('../shared')
+includeBuild('../observability') {
+	name = 'observability-lib'
+}
 

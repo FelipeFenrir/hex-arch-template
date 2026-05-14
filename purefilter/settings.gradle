@@ -1,0 +1,6 @@
+rootProject.name = 'purefilter'
+
+include ':modules:filter-core'
+
+project(':modules:filter-core').projectDir = file('modules/filter-core')
+

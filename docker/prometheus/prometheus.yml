@@ -12,12 +12,36 @@ scrape_configs:
       - targets: ["prometheus:9090"]
 
   # ---------------------------------------------------------
-  # Spring Boot Actuator /metrics
+  # Security Server (rodando no host - default IDE/Gradle)
   # ---------------------------------------------------------
-  - job_name: app
+  - job_name: security-server-host
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["app:8080"]
+      - targets: ["host.docker.internal:9001"]
+
+  # ---------------------------------------------------------
+  # Security Server (rodando em container "security-server")
+  # ---------------------------------------------------------
+  - job_name: security-server-container
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["security-server:9001"]
+
+  # ---------------------------------------------------------
+  # OrderQuestionnaire (rodando no host - default IDE/Gradle)
+  # ---------------------------------------------------------
+  - job_name: orderquestionnaire-host
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:9005"]
+
+  # ---------------------------------------------------------
+  # OrderQuestionnaire (rodando em container "orderquestionnaire")
+  # ---------------------------------------------------------
+  - job_name: orderquestionnaire-container
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["orderquestionnaire:9005"]
 
   # ---------------------------------------------------------
   # OpenTelemetry Collector (metrics pipeline)

@@ -2,7 +2,11 @@ package com.acme.security.oauth.in.server;
 
 import com.acme.security.tenant.port.in.usecase.FindTenantUseCase;
 import com.acme.security.tenant.Tenant;
+import com.acme.security.tenant.erros.TenantDomainErrors;
 import com.acme.shared.TenantContextHolder;
+import com.acme.observability.TraceContextPropagator;
+import com.acme.shared.constants.HeaderConstants;
+import com.acme.shared.observability.CorrelationContext;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
 import jakarta.annotation.Nonnull;
@@ -15,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.UUID;
 
 @Component
 public class TenantIdentifierFilter extends OncePerRequestFilter {
@@ -28,14 +33,42 @@ public class TenantIdentifierFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String requestUri = request.getRequestURI();
+        return requestUri != null && requestUri.startsWith("/actuator");
+    }
+
+    @Override
+    protected void doFilterInternal(@Nonnull HttpServletRequest request,
                                     @Nonnull HttpServletResponse response,
                                     @Nonnull FilterChain filterChain) throws ServletException, IOException {
 
-        String serverName = request.getServerName();
+        String correlationId = correlationIdOrGenerate(request);
+        String flowId = request.getHeader(HeaderConstants.FLOW_HEADER);
 
-        if (serverName != null && serverName.endsWith(BASE_DOMAIN)) {
+        response.setHeader(HeaderConstants.CORRELATION_HEADER, correlationId);
+        if (flowId != null && !flowId.isBlank()) {
+            response.setHeader(HeaderConstants.FLOW_HEADER, flowId);
+        }
+
+        CorrelationContext.populate(correlationId, flowId);
+
+        TraceContextPropagator.populateBaggageFromContext();
+        TraceContextPropagator.extractTraceContextToMdc();
+
+        try {
+            String serverName = request.getServerName();
+
+            if (serverName == null || !serverName.endsWith(BASE_DOMAIN)) {
+                writeDomainError(response, TenantDomainErrors.tenantContextMissing());
+                return;
+            }
+
             String tenantSlug = serverName.replace(BASE_DOMAIN, "");
+            if (tenantSlug.isBlank()) {
+                writeDomainError(response, TenantDomainErrors.tenantContextMissing());
+                return;
+            }
 
             // Railway: Validando o Tenant via Use Case
             Result<Tenant, DomainError> result = findTenantUseCase.findBySlug(tenantSlug);
@@ -48,16 +81,28 @@ public class TenantIdentifierFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Se sucesso, define o TenantId (String) no contexto via fold
+            // Se sucesso, executa a cadeia dentro do escopo do tenant no ScopedValue
             String tenantId = result.fold(Tenant::idValue, ignored -> null);
-            TenantContextHolder.setTenant(tenantId);
-        }
-
-        try {
-            filterChain.doFilter(request, response);
+            try {
+                TenantContextHolder.runWithTenant(tenantId, () -> filterChain.doFilter(request, response));
+            } catch (ServletException | IOException exception) {
+                throw exception;
+            } catch (Exception exception) {
+                throw new ServletException("Failed to execute tenant-scoped filter chain", exception);
+            }
         } finally {
-            // Garante a limpeza independente do que aconteça no fluxo
-            TenantContextHolder.clear();
+            CorrelationContext.clear();
+            TraceContextPropagator.clearTraceContext();
         }
+    }
+
+    private static void writeDomainError(HttpServletResponse response, DomainError error) throws IOException {
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        response.getWriter().write(error.message());
+    }
+
+    private static String correlationIdOrGenerate(HttpServletRequest request) {
+        String value = request.getHeader(HeaderConstants.CORRELATION_HEADER);
+        return (value == null || value.isBlank()) ? UUID.randomUUID().toString() : value;
     }
 }

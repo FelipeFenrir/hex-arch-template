@@ -1,18 +1,61 @@
-<!-- modules/bootstrap/src/main/resources/logback-spring.xml -->
 <configuration>
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <fieldNames>
-                <timestamp>timestamp</timestamp>
-                <message>message</message>
-                <level>level</level>
-                <logger>logger</logger>
-                <thread>thread</thread>
-            </fieldNames>
-            <customFields>{"service":"orderquestionnaire"}</customFields>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="orderquestionnaire"/>
+    <property name="LOG_PATH_FILE" value="${LOG_FILE:-build/logs/orderquestionnaire.log}"/>
+
+    <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <fieldName>timestamp</fieldName>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <pattern>
+                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}","traceId":"%mdc{traceId:-unknown}","spanId":"%mdc{spanId:-unknown}"}</pattern>
+                </pattern>
+                <message/>
+                <mdc>
+                    <excludeMdcKeyName>correlationId</excludeMdcKeyName>
+                    <excludeMdcKeyName>flowId</excludeMdcKeyName>
+                </mdc>
+                <stackTrace>
+                    <fieldName>stackTrace</fieldName>
+                </stackTrace>
+            </providers>
         </encoder>
     </appender>
+
+    <appender name="FILE_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH_FILE}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH_FILE}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <fieldName>timestamp</fieldName>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <pattern>
+                    <pattern>{"service":"${APP_NAME}","level":"%level","logger":"%logger{36}","thread":"%thread","correlationId":"%mdc{correlationId:-unknown}","flowId":"%mdc{flowId:-unknown}","traceId":"%mdc{traceId:-unknown}","spanId":"%mdc{spanId:-unknown}"}</pattern>
+                </pattern>
+                <message/>
+                <mdc>
+                    <excludeMdcKeyName>correlationId</excludeMdcKeyName>
+                    <excludeMdcKeyName>flowId</excludeMdcKeyName>
+                </mdc>
+                <stackTrace>
+                    <fieldName>stackTrace</fieldName>
+                </stackTrace>
+            </providers>
+        </encoder>
+    </appender>
+
     <root level="INFO">
-        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="CONSOLE_JSON"/>
+        <appender-ref ref="FILE_JSON"/>
     </root>
 </configuration>

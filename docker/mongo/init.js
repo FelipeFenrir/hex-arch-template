@@ -1,17 +1,12 @@
-﻿// Idempotent seed for local development bootstrap
-var dbRef = db.getSiblingDB("hexarch");
-dbRef.getCollection("bootstrap").updateOne(
-  { _id: "local-seed" },
-  { $set: { updatedAt: new Date(), source: "docker-init" } },
-  { upsert: true }
-);
-
-// --- CONFIGURAÇÃO PARA O MÓDULO DE SEGURANÇA ---
+﻿// --- CONFIGURAÇÃO PARA O MÓDULO DE SEGURANÇA ---
 var dbSecurity = db.getSiblingDB("security");
 
 // 1. Criar o Tenant inicial (Essencial para o filtro passar)
 dbSecurity.getCollection("tenants").updateOne(
-  { slug: "tenant-a" },
+  {
+    _id: "019d87dc-b820-7082-bc93-c93f0ce574f4",
+    slug: "tenant-a"
+  },
   {
     $set: {
       id: "019d87dc-b820-7082-bc93-c93f0ce574f4",
@@ -24,7 +19,10 @@ dbSecurity.getCollection("tenants").updateOne(
 
 // 2. Criar o Client inicial (Essencial para teste do desenvolvedor)
 dbSecurity.getCollection("clients").updateOne(
-    { clientId: "meu-app-teste" },
+    {
+        _id: "019dc2c8-a3e3-721b-8d56-974c94406724",
+        clientId: "meu-app-teste"
+    },
     {
         $set: {
             tenantId: "019d87dc-b820-7082-bc93-c93f0ce574f4",
@@ -40,7 +38,10 @@ dbSecurity.getCollection("clients").updateOne(
 
 // 3. Criar o User inicial (Essencial para teste do desenvolvedor)
 dbSecurity.getCollection("users").updateOne(
-    { username: "teste" },
+    {
+        _id: "019dc2c9-5cbe-7bc9-a6c0-5d9aaeb4693b",
+        username: "teste"
+    },
     {
         $set: {
             tenantId: "019d87dc-b820-7082-bc93-c93f0ce574f4",
@@ -60,14 +61,14 @@ var dbOrderQuestionnaire = db.getSiblingDB("orderquestionnaire");
 var now = new Date();
 var auditInfo = {
     created_by: {
-        id: "usr-seed",
+        id: "019dff07-5f02-70d4-8680-f8dc34fd5fb9",
         reference_code: "seed_user",
         name: "Seed User",
         email: "seed.user@acme.com"
     },
     created_at: now,
     updated_by: {
-        id: "usr-seed",
+        id: "019dff07-5f02-70d4-8680-f8dc34fd5fb9",
         reference_code: "seed_user",
         name: "Seed User",
         email: "seed.user@acme.com"
@@ -77,7 +78,7 @@ var auditInfo = {
 
 // 1. Canais de distribuicao em estados diferentes
 dbOrderQuestionnaire.getCollection("channel_distributions").updateOne(
-    { id: "mobile_acmeapp" },
+    { _id: "mobile_acmeapp" },
     {
         $set: {
             reference_code: "mobile_acmeapp",
@@ -89,7 +90,7 @@ dbOrderQuestionnaire.getCollection("channel_distributions").updateOne(
 );
 
 dbOrderQuestionnaire.getCollection("channel_distributions").updateOne(
-    { id: "store_acme" },
+    { _id: "store_acme" },
     {
         $set: {
             reference_code: "store_acme",
@@ -102,7 +103,7 @@ dbOrderQuestionnaire.getCollection("channel_distributions").updateOne(
 
 // 2. Jornadas de distribuicao em estados diferentes
 dbOrderQuestionnaire.getCollection("journey_distributions").updateOne(
-    { id: "journey_vendaavulsaacme" },
+    { _id: "journey_vendaavulsaacme" },
     {
         $set: {
             reference_code: "journey_vendaavulsaacme",
@@ -114,7 +115,7 @@ dbOrderQuestionnaire.getCollection("journey_distributions").updateOne(
 );
 
 dbOrderQuestionnaire.getCollection("journey_distributions").updateOne(
-    { id: "journey_retencao" },
+    { _id: "journey_retencao" },
     {
         $set: {
             reference_code: "journey_retencao",
@@ -167,14 +168,15 @@ dbOrderQuestionnaire.getCollection("questions").updateOne(
 
 // 4. Questionarios em estados diferentes
 dbOrderQuestionnaire.getCollection("questionnaires").updateOne(
-    { id: "questionnaire_checkout" },
+    { _id: "questionnaire_checkout|mobile_acmeapp|journey_vendaavulsaacme" },
     {
         $set: {
+            id: "questionnaire_checkout",
             channel_distribution_id: "mobile_acmeapp",
             journey_distribution_id: "journey_vendaavulsaacme",
             description: "Questionario de Checkout",
             status: "ACTIVE",
-            configured_questions: [],
+            questions_count: 3,
             audit_info: auditInfo
         }
     },
@@ -182,16 +184,120 @@ dbOrderQuestionnaire.getCollection("questionnaires").updateOne(
 );
 
 dbOrderQuestionnaire.getCollection("questionnaires").updateOne(
-    { id: "questionnaire_onboarding" },
+    { _id: "questionnaire_onboarding|store_acme|journey_retencao" },
     {
         $set: {
+            id: "questionnaire_onboarding",
             channel_distribution_id: "store_acme",
             journey_distribution_id: "journey_retencao",
             description: "Questionario de Onboarding",
             status: "DRAFT",
-            configured_questions: [],
+            questions_count: 1,
             audit_info: auditInfo
         }
     },
     { upsert: true }
 );
+
+// 5. Relacao questionnaire_questions
+//    Checkout: q_name (1) → q_consent (2) → q_age (3, condicional a q_consent = "sim")
+var checkoutDocId = "questionnaire_checkout|mobile_acmeapp|journey_vendaavulsaacme";
+
+dbOrderQuestionnaire.getCollection("questionnaire_questions").updateOne(
+    { _id: checkoutDocId + "|q_name" },
+    {
+        $set: {
+            questionnaire_document_id: checkoutDocId,
+            questionnaire_id: "questionnaire_checkout",
+            channel_distribution_id: "mobile_acmeapp",
+            journey_distribution_id: "journey_vendaavulsaacme",
+            question_id: "q_name",
+            answer_configuration: {
+                _class: "com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerTextStrategy",
+                regexPattern: null,
+                customErrorMessage: null
+            },
+            root_condition: null,
+            order: 1
+        }
+    },
+    { upsert: true }
+);
+
+dbOrderQuestionnaire.getCollection("questionnaire_questions").updateOne(
+    { _id: checkoutDocId + "|q_consent" },
+    {
+        $set: {
+            questionnaire_document_id: checkoutDocId,
+            questionnaire_id: "questionnaire_checkout",
+            channel_distribution_id: "mobile_acmeapp",
+            journey_distribution_id: "journey_vendaavulsaacme",
+            question_id: "q_consent",
+            answer_configuration: {
+                _class: "com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerOptionListStrategy",
+                answerOptions: [
+                    { value: "sim", label: "Sim" },
+                    { value: "nao", label: "Nao" }
+                ],
+                customErrorMessage: null
+            },
+            root_condition: null,
+            order: 2
+        }
+    },
+    { upsert: true }
+);
+
+dbOrderQuestionnaire.getCollection("questionnaire_questions").updateOne(
+    { _id: checkoutDocId + "|q_age" },
+    {
+        $set: {
+            questionnaire_document_id: checkoutDocId,
+            questionnaire_id: "questionnaire_checkout",
+            channel_distribution_id: "mobile_acmeapp",
+            journey_distribution_id: "journey_vendaavulsaacme",
+            question_id: "q_age",
+            answer_configuration: {
+                _class: "com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerNumberStrategy",
+                min: 1.0,
+                max: 120.0,
+                step: null,
+                allowedDecimal: false,
+                allowedNegative: false,
+                customErrorMessage: null
+            },
+            root_condition: {
+                _class: "com.acme.orderquestionnaire.domain.questionnaire.conditioner.EqualCondition",
+                questionRootCode: "q_consent",
+                expectedValue: "sim"
+            },
+            order: 3
+        }
+    },
+    { upsert: true }
+);
+
+//    Onboarding: q_name (1)
+var onboardingDocId = "questionnaire_onboarding|store_acme|journey_retencao";
+
+dbOrderQuestionnaire.getCollection("questionnaire_questions").updateOne(
+    { _id: onboardingDocId + "|q_name" },
+    {
+        $set: {
+            questionnaire_document_id: onboardingDocId,
+            questionnaire_id: "questionnaire_onboarding",
+            channel_distribution_id: "store_acme",
+            journey_distribution_id: "journey_retencao",
+            question_id: "q_name",
+            answer_configuration: {
+                _class: "com.acme.orderquestionnaire.domain.questionnaire.answer.strategy.AnswerTextStrategy",
+                regexPattern: null,
+                customErrorMessage: null
+            },
+            root_condition: null,
+            order: 1
+        }
+    },
+    { upsert: true }
+);
+

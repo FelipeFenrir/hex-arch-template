@@ -1,7 +1,8 @@
 from unittest.mock import patch
-from pathlib import Path
 
-import app as aws_manager_app
+from aws_manager import create_app
+
+_app = create_app()
 
 
 class FakeSqs:
@@ -11,10 +12,29 @@ class FakeSqs:
     def get_queue_url(self, QueueName):
         return {"QueueUrl": f"http://ministack:4566/000000000000/{QueueName}"}
 
+    def get_queue_attributes(self, QueueUrl, AttributeNames=None):
+        return {
+            "Attributes": {
+                "QueueArn": "arn:aws:sqs:us-east-1:000000000000:teste",
+                "VisibilityTimeout": "30",
+                "MessageRetentionPeriod": "345600",
+                "ApproximateNumberOfMessages": "2",
+                "ApproximateNumberOfMessagesNotVisible": "1",
+            }
+        }
+
+    def set_queue_attributes(self, QueueUrl, Attributes):
+        return {}
+
     def send_message_batch(self, QueueUrl, Entries):
         assert QueueUrl.endswith("teste")
         assert len(Entries) == 2
         return {"Successful": [{"Id": entry["Id"]} for entry in Entries]}
+
+    def send_message(self, QueueUrl, MessageBody, MessageAttributes=None):
+        assert QueueUrl.endswith("teste")
+        assert MessageBody
+        return {"MessageId": "msg-1"}
 
 
 class FakeSns:
@@ -31,6 +51,12 @@ class FakeSns:
         assert Protocol == "sqs"
         assert Endpoint
         return {"SubscriptionArn": "arn:aws:sns:us-east-1:000000000000:eventos-teste:sub-1"}
+
+    def get_topic_attributes(self, TopicArn):
+        return {"Attributes": {"DisplayName": "Orders"}}
+
+    def set_topic_attributes(self, TopicArn, AttributeName, AttributeValue):
+        return {}
 
 
 class FakeUrlOpenResponse:
@@ -95,154 +121,99 @@ class FakeS3:
         return {}
 
 
+class FakeGenericClient:
+    def __init__(self, service_name):
+        self.service_name = service_name
+
+    def list_queues(self):
+        return {"QueueUrls": ["http://ministack:4566/000000000000/teste"]}
+
+    def list_topics(self):
+        return {"Topics": [{"TopicArn": "arn:aws:sns:us-east-1:000000000000:eventos-teste"}]}
+
+    def list_buckets(self):
+        return {"Buckets": [{"Name": "dados-dev"}]}
+
+    def list_tables(self):
+        return {"TableNames": ["orders"]}
+
+    def list_functions(self):
+        return {"Functions": [{"FunctionName": "fn-1"}]}
+
+    def describe_table(self, TableName):
+        return {"Table": {"TableName": TableName, "ItemCount": 1}}
+
+    def get_topic_attributes(self, TopicArn):
+        return {"Attributes": {"TopicArn": TopicArn}}
+
+    def get_queue_attributes(self, QueueUrl, AttributeNames=None):
+        return {"Attributes": {"QueueArn": "arn:aws:sqs:us-east-1:000000000000:teste"}}
+
+    def list_objects_v2(self, Bucket):
+        return {"Contents": [{"Key": "a.txt"}]}
+
+
 def run():
-    client = aws_manager_app.app.test_client()
+    client = _app.test_client()
 
-    static_dir = Path(__file__).parent / "static"
-    layout_js = (static_dir / "layout.js").read_text(encoding="utf-8")
-    monitor_js = (static_dir / "monitor.js").read_text(encoding="utf-8")
-    sns_js = (static_dir / "sns.js").read_text(encoding="utf-8")
-    home_health_js = (static_dir / "home-health.js").read_text(encoding="utf-8")
-
-    assert "function showToast(" in layout_js
-    assert "window.showToast = showToast" in layout_js
-    assert "alert(" not in monitor_js
-    assert "alert(" not in sns_js
-    assert "window.alert(" not in home_health_js
-
-    # Home page lists both services
+    # SPA root (works even when ui/dist is not built)
     response = client.get("/")
     assert response.status_code == 200
-    body = response.get_data(as_text=True)
-    assert "SQS" in body
-    assert "SNS" in body
-    assert "S3" in body
-    assert "DynamoDB" in body
-    assert "Lambda" in body
-    assert "CloudWatch" in body
-    assert "ECS" in body
-    assert "EC2" in body
-    assert "IAM" in body
-    assert "healthIntervalSelect" in body
-    assert 'data-service-implemented="false"' in body
-    assert "/apis" in body or True
 
-    # API catalog page
-    response = client.get("/apis")
+    # Core API health
+    response = client.get("/api/health")
     assert response.status_code == 200
-    apis_body = response.get_data(as_text=True)
-    assert "Catalogo de APIs" in apis_body
-    assert "/s3/buckets" in apis_body
-    assert "/monitor/queues" in apis_body
+    assert response.get_json()["status"] == "ok"
 
-    # GET redirects for SQS
-    response = client.get("/sqs/queues/create")
-    assert response.status_code == 302
-    assert "/monitor?tab=create" in response.headers["Location"]
-
-    response = client.get("/sqs/messages/send")
-    assert response.status_code == 302
-    assert "/monitor?tab=send" in response.headers["Location"]
-
-    # GET redirects for SNS
-    response = client.get("/sns/topics/create")
-    assert response.status_code == 302
-    assert "/sns?tab=create" in response.headers["Location"]
-
-    response = client.get("/sns/messages/publish")
-    assert response.status_code == 302
-    assert "/sns?tab=publish" in response.headers["Location"]
-
-    response = client.get("/sns/subscriptions/sqs")
-    assert response.status_code == 302
-    assert "/sns?tab=subscribe" in response.headers["Location"]
-
-    # GET redirects for S3
-    response = client.get("/s3/buckets/create")
-    assert response.status_code == 302
-    assert "/s3?tab=create" in response.headers["Location"]
-
-    response = client.get("/s3")
+    response = client.get("/api/endpoints")
     assert response.status_code == 200
-    assert "S3" in response.get_data(as_text=True)
+    assert isinstance(response.get_json().get("routes"), list)
 
-    # SQS form handlers
-    with patch("aws_manager.sqs.web.pages.build_sqs_client", return_value=FakeSqs()):
-        response = client.post("/sqs/queues/create", data={"queue_name": "teste"})
-        assert response.status_code == 200
+    # Registry-driven stats/resources
+    with patch("aws_manager.web.api._build_client", side_effect=lambda service, endpoint=None: FakeGenericClient(service)):
+        stats = client.get("/api/stats")
+        assert stats.status_code == 200
+        stats_json = stats.get_json()
+        assert "services" in stats_json
+        assert "s3" in stats_json["services"]
+        assert "sqs" in stats_json["services"]
+        assert "sns" in stats_json["services"]
 
-        response = client.post(
-            "/sqs/messages/send",
-            data={
-                "queue_name": "teste",
-                "headers": '{"x-origem": "smoke"}',
-                "body": '{"id": 1}',
-                "batch": "2",
-            },
-        )
-        assert response.status_code == 200
+        resources = client.get("/api/resources/dynamodb")
+        assert resources.status_code == 200
+        assert "tables" in resources.get_json()["resources"]
 
-    # SNS form handlers
-    with patch("aws_manager.sns.web.pages.get_topic_arn_by_name", return_value="arn:aws:sns:us-east-1:000000000000:eventos-teste"), \
-            patch("aws_manager.sns.web.pages.get_queue_info_by_name", return_value={"url": "http://ministack:4566/000000000000/teste", "arn": "arn:aws:sqs:us-east-1:000000000000:teste"}), \
-            patch("aws_manager.sns.web.pages.ensure_sqs_policy_for_sns_subscription"), \
-            patch("aws_manager.sns.web.pages.build_sns_client", return_value=FakeSns()):
-        response = client.post("/sns/topics/create", data={"topic_name": "eventos-teste"})
-        assert response.status_code == 200
+        detail = client.get("/api/resources/dynamodb/tables/orders")
+        assert detail.status_code == 200
+        assert detail.get_json()["id"] == "orders"
 
-        response = client.post(
-            "/sns/messages/publish",
-            data={
-                "topic_name": "eventos-teste",
-                "subject": "smoke",
-                "headers": '{"x-origem": "smoke"}',
-                "body": '{"id": 10}',
-                "message_group_id": "default",
-            },
-        )
-        assert response.status_code == 200
-
-        response = client.post(
-            "/sns/subscriptions/sqs",
-            data={
-                "topic_name": "eventos-teste",
-                "queue_name": "teste",
-            },
-        )
-        assert response.status_code == 200
-
-    # S3 form handlers
-    with patch("aws_manager.s3.web.pages.create_bucket", return_value={"location": "/dados-dev"}):
-        response = client.post(
-            "/s3/buckets/create",
-            data={
-                "bucket_name": "dados-dev",
-                "versioning_status": "Enabled",
-                "tags_json": '{"ambiente": "dev"}',
-            },
-        )
-        assert response.status_code == 200
-
-    with patch("aws_manager.s3.web.pages.update_bucket_settings"):
-        response = client.post(
-            "/s3/buckets/update",
-            data={
-                "bucket_name": "dados-dev",
-                "versioning_status": "Suspended",
-                "tags_json": '{"ambiente": "qa"}',
-            },
-        )
-        assert response.status_code == 200
-
-    # SQS JSON API
+    # SQS JSON APIs
     with patch("aws_manager.sqs.web.api.list_available_queues", return_value=[{"name": "teste", "url": "u1"}]):
-        response = client.get("/monitor/queues")
+        response = client.get("/api/sqs/queues")
         assert response.status_code == 200
         assert response.get_json() == {"queues": [{"name": "teste", "url": "u1"}]}
 
-    # SNS JSON API
+    with patch("aws_manager.sqs.web.api.build_sqs_client", return_value=FakeSqs()), \
+            patch("aws_manager.sqs.services.build_sqs_client", return_value=FakeSqs()):
+        response = client.post("/api/sqs/queues", json={"queueName": "teste"})
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "created"
+
+        response = client.post("/api/sqs/queues/teste/messages", json={"body": {"id": 1}, "headers": {}})
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "sent"
+
+        response = client.get("/api/sqs/queues/teste/summary")
+        assert response.status_code == 200
+        assert response.get_json()["hasActiveMessages"] is True
+
+        response = client.put("/api/sqs/queues/teste", json={"visibilityTimeout": 45})
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "updated"
+
+    # SNS JSON APIs
     with patch("aws_manager.sns.web.api.list_available_topics", return_value=[{"name": "eventos-teste", "arn": "a1"}]):
-        response = client.get("/sns/topics")
+        response = client.get("/api/sns/topics")
         assert response.status_code == 200
         assert response.get_json() == {"topics": [{"name": "eventos-teste", "arn": "a1"}]}
 
@@ -251,15 +222,44 @@ def run():
         assert response.status_code == 200
         assert response.get_json() == {"subscriptions": [{"protocol": "sqs", "endpoint": "q1", "subscriptionArn": "s1"}]}
 
-    # S3 JSON API
+    with patch("aws_manager.sns.web.api.build_sns_client", return_value=FakeSns()):
+        response = client.post("/api/sns/topics", json={"topicName": "eventos-teste"})
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "created"
+
+        with patch("aws_manager.sns.web.api.get_topic_runtime_summary", return_value={
+            "name": "eventos-teste",
+            "arn": "arn:aws:sns:us-east-1:000000000000:eventos-teste",
+            "displayName": "Orders",
+            "isFifo": False,
+            "subscriptionsCount": 0,
+            "hasActiveSubscriptions": False,
+        }):
+            response = client.get("/api/sns/topics/eventos-teste/summary")
+            assert response.status_code == 200
+            assert response.get_json()["displayName"] == "Orders"
+
+            with patch("aws_manager.sns.web.api.update_topic_runtime_attributes", return_value={
+                "name": "eventos-teste",
+                "arn": "arn:aws:sns:us-east-1:000000000000:eventos-teste",
+                "displayName": "Orders 2",
+                "isFifo": False,
+                "subscriptionsCount": 0,
+                "hasActiveSubscriptions": False,
+            }):
+                response = client.put("/api/sns/topics/eventos-teste", json={"displayName": "Orders 2"})
+            assert response.status_code == 200
+            assert response.get_json()["status"] == "updated"
+
+    # S3 JSON APIs
     with patch("aws_manager.s3.web.api.list_available_buckets", return_value=[{"name": "dados-dev", "createdAt": ""}]):
-        response = client.get("/s3/buckets")
+        response = client.get("/api/s3/buckets")
         assert response.status_code == 200
         assert response.get_json() == {"buckets": [{"name": "dados-dev", "createdAt": ""}]}
 
     with patch("aws_manager.s3.web.api.create_bucket", return_value={"location": "/dados-dev"}):
         response = client.post(
-            "/s3/buckets",
+            "/api/s3/buckets",
             json={
                 "bucketName": "dados-dev",
                 "versioningStatus": "Enabled",
@@ -272,7 +272,7 @@ def run():
 
     with patch("aws_manager.s3.web.api.update_bucket_settings"):
         response = client.put(
-            "/s3/buckets",
+            "/api/s3/buckets",
             json={
                 "bucketName": "dados-dev",
                 "versioningStatus": "Enabled",
@@ -283,7 +283,7 @@ def run():
         assert response.get_json()["status"] == "updated"
 
         response = client.put(
-            "/s3/buckets/settings",
+            "/api/s3/buckets/settings",
             json={
                 "bucketName": "dados-dev",
                 "versioningStatus": "Suspended",
@@ -294,7 +294,7 @@ def run():
         assert response.get_json()["status"] == "updated"
 
     response = client.post(
-        "/s3/buckets",
+        "/api/s3/buckets",
         json={
             "bucketName": "dados-dev",
             "versioningStatus": "Enabled",
@@ -305,25 +305,83 @@ def run():
     assert response.get_json()["status"] == "invalid"
 
     with patch("aws_manager.s3.web.api.get_bucket_details", return_value={"name": "dados-dev", "versioningStatus": "Enabled", "tags": {"ambiente": "dev"}, "location": "us-east-1"}):
-        response = client.get("/s3/buckets/details?name=dados-dev")
+        response = client.get("/api/s3/buckets/details?name=dados-dev")
         assert response.status_code == 200
         assert response.get_json()["versioningStatus"] == "Enabled"
 
     with patch("aws_manager.s3.web.api.collect_bucket_stats", return_value={"objectCount": 2, "totalSizeBytes": 42}):
-        response = client.get("/s3/buckets/stats?name=dados-dev")
+        response = client.get("/api/s3/buckets/stats?name=dados-dev")
         assert response.status_code == 200
         assert response.get_json() == {"objectCount": 2, "totalSizeBytes": 42}
 
     with patch("aws_manager.s3.web.api.delete_bucket", side_effect=ValueError("Bucket nao esta vazio. Marque forceDelete para remover objetos antes de deletar.")):
-        response = client.delete("/s3/buckets", json={"bucketName": "dados-dev", "forceDelete": False})
+        response = client.delete("/api/s3/buckets", json={"bucketName": "dados-dev", "forceDelete": False})
         assert response.status_code == 409
         assert response.get_json()["status"] == "blocked"
 
+    # DynamoDB JSON APIs
+    with patch("aws_manager.dynamodb.web.api.list_available_tables", return_value=[{"name": "orders", "status": "ACTIVE", "itemCount": 3, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}]):
+        response = client.get("/api/dynamodb/tables")
+        assert response.status_code == 200
+        assert response.get_json()["tables"][0]["name"] == "orders"
+
+    with patch("aws_manager.dynamodb.web.api.create_table", return_value={"name": "orders", "status": "CREATING", "itemCount": 0, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}):
+        response = client.post(
+            "/api/dynamodb/tables",
+            json={"tableName": "orders", "hashKey": "id", "billingMode": "PAY_PER_REQUEST"},
+        )
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "created"
+
+    with patch("aws_manager.dynamodb.web.api.get_table_summary", return_value={"name": "orders", "status": "ACTIVE", "itemCount": 3, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}):
+        response = client.get("/api/dynamodb/tables/orders/summary")
+        assert response.status_code == 200
+        assert response.get_json()["name"] == "orders"
+
+    with patch("aws_manager.dynamodb.web.api.update_table_settings", return_value={"name": "orders", "status": "UPDATING", "itemCount": 3, "billingMode": "PROVISIONED", "hashKey": "id", "readCapacity": 5, "writeCapacity": 5}):
+        response = client.put(
+            "/api/dynamodb/tables/orders",
+            json={"billingMode": "PROVISIONED", "readCapacity": 5, "writeCapacity": 5},
+        )
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "updated"
+
+    with patch("aws_manager.dynamodb.web.api.get_table_summary", return_value={"name": "orders", "status": "ACTIVE", "itemCount": 3, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}):
+        response = client.delete("/api/dynamodb/tables/orders")
+        assert response.status_code == 409
+        assert response.get_json()["status"] == "blocked"
+
+    with patch("aws_manager.dynamodb.web.api.get_table_summary", return_value={"name": "orders", "status": "ACTIVE", "itemCount": 0, "billingMode": "PAY_PER_REQUEST", "hashKey": "id", "readCapacity": 0, "writeCapacity": 0}), \
+            patch("aws_manager.dynamodb.web.api.delete_table"):
+        response = client.delete("/api/dynamodb/tables/orders")
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "deleted"
+
+    with patch("aws_manager.dynamodb.web.api.scan_table_items", return_value=[{"id": "1", "status": "open"}]):
+        response = client.get("/api/dynamodb/tables/orders/items?limit=10")
+        assert response.status_code == 200
+        assert response.get_json()["items"][0]["id"] == "1"
+
+    with patch("aws_manager.dynamodb.web.api.query_table_items_by_key", return_value=[{"id": "1", "status": "open"}]):
+        response = client.post("/api/dynamodb/tables/orders/items/query", json={"key": {"id": "1"}, "limit": 10})
+        assert response.status_code == 200
+        assert response.get_json()["items"][0]["id"] == "1"
+
+    with patch("aws_manager.dynamodb.web.api.put_table_item"):
+        response = client.post("/api/dynamodb/tables/orders/items", json={"item": {"id": "1", "status": "open"}})
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "upserted"
+
+    with patch("aws_manager.dynamodb.web.api.delete_table_item"):
+        response = client.delete("/api/dynamodb/tables/orders/items", json={"key": {"id": "1"}})
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "deleted"
+
     # MiniStack health API
     health_payload = '{"services": {"sqs": {"status": "running"}, "sns": {"status": "running"}, "s3": {"status": "running"}}}'
-    with patch("aws_manager.web.pages.ministack_health_url_candidates", return_value=["http://fake/_ministack/health"]), \
-            patch("aws_manager.web.pages.urlopen", return_value=FakeUrlOpenResponse(health_payload)):
-        response = client.get("/ministack/health")
+    with patch("aws_manager.web.api.ministack_health_url_candidates", return_value=["http://fake/_ministack/health"]), \
+            patch("aws_manager.web.api.urlopen", return_value=FakeUrlOpenResponse(health_payload)):
+        response = client.get("/api/ministack/health")
         assert response.status_code == 200
         assert response.get_json()["online"] is True
         services = response.get_json()["services"]
@@ -331,9 +389,9 @@ def run():
         assert services["sns"] is True
         assert services["s3"] is True
 
-    with patch("aws_manager.web.pages.ministack_health_url_candidates", return_value=["http://fake/_ministack/health"]), \
-            patch("aws_manager.web.pages.urlopen", side_effect=RuntimeError("unreachable")):
-        response = client.get("/ministack/health")
+    with patch("aws_manager.web.api.ministack_health_url_candidates", return_value=["http://fake/_ministack/health"]), \
+            patch("aws_manager.web.api.urlopen", side_effect=RuntimeError("unreachable")):
+        response = client.get("/api/ministack/health")
         assert response.status_code == 503
         assert response.get_json()["online"] is False
 

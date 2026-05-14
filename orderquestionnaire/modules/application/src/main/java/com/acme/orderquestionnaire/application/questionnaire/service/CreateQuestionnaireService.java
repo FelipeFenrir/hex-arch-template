@@ -10,6 +10,8 @@ import com.acme.shared.pattern.pipeline.Step;
 import com.acme.shared.pattern.result.DomainError;
 import com.acme.shared.pattern.result.Result;
 
+import com.acme.observability.Loggable;
+
 import java.util.List;
 
 /**
@@ -34,6 +36,7 @@ import java.util.List;
  *   <li>{@code BUILD_AND_PERSIST_QUESTIONNAIRE} — builds domain entity and persists it</li>
  * </ol>
  */
+@Loggable
 public class CreateQuestionnaireService
         extends PipelineOrchestrator<CreateQuestionnairePipelineContext, QuestionnaireCreatedView>
         implements CreateQuestionnaireUseCase {

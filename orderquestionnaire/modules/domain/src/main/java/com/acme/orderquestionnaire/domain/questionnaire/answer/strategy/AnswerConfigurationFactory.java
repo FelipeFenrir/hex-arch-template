@@ -13,13 +13,13 @@ public class AnswerConfigurationFactory {
 
     public static AnswerTextStrategy createTextStrategy(String regexPattern) {
         return AnswerTextStrategy.builder()
-                .withRegexPattern(regexPattern)
+                .withRegexPatternValue(regexPattern)
                 .build();
     }
 
     public static AnswerTextStrategy createTextStrategy(String regexPattern, String customErrorMessage) {
         return AnswerTextStrategy.builder()
-                .withRegexPattern(regexPattern)
+                .withRegexPatternValue(regexPattern)
                 .withCustomErrorMessage(customErrorMessage)
                 .build();
     }

@@ -164,8 +164,8 @@ public final class Questionnaire {
 
         return new QuestionnaireTree(
                 questionnaireId.id(),
-                questionnaireId.channelDistributionId(),
-                questionnaireId.journeyDistributionId(),
+                questionnaireId.getChannelDistributionIdValue(),
+                questionnaireId.getJourneyDistributionIdValue(),
                 description,
                 status.name(),
                 questionNodes
@@ -181,11 +181,11 @@ public final class Questionnaire {
     }
 
     public String channelDistributionId() {
-        return questionnaireId.channelDistributionId();
+        return questionnaireId.getChannelDistributionIdValue();
     }
 
     public String journeyDistributionId() {
-        return questionnaireId.journeyDistributionId();
+        return questionnaireId.getJourneyDistributionIdValue();
     }
 
     public String description() {

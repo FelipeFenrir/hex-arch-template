@@ -33,7 +33,7 @@ public class FetchQuestionForDeleteStep implements Step<DeleteQuestionPipelineCo
 
     @Override
     public Result<Void, List<DomainError>> execute(DeleteQuestionPipelineContext context) {
-        return questionCommandOutPort.findQuestionById(context.id())
+        return questionCommandOutPort.findQuestionById(context.questionId().value())
                 .<Result<Void, List<DomainError>>>map(question -> {
                     context.question(question);
                     return Result.success(null);

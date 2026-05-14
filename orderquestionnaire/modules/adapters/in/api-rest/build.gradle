@@ -6,10 +6,13 @@ group = 'com.acme.orderquestionnaire'
 
 dependencies {
     implementation 'com.acme:shared'
+    implementation 'com.acme:observability'
     implementation project(':modules:application')
+    implementation project(':modules:domain')
 
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation "org.springframework.boot:spring-boot-starter-validation"
+    implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${openapiVersion}"
 
     testImplementation "com.tngtech.archunit:archunit:${archunitVersion}"
     testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"

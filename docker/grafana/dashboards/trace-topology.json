@@ -1,0 +1,141 @@
+{
+  "id": null,
+  "uid": "trace-topology",
+  "title": "Trace Topology",
+  "tags": ["local", "traces", "topology"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "app",
+        "label": "App",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "query": "label_values({job=~\".+\"}, app)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "current": { "selected": true, "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "level",
+        "label": "Level",
+        "type": "custom",
+        "query": ".+,TRACE,DEBUG,INFO,WARN,ERROR",
+        "includeAll": false,
+        "multi": false,
+        "current": { "selected": true, "text": ".+", "value": ".+" }
+      },
+      {
+        "name": "correlationId",
+        "label": "Correlation ID (regex/text)",
+        "type": "textbox",
+        "query": ".*",
+        "current": { "selected": false, "text": ".*", "value": ".*" }
+      },
+      {
+        "name": "traceId",
+        "label": "Trace ID (regex/text)",
+        "type": "textbox",
+        "query": ".*",
+        "current": { "selected": false, "text": ".*", "value": ".*" }
+      },
+      {
+        "name": "spanId",
+        "label": "Span ID (regex/text)",
+        "type": "textbox",
+        "query": ".*",
+        "current": { "selected": false, "text": ".*", "value": ".*" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 11,
+      "type": "nodeGraph",
+      "title": "Live Service Graph (Tempo)",
+      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "serviceMap"
+        }
+      ],
+      "options": {
+        "nodes": {
+          "mainStatUnit": "short",
+          "secondaryStatUnit": "short"
+        }
+      }
+    },
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Log Events by App",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (app) (count_over_time({app=~\"$app\",level=~\"$level\"} |~ \"$correlationId\" |~ \"$traceId\" |~ \"$spanId\" [5m]))"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Warnings and Errors by App",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (app, level) (count_over_time({app=~\"$app\",level=~\"WARN|ERROR\"} |~ \"$correlationId\" |~ \"$traceId\" |~ \"$spanId\" [5m]))"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "Correlated Flow Logs (Topology Lens)",
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 31 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{app=~\"$app\",level=~\"$level\"} |~ \"$correlationId\" |~ \"$traceId\" |~ \"$spanId\" | json | line_format \"{{ .service }}|{{ .app }}|{{ .level }}|trace={{ .traceId }}|span={{ .spanId }}|corr={{ .correlationId }}|flow={{ .flowId }}|{{ if .message }}{{ .message }}{{ else if .formattedMessage }}{{ .formattedMessage }}{{ else }}{{ __line__ }}{{ end }}\""
+        }
+      ],
+      "options": {
+        "showLabels": true,
+        "showCommonLabels": true,
+        "showTime": true,
+        "prettifyLogMessage": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ]
+}
+
+
+

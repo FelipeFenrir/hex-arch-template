@@ -2,43 +2,970 @@
   "id": null,
   "uid": "app-observability",
   "title": "App Observability",
-  "tags": ["local", "observability"],
+  "description": "Golden Signals Dashboard: Traffic, Latency, Errors, Saturation + Availability & SLO Tracking",
+  "tags": ["local", "observability", "golden-signals", "slo"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 3,
   "refresh": "10s",
   "time": {
 	"from": "now-1h",
 	"to": "now"
   },
+  "templating": {
+	"list": [
+	  {
+		"name": "businessApp",
+		"label": "Business App",
+		"description": "Filter by business application (security-server, orderquestionnaire)",
+		"type": "query",
+		"datasource": { "type": "prometheus", "uid": "prometheus" },
+		"query": "label_values(up{job=~\".+-(host|container)\"}, job)",
+		"regex": "/^(.*?)-(?:host|container)$/",
+		"includeAll": true,
+		"multi": true,
+		"allValue": ".+",
+		"current": { "selected": true, "text": "All", "value": "$__all" }
+	  },
+	  {
+		"name": "platformComponent",
+		"label": "Platform Component",
+		"description": "Filter by platform infrastructure component (prometheus, otel-collector, loki, tempo)",
+		"type": "query",
+		"datasource": { "type": "prometheus", "uid": "prometheus" },
+		"query": "label_values(up{job=~\"prometheus|otel-collector|loki|tempo\"}, job)",
+		"includeAll": true,
+		"multi": true,
+		"allValue": "prometheus|otel-collector|loki|tempo",
+		"current": { "selected": true, "text": "All", "value": "$__all" }
+	  },
+	  {
+		"name": "rateWindow",
+		"label": "Rate Window",
+		"description": "Time window for rate calculations (affects traffic, latency, error metrics)",
+		"type": "custom",
+		"query": "1m,5m,15m",
+		"includeAll": false,
+		"multi": false,
+		"current": { "selected": true, "text": "5m", "value": "5m" }
+	  },
+	  {
+		"name": "sloErrorThreshold",
+		"label": "SLO Error Threshold (%)",
+		"description": "Maximum acceptable error rate for SLO calculation",
+		"type": "custom",
+		"query": "0.1,0.5,1.0,5.0",
+		"includeAll": false,
+		"multi": false,
+		"current": { "selected": true, "text": "1.0", "value": "1.0" }
+	  },
+	  {
+		"name": "httpMethod",
+		"label": "HTTP Method",
+		"description": "Filter drill-down by HTTP method (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)",
+		"type": "query",
+		"datasource": { "type": "prometheus", "uid": "prometheus" },
+		"query": "label_values(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\"}, method)",
+		"includeAll": true,
+		"multi": true,
+		"allValue": ".+",
+		"current": { "selected": true, "text": "All", "value": "$__all" }
+	  }
+	]
+  },
   "panels": [
 	{
 	  "id": 1,
-	  "type": "timeseries",
-	  "title": "Service Up",
-	  "gridPos": { "h": 10, "w": 12, "x": 0, "y": 0 },
-	  "datasource": { "type": "prometheus", "uid": "prometheus" },
-	  "targets": [
-		{
-		  "refId": "A",
-		  "expr": "up{job=~\"prometheus|otel-collector|loki|tempo|app\"}",
-		  "legendFormat": "{{job}}"
-		}
-	  ]
+	  "type": "row",
+	  "title": "Overview - KPIs & Golden Signals",
+	  "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+	  "collapsed": false
 	},
 	{
 	  "id": 2,
-	  "type": "timeseries",
-	  "title": "Scrape Duration (seconds)",
-	  "gridPos": { "h": 10, "w": 12, "x": 12, "y": 0 },
+	  "type": "stat",
+	  "title": "Business Targets Up",
+	  "description": "Number of active business apps",
+	  "gridPos": { "h": 6, "w": 5, "x": 0, "y": 1 },
 	  "datasource": { "type": "prometheus", "uid": "prometheus" },
 	  "targets": [
 		{
 		  "refId": "A",
-		  "expr": "scrape_duration_seconds{job=~\"prometheus|otel-collector|loki|tempo|app\"}",
+		  "expr": "sum(up{job=~\"${businessApp:regex}-(host|container)\"})"
+		}
+	  ],
+	  "options": {
+		"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+		"orientation": "auto",
+		"textMode": "value"
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "short",
+		  "decimals": 0,
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "red", "value": null },
+			  { "color": "green", "value": 1 }
+			]
+		  }
+		},
+		"overrides": []
+	  }
+	},
+	{
+	  "id": 3,
+	  "type": "stat",
+	  "title": "Total Throughput",
+	  "description": "Total requests per second across all apps",
+	  "gridPos": { "h": 6, "w": 5, "x": 5, "y": 1 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "sum(rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}]))"
+		}
+	  ],
+	  "options": {
+		"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+		"orientation": "auto",
+		"textMode": "value"
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "reqps",
+		  "decimals": 2
+		},
+		"overrides": []
+	  }
+	},
+	{
+	  "id": 4,
+	  "type": "stat",
+	  "title": "Error Rate (5xx)",
+	  "description": "Percentage of server errors",
+	  "gridPos": { "h": 6, "w": 5, "x": 10, "y": 1 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "100 * sum(rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",status=~\"5..\"}[${rateWindow}])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}])), 0.000001)"
+		}
+	  ],
+	  "options": {
+		"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+		"orientation": "auto",
+		"textMode": "value"
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percent",
+		  "decimals": 2,
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null },
+			  { "color": "yellow", "value": 0.5 },
+			  { "color": "red", "value": 1 }
+			]
+		  }
+		},
+		"overrides": []
+	  }
+	},
+	{
+	  "id": 5,
+	  "type": "stat",
+	  "title": "p95 Latency (worst)",
+	  "description": "Maximum p95 latency across apps",
+	  "gridPos": { "h": 6, "w": 5, "x": 15, "y": 1 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "max(histogram_quantile(0.95, sum by (le, job) (rate(http_server_requests_seconds_bucket{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}]))))"
+		}
+	  ],
+	  "options": {
+		"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+		"orientation": "auto",
+		"textMode": "value"
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "s",
+		  "decimals": 3,
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null },
+			  { "color": "yellow", "value": 0.5 },
+			  { "color": "red", "value": 1 }
+			]
+		  }
+		},
+		"overrides": []
+	  }
+	},
+	{
+	  "id": 101,
+	  "type": "row",
+	  "title": "Availability & SLO Compliance",
+	  "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+	  "collapsed": false
+	},
+	{
+	  "id": 102,
+	  "type": "stat",
+	  "title": "Availability (uptime)",
+	  "description": "Percentage of time at least one business app is available",
+	  "gridPos": { "h": 5, "w": 6, "x": 0, "y": 8 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "avg_over_time(up{job=~\"${businessApp:regex}-(host|container)\"}[1h]) > 0"
+		}
+	  ],
+	  "options": {
+		"reduceOptions": { "calcs": ["mean"], "fields": "", "values": false },
+		"orientation": "auto",
+		"textMode": "value",
+		"noValue": "0%"
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percentunit",
+		  "decimals": 2,
+		  "min": 0,
+		  "max": 1,
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "red", "value": null },
+			  { "color": "yellow", "value": 0.95 },
+			  { "color": "green", "value": 0.99 }
+			]
+		  }
+		},
+		"overrides": []
+	  }
+	},
+	{
+	  "id": 103,
+	  "type": "stat",
+	  "title": "SLO Compliance (error rate)",
+	  "description": "Is error rate below SLO threshold?",
+	  "gridPos": { "h": 5, "w": 6, "x": 6, "y": 8 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "100 * sum(rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",status=~\"5..\"}[${rateWindow}])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}])), 0.000001)"
+		}
+	  ],
+	  "options": {
+		"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+		"orientation": "auto",
+		"textMode": "auto"
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percent",
+		  "decimals": 3,
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null, "label": "OK" },
+			  { "color": "yellow", "value": null },
+			  { "color": "red", "value": 1, "label": "BREACH" }
+			]
+		  }
+		},
+		"mappings": [
+		  {
+			"type": "range",
+			"options": {
+			  "from": 0,
+			  "to": 1,
+			  "result": { "text": "PASS", "color": "green" }
+			}
+		  },
+		  {
+			"type": "range",
+			"options": {
+			  "from": 1,
+			  "to": 100,
+			  "result": { "text": "FAIL", "color": "red" }
+			}
+		  }
+		],
+		"overrides": []
+	  }
+	},
+	{
+	  "id": 104,
+	  "type": "gauge",
+	  "title": "Error Budget (remaining)",
+	  "description": "SLO budget remaining in measurement window",
+	  "gridPos": { "h": 5, "w": 6, "x": 12, "y": 8 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "100 - (100 * sum(rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",status=~\"5..\"}[${rateWindow}])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}])), 0.000001))"
+		}
+	  ],
+	  "options": {
+		"showThresholdLabels": false,
+		"showThresholdMarkers": true,
+		"orientation": "auto",
+		"reduceOptions": { "calcs": ["lastNotNull"] }
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percent",
+		  "decimals": 2,
+		  "min": 0,
+		  "max": 100,
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "red", "value": null },
+			  { "color": "yellow", "value": 50 },
+			  { "color": "green", "value": 75 }
+			]
+		  }
+		},
+		"overrides": []
+	  }
+	},
+	{
+	  "id": 105,
+	  "type": "table",
+	  "title": "SLO Status by App (click to trace errors)",
+	  "description": "Error rate vs SLO threshold for each business app. Click app name to jump to Trace Topology with error context.",
+	  "gridPos": { "h": 5, "w": 6, "x": 18, "y": 8 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "format": "table",
+		  "instant": true,
+		  "refId": "A",
+		  "expr": "100 * sum by (job) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",status=~\"5..\"}[${rateWindow}])) / clamp_min(sum by (job) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}])), 0.000001)"
+		}
+	  ],
+	  "options": {
+		"showHeader": true,
+		"sortBy": []
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percent",
+		  "decimals": 3,
+		  "custom": {
+			"displayMode": "color-background",
+			"filterable": true,
+			"links": [
+			  {
+				"title": "🔍 View traces for this app",
+				"url": "/d/trace-topology?var-app=${__data.fields.Value}&var-level=ERROR",
+				"targetBlank": true
+			  }
+			]
+		  },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null },
+			  { "color": "yellow", "value": 0.5 },
+			  { "color": "red", "value": 1 }
+			]
+		  }
+		},
+		"overrides": []
+	  }
+	},
+	{
+	  "id": 201,
+	  "type": "row",
+	  "title": "Golden Signals - Detailed View",
+	  "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+	  "collapsed": false
+	},
+	{
+	  "id": 20,
+	  "type": "timeseries",
+	  "title": "Traffic (requests/sec by app)",
+	  "description": "HTTP throughput broken down by application",
+	  "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "sum by (job) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}]))",
 		  "legendFormat": "{{job}}"
 		}
-	  ]
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "reqps",
+		  "decimals": 2,
+		  "custom": { "lineWidth": 2 }
+		},
+		"overrides": []
+	  },
+	  "options": {
+		"legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+		"tooltip": { "mode": "multi", "sort": "none" }
+	  }
+	},
+	{
+	  "id": 6,
+	  "type": "timeseries",
+	  "title": "Errors (5xx rate % by app) - Click to Trace",
+	  "description": "Server error ratio breaking down error rate by application. Click legend item or point to drill down to Trace Topology.",
+	  "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "100 * sum by (job) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",method=~\"${httpMethod:regex}\",status=~\"5..\"}[${rateWindow}])) / clamp_min(sum by (job) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",method=~\"${httpMethod:regex}\"}[${rateWindow}])), 0.000001)",
+		  "legendFormat": "{{job}}"
+		}
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percent",
+		  "decimals": 2,
+		  "custom": {
+			"lineWidth": 2,
+			"hideFrom": { "tooltip": false, "viz": false, "legend": false }
+		  },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null },
+			  { "color": "yellow", "value": 0.5 },
+			  { "color": "red", "value": 1 }
+			]
+		  },
+		  "links": [
+			{
+			  "title": "Open Trace Topology (errors)",
+			  "url": "/d/trace-topology?var-app=${__field.labels.job}&var-level=ERROR",
+			  "targetBlank": true
+			}
+		  ]
+		},
+		"overrides": []
+	  },
+	  "options": {
+		"legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
+		"tooltip": { "mode": "multi", "sort": "none" }
+	  }
+	},
+	{
+	  "id": 7,
+	  "type": "timeseries",
+	  "title": "Latency (p95 & p99 by app)",
+	  "description": "Response time percentiles (95th and 99th)",
+	  "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "histogram_quantile(0.95, sum by (le, job) (rate(http_server_requests_seconds_bucket{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}])))",
+		  "legendFormat": "p95 {{job}}"
+		},
+		{
+		  "refId": "B",
+		  "expr": "histogram_quantile(0.99, sum by (le, job) (rate(http_server_requests_seconds_bucket{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}])))",
+		  "legendFormat": "p99 {{job}}"
+		}
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "s",
+		  "decimals": 3,
+		  "custom": { "lineWidth": 2 },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null },
+			  { "color": "yellow", "value": 0.5 },
+			  { "color": "red", "value": 1 }
+			]
+		  }
+		},
+		"overrides": []
+	  },
+	  "options": {
+		"legend": { "displayMode": "table", "placement": "right", "showLegend": true },
+		"tooltip": { "mode": "multi", "sort": "none" }
+	  }
+	},
+	{
+	  "id": 301,
+	  "type": "row",
+	  "title": "Saturation (Resource Utilization)",
+	  "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
+	  "collapsed": false
+	},
+	{
+	  "id": 8,
+	  "type": "timeseries",
+	  "title": "Heap Usage (JVM %)",
+	  "description": "Java heap memory utilization by application",
+	  "gridPos": { "h": 8, "w": 8, "x": 0, "y": 31 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "100 * sum by (job) (jvm_memory_used_bytes{job=~\"${businessApp:regex}-(host|container)\",area=\"heap\"}) / clamp_min(sum by (job) (jvm_memory_max_bytes{job=~\"${businessApp:regex}-(host|container)\",area=\"heap\"}), 1)",
+		  "legendFormat": "{{job}}"
+		}
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percent",
+		  "decimals": 1,
+		  "custom": { "lineWidth": 2 },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null },
+			  { "color": "yellow", "value": 70 },
+			  { "color": "red", "value": 85 }
+			]
+		  }
+		},
+		"overrides": []
+	  },
+	  "options": {
+		"legend": { "displayMode": "list", "placement": "bottom" }
+	  }
+	},
+	{
+	  "id": 9,
+	  "type": "timeseries",
+	  "title": "CPU Usage (%)",
+	  "description": "System CPU usage by application",
+	  "gridPos": { "h": 8, "w": 8, "x": 8, "y": 31 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "100 * max by (job) (system_cpu_usage{job=~\"${businessApp:regex}-(host|container)\"})",
+		  "legendFormat": "{{job}}"
+		}
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percent",
+		  "decimals": 1,
+		  "custom": { "lineWidth": 2 },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null },
+			  { "color": "yellow", "value": 60 },
+			  { "color": "red", "value": 80 }
+			]
+		  }
+		},
+		"overrides": []
+	  },
+	  "options": {
+		"legend": { "displayMode": "list", "placement": "bottom" }
+	  }
+	},
+	{
+	  "id": 10,
+	  "type": "timeseries",
+	  "title": "Live Threads (count)",
+	  "description": "Number of active threads at system level",
+	  "gridPos": { "h": 8, "w": 8, "x": 16, "y": 31 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "max by (job) (jvm_threads_live_threads{job=~\"${businessApp:regex}-(host|container)\"})",
+		  "legendFormat": "{{job}}"
+		}
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "short",
+		  "decimals": 0,
+		  "custom": { "lineWidth": 2 }
+		},
+		"overrides": []
+	  },
+	  "options": {
+		"legend": { "displayMode": "list", "placement": "bottom" }
+	  }
+	},
+	{
+	  "id": 11,
+	  "type": "timeseries",
+	  "title": "HTTP/Pool Utilization (%)",
+	  "description": "Thread pool utilization: Tomcat + Executor threads",
+	  "gridPos": { "h": 8, "w": 12, "x": 0, "y": 39 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "100 * max by (job) (tomcat_threads_busy_threads{job=~\"${businessApp:regex}-(host|container)\"}) / clamp_min(max by (job) (tomcat_threads_config_max{job=~\"${businessApp:regex}-(host|container)\"}), 1)",
+		  "legendFormat": "Tomcat busy {{job}}"
+		},
+		{
+		  "refId": "B",
+		  "expr": "100 * max by (job) (executor_active_threads{job=~\"${businessApp:regex}-(host|container)\"}) / clamp_min(max by (job) (executor_pool_max_threads{job=~\"${businessApp:regex}-(host|container)\"}), 1)",
+		  "legendFormat": "Executor active {{job}}"
+		}
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percent",
+		  "decimals": 1,
+		  "custom": { "lineWidth": 2 },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null },
+			  { "color": "yellow", "value": 60 },
+			  { "color": "red", "value": 80 }
+			]
+		  }
+		},
+		"overrides": []
+	  },
+	  "options": {
+		"legend": { "displayMode": "list", "placement": "bottom" }
+	  }
+	},
+	{
+	  "id": 401,
+	  "type": "row",
+	  "title": "Detailed Analysis - Endpoints & Status Breakdown",
+	  "gridPos": { "h": 1, "w": 24, "x": 12, "y": 39 },
+	  "collapsed": false
+	},
+	{
+	  "id": 12,
+	  "type": "table",
+	  "title": "Endpoints by Status (filtered by method)",
+	  "description": "Drill-down: top endpoints sorted by Status codes. Click a row to open Trace Topology.",
+	  "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "format": "table",
+		  "instant": true,
+		  "refId": "A",
+		  "expr": "topk(10, sum by (method, uri, status) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",method=~\"${httpMethod:regex}\"}[${rateWindow}])))"
+		}
+	  ],
+	  "options": {
+		"showHeader": true,
+		"sortBy": [
+		  { "displayName": "Value", "desc": true }
+		]
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "reqps",
+		  "decimals": 2,
+		  "custom": {
+			"displayMode": "color-background",
+			"filterable": true
+		  },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "blue", "value": null },
+			  { "color": "blue", "value": 0.001 }
+			]
+		  }
+		},
+		"overrides": [
+		  {
+			"matcher": { "id": "byName", "options": "status" },
+			"properties": [
+			  {
+				"id": "custom.displayMode",
+				"value": "color-background"
+			  },
+			  {
+				"id": "thresholds",
+				"value": {
+				  "mode": "absolute",
+				  "steps": [
+					{ "color": "green", "value": null },
+					{ "color": "green", "value": 200 },
+					{ "color": "green", "value": 299 },
+					{ "color": "yellow", "value": 300 },
+					{ "color": "yellow", "value": 399 },
+					{ "color": "red", "value": 400 },
+					{ "color": "red", "value": 599 }
+				  ]
+				}
+			  }
+			]
+		  }
+		]
+	  }
+	},
+	{
+	  "id": 13,
+	  "type": "table",
+	  "title": "Error Endpoints (5xx) - with Trace Link",
+	  "description": "Drill-down: endpoints returning 5xx errors. Right-click any row → Open link to jump to Trace Topology dashboard.",
+	  "gridPos": { "h": 8, "w": 12, "x": 0, "y": 47 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "format": "table",
+		  "instant": true,
+		  "refId": "A",
+		  "expr": "topk(15, sum by (method, uri, status) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",method=~\"${httpMethod:regex}\",status=~\"5..\"}[${rateWindow}])))"
+		}
+	  ],
+	  "options": {
+		"showHeader": true,
+		"sortBy": [
+		  { "displayName": "Value", "desc": true }
+		]
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "reqps",
+		  "decimals": 3,
+		  "custom": {
+			"displayMode": "color-background",
+			"filterable": true,
+			"links": [
+			  {
+				"title": "🔍 Trace this error in Trace Topology",
+				"url": "/d/trace-topology?var-app=${__data.fields[0]}&var-level=ERROR&var-correlationId=.*",
+				"targetBlank": true
+			  },
+			  {
+				"title": "📊 View logs in Loki (5xx errors)",
+				"url": "/d/logs-json-loki?var-app=${__data.fields[0]}&var-level=ERROR",
+				"targetBlank": true
+			  }
+			]
+		  },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "yellow", "value": null },
+			  { "color": "red", "value": 0.01 }
+			]
+		  }
+		},
+		"overrides": [
+		  {
+			"matcher": { "id": "byName", "options": "uri" },
+			"properties": [
+			  {
+				"id": "custom.displayMode",
+				"value": "auto"
+			  }
+			]
+		  }
+		]
+	  }
+	},
+	{
+	  "id": 14,
+	  "type": "timeseries",
+	  "title": "Responses by Status Code (click 5xx to trace)",
+	  "description": "Distribution of responses across status code ranges: 2xx, 3xx, 4xx, 5xx. Click on 5xx series to jump to error traces.",
+	  "gridPos": { "h": 8, "w": 12, "x": 12, "y": 47 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "sum by (status) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",method=~\"${httpMethod:regex}\",status=~\"2..\"}[${rateWindow}]))",
+		  "legendFormat": "2xx"
+		},
+		{
+		  "refId": "B",
+		  "expr": "sum by (status) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",method=~\"${httpMethod:regex}\",status=~\"3..\"}[${rateWindow}]))",
+		  "legendFormat": "3xx"
+		},
+		{
+		  "refId": "C",
+		  "expr": "sum by (status) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",method=~\"${httpMethod:regex}\",status=~\"4..\"}[${rateWindow}]))",
+		  "legendFormat": "4xx"
+		},
+		{
+		  "refId": "D",
+		  "expr": "sum by (status) (rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",method=~\"${httpMethod:regex}\",status=~\"5..\"}[${rateWindow}]))",
+		  "legendFormat": "5xx - 🚨 CLICK TO TRACE"
+		}
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "reqps",
+		  "decimals": 2,
+		  "custom": { "lineWidth": 2 },
+		  "links": [
+			{
+			  "title": "Jump to Trace Topology",
+			  "url": "/d/trace-topology?var-level=ERROR",
+			  "targetBlank": true
+			}
+		  ]
+		},
+		"overrides": [
+		  {
+			"matcher": { "id": "byName", "options": "5xx - 🚨 CLICK TO TRACE" },
+			"properties": [
+			  {
+				"id": "color",
+				"value": { "mode": "fixed", "fixedColor": "red" }
+			  },
+			  {
+				"id": "custom.lineWidth",
+				"value": 3
+			  }
+			]
+		  }
+		]
+	  },
+	  "options": {
+		"legend": { "displayMode": "table", "placement": "bottom" }
+	  }
+	},
+	{
+	  "id": 423,
+	  "type": "stat",
+	  "title": "🔗 Quick Navigation: Jump to Trace Topology",
+	  "description": "One-click access to Trace Topology dashboard filtered by current business app and error level. Updates in real-time.",
+	  "gridPos": { "h": 4, "w": 24, "x": 0, "y": 55 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "100 * sum(rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\",status=~\"5..\"}[${rateWindow}])) / clamp_min(sum(rate(http_server_requests_seconds_count{job=~\"${businessApp:regex}-(host|container)\"}[${rateWindow}])), 0.000001)"
+		}
+	  ],
+	  "options": {
+		"reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+		"orientation": "auto",
+		"textMode": "auto"
+	  },
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "percent",
+		  "decimals": 2,
+		  "custom": {
+			"displayMode": "auto"
+		  },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "green", "value": null },
+			  { "color": "yellow", "value": 0.5 },
+			  { "color": "red", "value": 1 }
+			]
+		  },
+		  "links": [
+			{
+			  "title": "📊 View ALL Error Traces",
+			  "url": "/d/trace-topology?var-level=ERROR",
+			  "targetBlank": true
+			},
+			{
+			  "title": "🔍 View Traces for Selected App",
+			  "url": "/d/trace-topology?var-app=${businessApp}&var-level=ERROR",
+			  "targetBlank": true
+			},
+			{
+			  "title": "📋 View Logs in Loki",
+			  "url": "/d/logs-json-loki?var-app=${businessApp}&var-level=ERROR",
+			  "targetBlank": true
+			},
+			{
+			  "title": "🕐 View Request Timeline",
+			  "url": "/d/trace-investigation?var-app=${businessApp}&var-level=ERROR",
+			  "targetBlank": true
+			}
+		  ]
+		},
+		"overrides": []
+	  }
+	},
+	{
+	  "id": 501,
+	  "type": "row",
+	  "title": "Platform Infrastructure Health",
+	  "gridPos": { "h": 1, "w": 24, "x": 0, "y": 59 },
+	  "collapsed": false
+	},
+	{
+	  "id": 15,
+	  "type": "timeseries",
+	  "title": "Platform Components Up",
+	  "description": "Observability stack component availability (prometheus, otel-collector, loki, tempo)",
+	  "gridPos": { "h": 6, "w": 12, "x": 0, "y": 60 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "up{job=~\"${platformComponent:regex}\"}",
+		  "legendFormat": "{{job}}"
+		}
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "short",
+		  "decimals": 0,
+		  "custom": { "lineWidth": 2 },
+		  "thresholds": {
+			"mode": "absolute",
+			"steps": [
+			  { "color": "red", "value": null },
+			  { "color": "green", "value": 1 }
+			]
+		  }
+		},
+		"overrides": []
+	  },
+	  "options": {
+		"legend": { "displayMode": "list", "placement": "bottom" }
+	  }
+	},
+	{
+	  "id": 16,
+	  "type": "timeseries",
+	  "title": "Platform Scrape Duration",
+	  "description": "Metrics collection latency for infrastructure components",
+	  "gridPos": { "h": 6, "w": 12, "x": 12, "y": 60 },
+	  "datasource": { "type": "prometheus", "uid": "prometheus" },
+	  "targets": [
+		{
+		  "refId": "A",
+		  "expr": "scrape_duration_seconds{job=~\"${platformComponent:regex}\"}",
+		  "legendFormat": "{{job}}"
+		}
+	  ],
+	  "fieldConfig": {
+		"defaults": {
+		  "unit": "s",
+		  "decimals": 3,
+		  "custom": { "lineWidth": 2 }
+		},
+		"overrides": []
+	  },
+	  "options": {
+		"legend": { "displayMode": "list", "placement": "bottom" }
+	  }
 	}
   ]
 }

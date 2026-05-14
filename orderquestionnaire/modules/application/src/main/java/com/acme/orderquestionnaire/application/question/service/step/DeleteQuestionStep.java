@@ -38,7 +38,7 @@ public class DeleteQuestionStep implements Step<DeleteQuestionPipelineContext> {
 
     @Override
     public Result<Void, List<DomainError>> execute(DeleteQuestionPipelineContext context) {
-        return questionCommandOutPort.deleteById(context.id());
+        return questionCommandOutPort.deleteById(context.questionId().value());
     }
 }
 

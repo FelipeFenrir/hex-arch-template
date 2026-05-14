@@ -2,6 +2,7 @@ package com.acme.security.oauth.in.web;
 
 import com.acme.security.user.dto.command.UserRegistrationCommand;
 import com.acme.security.user.port.in.usecase.RegisterUserUseCase;
+import com.acme.security.tenant.erros.TenantDomainErrors;
 import com.acme.shared.TenantContextHolder;
 import com.acme.shared.pattern.result.DomainError;
 import org.springframework.stereotype.Controller;
@@ -27,7 +28,13 @@ public class UserRegistrationController {
                                        Model model) {
 
         // O tenantId vem do contexto (capturado pelo filtro de subdomínio)
-        String tenantId = TenantContextHolder.currentTenant();
+        var tenantResult = TenantContextHolder.currentTenantRequired(TenantDomainErrors::tenantContextMissing);
+        if (tenantResult.isFailure()) {
+            model.addAttribute("error", tenantResult.fold(ignored -> null, DomainError::message));
+            return "register";
+        }
+
+        String tenantId = tenantResult.fold(value -> value, ignored -> null);
 
         var command = new UserRegistrationCommand(
                 username,

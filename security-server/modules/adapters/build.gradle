@@ -6,6 +6,7 @@ group = 'com.acme.security'
 
 dependencies {
     implementation 'com.acme:shared'
+    implementation 'com.acme:observability'
     implementation project(':modules:domain')
     implementation project(':modules:application')
 

@@ -1,0 +1,60 @@
+info:
+  name: Delete questions in batch
+  type: http
+  seq: 6
+  tags:
+    - Question
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/api/v1/questions"
+  body:
+    type: json
+    data: |-
+      {
+        "ids": []
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+examples:
+  - name: 200 Response
+    description: Batch delete processed
+    request:
+      url: "{{baseUrl}}/api/v1/questions"
+      method: DELETE
+      body:
+        type: json
+        data: |-
+          {
+            "ids": []
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: "*/*"
+      body:
+        type: text
+        data: |-
+          {
+            "data": {
+              "requested": 0,
+              "failed": 0,
+              "deleted": 0,
+              "failures": [
+                {
+                  "questionId": "",
+                  "code": "",
+                  "message": "",
+                  "relatedQuestionnaireIds": []
+                }
+              ]
+            }
+          }

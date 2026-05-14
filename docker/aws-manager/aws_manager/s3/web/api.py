@@ -18,6 +18,7 @@ s3_api_blueprint = Blueprint("s3_api", __name__)
 # ---------------------------------------------------------------------------
 
 @s3_api_blueprint.route("/s3/buckets", methods=["GET"])
+@s3_api_blueprint.route("/api/s3/buckets", methods=["GET"])
 def s3_buckets():
     try:
         return jsonify({"buckets": list_available_buckets()})
@@ -26,6 +27,7 @@ def s3_buckets():
 
 
 @s3_api_blueprint.route("/s3/buckets", methods=["POST"])
+@s3_api_blueprint.route("/api/s3/buckets", methods=["POST"])
 def s3_create_bucket_api():
     body = request.json or {}
     bucket_name = str(body.get("bucketName") or "").strip()
@@ -53,6 +55,7 @@ def s3_create_bucket_api():
 
 
 @s3_api_blueprint.route("/s3/buckets/details", methods=["GET"])
+@s3_api_blueprint.route("/api/s3/buckets/details", methods=["GET"])
 def s3_bucket_details():
     bucket_name = (request.args.get("name") or "").strip()
     validation_message = validate_bucket_name(bucket_name)
@@ -67,6 +70,7 @@ def s3_bucket_details():
 
 
 @s3_api_blueprint.route("/s3/buckets/stats", methods=["GET"])
+@s3_api_blueprint.route("/api/s3/buckets/stats", methods=["GET"])
 def s3_bucket_stats():
     bucket_name = (request.args.get("name") or "").strip()
     validation_message = validate_bucket_name(bucket_name)
@@ -104,17 +108,20 @@ def _s3_update_settings_impl():
 
 
 @s3_api_blueprint.route("/s3/buckets", methods=["PUT"])
+@s3_api_blueprint.route("/api/s3/buckets", methods=["PUT"])
 def s3_update_bucket_api():
     return _s3_update_settings_impl()
 
 
 @s3_api_blueprint.route("/s3/buckets/settings", methods=["PUT"])
+@s3_api_blueprint.route("/api/s3/buckets/settings", methods=["PUT"])
 def s3_update_settings_api():
     # Legacy alias to keep existing clients working while moving to REST-like CRUD.
     return _s3_update_settings_impl()
 
 
 @s3_api_blueprint.route("/s3/buckets", methods=["DELETE"])
+@s3_api_blueprint.route("/api/s3/buckets", methods=["DELETE"])
 def s3_delete_bucket_api():
     body = request.json or {}
     bucket_name = str(body.get("bucketName") or "").strip()

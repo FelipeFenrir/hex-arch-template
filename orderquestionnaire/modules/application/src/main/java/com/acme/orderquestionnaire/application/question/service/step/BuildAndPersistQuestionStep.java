@@ -41,9 +41,9 @@ public class BuildAndPersistQuestionStep implements Step<CreateQuestionPipelineC
         var command = context.command();
 
         return QuestionFactory.createNew(
-                        command.id(),
+                        command.questionId(),
                         command.label(),
-                        command.salesItemReferenceCode(),
+                        command.salesItemCode(),
                         context.auditInfo()
                 )
                 .flatMap(builder -> builder.build())

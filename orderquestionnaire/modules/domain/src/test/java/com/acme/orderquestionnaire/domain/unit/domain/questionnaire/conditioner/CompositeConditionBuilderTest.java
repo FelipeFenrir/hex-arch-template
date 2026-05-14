@@ -1,0 +1,43 @@
+package com.acme.orderquestionnaire.domain.unit.domain.questionnaire.conditioner;
+
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.CompositeConditionBuilder;
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.EqualCondition;
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.NumericCondition;
+import com.acme.orderquestionnaire.domain.questionnaire.conditioner.QuestionCondition;
+import com.acme.shared.stereotypes.test.UnitTest;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@UnitTest
+@DisplayName("CompositeConditionBuilder")
+class CompositeConditionBuilderTest {
+
+    @Test
+    @DisplayName("When building with two conditions then builder should return composed condition")
+    void shouldBuildCompositeCondition() {
+        QuestionCondition condition = CompositeConditionBuilder
+                .and(new EqualCondition("q_one", "yes"))
+                .add(new NumericCondition("q_two", 5, ">="))
+                .build();
+
+        assertTrue(condition.isSatisfy(Map.of("q_one", "yes", "q_two", 10)));
+    }
+
+    @Test
+    @DisplayName("When checking builder metadata then should keep operator and size")
+    void shouldExposeBuilderMetadata() {
+        CompositeConditionBuilder builder = CompositeConditionBuilder
+                .or(new EqualCondition("q_one", "yes"))
+                .add(new EqualCondition("q_two", "no"));
+
+        assertEquals(2, builder.size());
+        assertFalse(builder.isAndOperator());
+    }
+}
+

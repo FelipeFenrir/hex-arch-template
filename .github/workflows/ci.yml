@@ -1,0 +1,47 @@
+name: Java CI with Gradle
+
+# define global environment variables
+env:
+  PROJECT_IMAGE_NAME: hex-arch-template
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin' # Boa prática: usar Eclipse Temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3 # Caching automático e eficiente
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build orderquestionnaire
+        run: ./gradlew :orderquestionnaire:build
+
+      - name: Build shared
+        run: ./gradlew :shared:build
+
+      - name: Build observability
+        run: ./gradlew :observability:build
+
+      - name: Build security-server
+        run: ./gradlew :security-server:build
+

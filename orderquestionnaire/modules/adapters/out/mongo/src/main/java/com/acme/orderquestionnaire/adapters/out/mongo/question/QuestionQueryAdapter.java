@@ -110,13 +110,15 @@ public class QuestionQueryAdapter implements QuestionQueryOutPort {
 
     private PageResult<QuestionView> findAllByCursor(HybridPageRequest pageRequest, Query baseQuery) {
         int size = pageRequest.size();
+        List<SortSpec> appliedSort = resolveCursorSort(pageRequest.sort());
+        Sort springSort = MongoQuerySupport.toSpringSort(appliedSort, SORT_FIELD_MAPPINGS, DEFAULT_SORT);
 
         Query query = Query.of(baseQuery)
-                .with(Sort.by(Sort.Order.asc("id")))
+                .with(springSort)
                 .limit(size + 1);
 
         if (pageRequest.cursor() != null && !pageRequest.cursor().isBlank()) {
-            query.addCriteria(Criteria.where("id").gt(pageRequest.cursor()));
+            query.addCriteria(buildCursorCriteria(pageRequest.cursor(), appliedSort));
         }
 
         List<QuestionEntity> fetched = mongoTemplate.find(query, QuestionEntity.class);
@@ -129,8 +131,84 @@ public class QuestionQueryAdapter implements QuestionQueryOutPort {
                 .map(QuestionView::from)
                 .toList();
 
-        List<SortSpec> appliedSort = List.of(new SortSpec("id", SortDirection.ASC));
         return PageResult.forCursor(content, size, nextCursor, hasNext, appliedSort);
+    }
+
+    private List<SortSpec> resolveCursorSort(List<SortSpec> requestedSort) {
+        List<SortSpec> baseSort = requestedSort == null || requestedSort.isEmpty()
+                ? List.of(DEFAULT_SORT)
+                : requestedSort.stream()
+                .map(this::normalizeSortSpec)
+                .toList();
+
+        List<SortSpec> effectiveSort = new ArrayList<>();
+        for (SortSpec sortSpec : baseSort) {
+            boolean alreadyPresent = effectiveSort.stream().anyMatch(existing -> existing.field().equals(sortSpec.field()));
+            if (!alreadyPresent) {
+                effectiveSort.add(sortSpec);
+            }
+        }
+
+        boolean hasIdSort = effectiveSort.stream().anyMatch(spec -> spec.field().equals(DEFAULT_SORT.field()));
+        if (!hasIdSort) {
+            effectiveSort.add(DEFAULT_SORT);
+        }
+
+        return List.copyOf(effectiveSort);
+    }
+
+    private SortSpec normalizeSortSpec(SortSpec sortSpec) {
+        String field = SORT_FIELD_MAPPINGS.containsKey(sortSpec.field()) ? sortSpec.field() : DEFAULT_SORT.field();
+        return new SortSpec(field, sortSpec.direction());
+    }
+
+    private Criteria buildCursorCriteria(String cursor, List<SortSpec> appliedSort) {
+        QuestionEntity anchor = questionQueryRepository.findById(cursor)
+                .orElseThrow(() -> new IllegalArgumentException("cursor must reference an existing question"));
+
+        List<Criteria> cursorBranches = new ArrayList<>();
+        for (int index = 0; index < appliedSort.size(); index++) {
+            List<Criteria> branchCriteria = new ArrayList<>();
+            for (int previousIndex = 0; previousIndex < index; previousIndex++) {
+                SortSpec previousSort = appliedSort.get(previousIndex);
+                branchCriteria.add(Criteria.where(resolveMongoField(previousSort))
+                        .is(extractSortValue(anchor, previousSort.field())));
+            }
+
+            SortSpec currentSort = appliedSort.get(index);
+            branchCriteria.add(buildComparisonCriteria(currentSort, extractSortValue(anchor, currentSort.field())));
+
+            cursorBranches.add(branchCriteria.size() == 1
+                    ? branchCriteria.getFirst()
+                    : new Criteria().andOperator(branchCriteria.toArray(new Criteria[0])));
+        }
+
+        return cursorBranches.size() == 1
+                ? cursorBranches.getFirst()
+                : new Criteria().orOperator(cursorBranches.toArray(new Criteria[0]));
+    }
+
+    private Criteria buildComparisonCriteria(SortSpec sortSpec, Object anchorValue) {
+        Criteria criteria = Criteria.where(resolveMongoField(sortSpec));
+        return sortSpec.direction() == SortDirection.DESC
+                ? criteria.lt(anchorValue)
+                : criteria.gt(anchorValue);
+    }
+
+    private String resolveMongoField(SortSpec sortSpec) {
+        return SORT_FIELD_MAPPINGS.getOrDefault(sortSpec.field(), SORT_FIELD_MAPPINGS.get(DEFAULT_SORT.field()));
+    }
+
+    private Object extractSortValue(QuestionEntity anchor, String sortField) {
+        return switch (sortField) {
+            case "label" -> anchor.label();
+            case "status" -> anchor.status();
+            case "salesItemReferenceCode" -> anchor.salesItemReferenceCode();
+            case "createdAt" -> anchor.auditInfo() == null ? null : anchor.auditInfo().createdAt();
+            case "updatedAt" -> anchor.auditInfo() == null ? null : anchor.auditInfo().updatedAt();
+            case "id" -> anchor.id();
+            default -> anchor.id();
+        };
     }
 
     private Query buildBaseQuery(SearchQuestionByFilter criteria) {
