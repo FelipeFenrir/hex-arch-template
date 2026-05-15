@@ -53,3 +53,22 @@ logging:
     org.springframework.security: INFO
     org.springframework.security.jackson2: INFO
     org.springframework.security.oauth2.server.authorization: INFO
+
+# --- LOCAL BOOTSTRAP SEGURO ---
+# NUNCA deve estar habilitado em produção.
+# Use apenas em ambiente local com --spring.profiles.active=local
+# e certifique-se de que security.bootstrap.environment="local".
+security:
+  bootstrap:
+    # FLAG CRÍTICA: desabilitado por padrão (nunca executar em prod)
+    enabled: false
+    # Proteção contra execução acidental em prod (não bate com 'local')
+    environment: production
+    # Credenciais padrão (sobrescrevidas em application-local.yml)
+    tenant-id: ""
+    tenant-name: ""
+    tenant-slug: ""
+    admin-username: ""
+    admin-password: ""
+    admin-client-id: ""
+    admin-client-secret: ""

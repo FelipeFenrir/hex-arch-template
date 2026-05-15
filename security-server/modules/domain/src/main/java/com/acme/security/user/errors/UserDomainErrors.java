@@ -19,6 +19,10 @@ public final class UserDomainErrors {
         return new DomainError("USERNAME_ALREADY_EXISTS", "Username already exists.");
     }
 
+    public static DomainError invalidUsername() {
+        return new DomainError("INVALID_USERNAME", "Invalid username.");
+    }
+
     public static DomainError userNotFound() {
         return new DomainError("USER_NOT_FOUND", "User not found.");
     }

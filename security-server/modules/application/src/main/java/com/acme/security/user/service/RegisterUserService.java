@@ -37,8 +37,12 @@ public class RegisterUserService implements RegisterUserUseCase {
         // 2. Processa a senha
         final String encodedPassword = passwordEncoder.encode(command.password());
 
+        Set<String> roles = (command.roles() == null || command.roles().isEmpty())
+                ? Set.of("ROLE_USER")
+                : command.roles();
+
         // 3. Cria o usuário
-        User newUser = User.createNew(tenantId, command.username(), encodedPassword, Set.of("ROLE_USER"));
+        User newUser = User.createNew(tenantId, command.username(), encodedPassword, roles);
 
         // 4. Salva
         return Result.success(userCommandOutPort.save(newUser));

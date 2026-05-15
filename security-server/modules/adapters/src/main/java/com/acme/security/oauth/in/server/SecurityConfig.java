@@ -17,9 +17,12 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -41,6 +44,7 @@ import java.util.UUID;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final TenantIdentifierFilter tenantFilter;
@@ -50,9 +54,20 @@ public class SecurityConfig {
                 "tenantFilter must not be null");
     }
 
+    /**
+     * Cria AdminTokenClaimsFilter como @Bean para evitar circular dependency.
+     * Depende de JwtDecoder, que é criado por este mesmo @Configuration.
+     */
+    @Bean
+    public AdminTokenClaimsFilter adminTokenClaimsFilter(JwtDecoder jwtDecoder) {
+        return new AdminTokenClaimsFilter(jwtDecoder);
+    }
+
     @Bean
     @Order(1)
-    public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain authorizationServerSecurityFilterChain(
+            HttpSecurity http,
+            AdminTokenClaimsFilter adminTokenClaimsFilter) throws Exception {
         // Substituindo applyDefaultSecurity por uma configuração explícita e moderna
         OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
                 new OAuth2AuthorizationServerConfigurer();
@@ -68,6 +83,7 @@ public class SecurityConfig {
 
         http
                 .securityMatcher(endpointsMatcher)
+                .addFilterBefore(adminTokenClaimsFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(tenantFilter, WebAsyncManagerIntegrationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
                         .anyRequest().authenticated()
@@ -90,8 +106,11 @@ public class SecurityConfig {
 
     @Bean
     @Order(2)
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain defaultSecurityFilterChain(
+            HttpSecurity http,
+            AdminTokenClaimsFilter adminTokenClaimsFilter) throws Exception {
         http
+                .addFilterBefore(adminTokenClaimsFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(tenantFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
@@ -107,7 +126,9 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.ignoringRequestMatchers(
-                        "/api/v1/clients/**"
+                        "/api/v1/clients/**",
+                        "/api/v1/users/**",
+                        "/api/v1/tenants/**"
                 ))
                 .formLogin(form -> form
                         .loginPage("/login")
@@ -125,17 +146,20 @@ public class SecurityConfig {
 
     // RESOLUÇÃO DOS ERROS DE JWK (RSAKey e JWKSet)
     @Bean
-    public JWKSource<SecurityContext> jwkSource() {
+    public RSAKey rsaKey() {
         KeyPair keyPair = generateRsaKey();
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
         RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
         // Correção do Builder: O nimbusds exige o uso de rsaKey.Builder
-        RSAKey rsaKey = new RSAKey.Builder(publicKey)
+        return new RSAKey.Builder(publicKey)
                 .privateKey(privateKey)
                 .keyID(UUID.randomUUID().toString())
                 .build();
+    }
 
+    @Bean
+    public JWKSource<SecurityContext> jwkSource(RSAKey rsaKey) {
         JWKSet jwkSet = new JWKSet(rsaKey);
         return new ImmutableJWKSet<>(jwkSet);
     }
@@ -156,6 +180,15 @@ public class SecurityConfig {
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {
         return AuthorizationServerSettings.builder().build();
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder(RSAKey rsaKey) {
+        try {
+            return NimbusJwtDecoder.withPublicKey(rsaKey.toRSAPublicKey()).build();
+        } catch (Exception exception) {
+            throw new IllegalStateException("Failed to build JwtDecoder", exception);
+        }
     }
 
     @Bean
