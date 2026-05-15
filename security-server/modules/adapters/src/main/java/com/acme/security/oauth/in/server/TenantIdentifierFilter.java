@@ -35,7 +35,9 @@ public class TenantIdentifierFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String requestUri = request.getRequestURI();
-        return requestUri != null && requestUri.startsWith("/actuator");
+        return requestUri != null
+                && (requestUri.startsWith("/actuator")
+                || requestUri.startsWith("/api/v1/tenants"));
     }
 
     @Override
